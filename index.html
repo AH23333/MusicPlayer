@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>音乐播放器</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1DB954',
+            secondary: '#191414',
+            dark: '#121212',
+            light: '#F8F8F8',
+            sidebar: '#181818',
+            hover: '#282828',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+
+</head>
+
+<body class="min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-white">
+  <!-- 主界面 -->
+  <div id="mainInterface" class="flex h-screen overflow-hidden">
+    <!-- 左侧导航栏 -->
+    <div class="w-64 bg-gray-200 border-r border-gray-300 flex flex-col dark:bg-gray-800 dark:border-gray-700"
+      id="sidebar">
+      <!-- 可拖动调整手柄 -->
+      <div
+        class="absolute top-0 bottom-0 right-0 w-1 bg-gray-300 cursor-col-resize hover:bg-gray-400 transition-colors duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+        id="sidebarResizer"></div>
+      <!-- 用户信息 -->
+      <div class="p-4 border-b border-gray-300 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+            <span class="text-white font-semibold">AH</span>
+          </div>
+          <div>
+            <div class="font-medium">用户信息</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500">用户消息</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 常用功能 -->
+      <div class="p-4">
+        <div class="mb-6">
+          <button id="likeSongsBtn"
+            class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span>我喜欢</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500" id="likeCount">0</span>
+          </button>
+        </div>
+
+        <div class="mb-6">
+          <button id="recentPlayBtn"
+            class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>最近播放</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500" id="recentCount">0</span>
+          </button>
+        </div>
+
+        <div class="mb-6">
+          <button id="localSongsBtn"
+            class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>本地和下载</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500" id="localCount">0</span>
+          </button>
+        </div>
+
+
+      </div>
+
+      <!-- 自定义歌单 -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="p-4 border-t border-gray-300 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-medium">自定义歌单</h3>
+            <button id="createPlaylistBtn" class="text-primary hover:text-primary/80 transition-colors duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
+          <ul id="playlistSidebarList" class="space-y-2">
+            <!-- 自定义歌单动态渲染 -->
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- 顶部搜索栏 -->
+      <div class="p-4 border-b border-gray-700 flex items-center gap-3 dark:border-gray-700">
+        <!-- 返回按钮 -->
+        <button id="backToSearchBtn"
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 text-gray-800 transition-all duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 hidden flex-shrink-0"
+          title="返回">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div class="relative flex-1">
+          <input type="text" id="searchInput"
+            class="w-full bg-gray-100 border border-gray-300 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-800 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+            placeholder="搜索音乐">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5 text-gray-400" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <!-- 搜索历史记录 -->
+          <div id="searchHistoryContainer"
+            class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg mt-1 z-40 hidden dark:bg-gray-800 dark:border-gray-700">
+            <div class="max-h-[200px] overflow-y-auto">
+              <ul id="searchHistoryList" class="divide-y divide-gray-200 dark:divide-gray-700">
+                <!-- 搜索历史动态渲染 -->
+              </ul>
+            </div>
+          </div>
+          <button id="clearSearchBtn"
+            class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hidden"
+            aria-label="清空搜索">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <button id="theme-toggle"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-full transition-all duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+          切换到深色模式
+        </button>
+        <button id="searchBtn"
+          class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-full transition-all duration-200">
+          搜索
+        </button>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <!-- 搜索结果 -->
+        <div id="searchResultsSection" class="mb-8">
+          <h2 class="text-xl font-bold mb-4 dark:text-white">搜索结果</h2>
+          <div class="bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-800">
+            <ul id="searchResultList"
+              class="divide-y divide-gray-700 dark:divide-gray-700 max-h-[700px] overflow-y-auto">
+              <!-- 搜索结果动态渲染 -->
+            </ul>
+            <div class="p-4 text-center">
+              <button id="loadMoreBtn" class="text-primary hover:text-primary/80 transition-colors duration-200 hidden">
+                加载更多
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 歌单详情 -->
+        <div id="playlistDetailSection" class="mb-8 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold dark:text-white" id="playlistDetailTitle">歌单详情</h2>
+            <!-- 新增：本地歌单导入按钮，默认隐藏 -->
+            <button id="importLocalBtn"
+              class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors duration-200 hidden">
+              导入
+            </button>
+          </div>
+
+          <!-- 歌单信息区域 -->
+          <div class="flex items-center mb-6" id="playlistInfoArea">
+            <div class="mr-4" id="playlistCoverContainer">
+              <img id="playlistCoverImg" src="" alt="歌单封面" class="w-20 h-20 rounded-lg shadow-md object-cover">
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold dark:text-white" id="playlistDetailName">歌单名称</h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400" id="playlistSongCount">0首</span>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="playlistDetailDescription">歌单描述</p>
+            </div>
+          </div>
+
+          <div class="bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-800">
+            <ul id="playlistDetailList"
+              class="divide-y divide-gray-700 dark:divide-gray-700 max-h-[700px] overflow-y-auto">
+              <!-- 歌单歌曲动态渲染 -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歌词界面 -->
+  <div id="lyricsInterface" class="fixed inset-0 bg-gray-100 z-45 hidden dark:bg-gray-900">
+    <div class="h-full flex items-center justify-center p-4">
+      <!-- 左侧专辑封面 -->
+      <div class="flex-shrink-0 mr-20 ml-8">
+        <img src="" alt="专辑封面" class="w-96 h-96 object-cover rounded-2xl shadow-2xl" id="lyricsCoverImg">
+      </div>
+      <!-- 右侧歌词 -->
+      <div class="flex-1 max-w-2xl flex flex-col h-3/4">
+        <!-- 歌曲信息 -->
+        <div class="text-center mb-2 flex-shrink-0">
+          <h2 class="text-xl font-bold dark:text-white mb-1 truncate" id="lyricsSongTitle">未播放歌曲</h2>
+          <p class="text-gray-400 dark:text-gray-500 truncate text-sm" id="lyricsSongArtist">--</p>
+        </div>
+        <!-- 歌词区域 -->
+        <div class="flex-1 overflow-y-auto lyrics-scroll-container">
+          <div class="lyrics-area" id="lyricsArea">
+            请选择歌曲播放以显示歌词
+          </div>
+        </div>
+      </div>
+      <!-- 关闭按钮 -->
+      <div class="fixed top-4 right-4">
+        <button id="closeLyricsBtn"
+          class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 播放列表浮窗 -->
+  <div id="playlistFloat"
+    class="fixed top-0 right-0 bottom-24 w-80 bg-gray-200 border-l border-gray-300 shadow-lg z-50 transform translate-x-full transition-transform duration-300 dark:bg-gray-800 dark:border-gray-700">
+    <div class="h-full flex flex-col">
+      <!-- 浮窗标题 -->
+      <div class="p-4 border-b border-gray-300 flex items-center justify-between dark:border-gray-700">
+        <h3 class="font-medium dark:text-white">播放列表</h3>
+        <button id="closePlaylistBtn"
+          class="text-gray-400 hover:text-gray-600 transition-colors duration-200 dark:text-gray-500 dark:hover:text-gray-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <!-- 播放列表内容 -->
+      <div class="flex-1 overflow-y-auto">
+        <ul id="playlistList" class="divide-y divide-gray-300 dark:divide-gray-700">
+          <!-- 播放列表动态渲染 -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 固定底部的播放器 -->
+  <div
+    class="fixed bottom-0 left-0 right-0 bg-gray-200 border-t border-gray-300 shadow-lg z-50 dark:bg-gray-800 dark:border-gray-700">
+    <div class="container mx-auto px-4 py-2">
+      <!-- 音频播放控件 -->
+      <audio id="audioPlayer" controls class="w-full mb-2" preload="metadata">
+        您的浏览器不支持音频播放
+      </audio>
+
+      <div class="flex items-center justify-between">
+        <!-- 正在播放信息 -->
+        <div class="flex items-center flex-1">
+          <img src="" alt="封面" class="rounded shadow-sm cursor-pointer"
+            style="width: 40px; height: 40px; margin-right: 8px;" id="coverImg">
+          <div class="flex-1 min-w-0">
+            <div id="songTitle" class="font-semibold text-sm dark:text-white truncate">未播放歌曲</div>
+            <div id="songArtist" class="text-xs text-gray-400 dark:text-gray-500 truncate">--</div>
+          </div>
+        </div>
+
+        <!-- 播放控制按钮组 -->
+        <div class="flex items-center gap-4">
+          <!-- 上一首/下一首 -->
+          <div class="flex gap-2">
+            <button id="prevBtn"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button id="nextBtn"
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 播放模式选择 -->
+          <div class="play-mode-group flex gap-1">
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+              id="orderBtn" data-mode="order" title="顺序播放">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+              id="reverseBtn" data-mode="reverse" title="倒序播放">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+              id="singleLoopBtn" data-mode="singleLoop" title="单曲循环">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+              id="listLoopBtn" data-mode="listLoop" title="列表循环">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+              id="shuffleBtn" data-mode="shuffle" title="随机播放">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M16 3a2.25 2.25 0 00-2.25-2.25h-5.5A2.25 2.25 0 006 3v5.5A2.25 2.25 0 008.25 11h5.5A2.25 2.25 0 0016 8.75V3zM18.75 6a2.25 2.25 0 00-2.25-2.25H12a2.25 2.25 0 00-2.25 2.25v5.5a2.25 2.25 0 002.25 2.25h5.5A2.25 2.25 0 0018.75 12V6zM12 18a2.25 2.25 0 002.25 2.25h5.5A2.25 2.25 0 0022 19.5v-5.5A2.25 2.25 0 0019.75 12H14.25A2.25 2.25 0 0012 14.25v5.5z" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 播放列表按钮 -->
+          <button id="togglePlaylistBtn"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 ml-2 dark:bg-gray-700 dark:hover:bg-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歌单编辑模态框 -->
+  <div id="playlistEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-4 dark:text-white">创建歌单</h2>
+      <form id="playlistEditForm">
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2 dark:text-white">歌单名称</label>
+          <input type="text" id="playlistName"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="请输入歌单名称" required>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2 dark:text-white">歌单介绍</label>
+          <textarea id="playlistDescription"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="请输入歌单介绍" rows="3"></textarea>
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium mb-2 dark:text-white">歌单封面</label>
+          <div class="flex items-center gap-4">
+            <div id="coverPreview"
+              class="w-24 h-24 bg-gray-200 rounded-md flex items-center justify-center dark:bg-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <input type="file" id="coverUpload" class="hidden" accept="image/*">
+              <label for="coverUpload"
+                class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded cursor-pointer transition-colors duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+                选择封面
+              </label>
+              <p class="text-xs text-gray-500 mt-1 dark:text-gray-400">支持JPG、PNG格式</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button type="button" id="cancelPlaylistBtn"
+            class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded transition-colors duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+            取消
+          </button>
+          <button type="submit" id="savePlaylistBtn"
+            class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded transition-colors duration-200">
+            创建
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 删除确认模态框 -->
+  <div id="deleteConfirmModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+      <h2 class="text-xl font-bold mb-4 dark:text-white">确认删除</h2>
+      <p class="mb-6 dark:text-white" id="deleteConfirmMessage">确定要删除吗？</p>
+      <div class="flex justify-end gap-3">
+        <button type="button" id="cancelDeleteBtn"
+          class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded transition-colors duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+          取消
+        </button>
+        <button type="button" id="confirmDeleteBtn"
+          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors duration-200">
+          确认删除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+  <script>
+      (function () {
+        // 获取元素
+        const toggleBtn = document.getElementById('theme-toggle');
+
+        // 主题管理对象
+        const themeManager = {
+          mode: 'light', // 'light' 或 'dark'
+
+          // 应用主题（更新 DOM 和本地存储）
+          apply(mode) {
+            this.mode = mode;
+            // 操作 html 的 dark 类（Tailwind 暗黑模式基于 .dark 类）
+            document.documentElement.classList.toggle('dark', mode === 'dark');
+            // 更新按钮文字
+            toggleBtn.textContent = mode === 'dark' ? '切换到浅色模式' : '切换到深色模式';
+            // 保存到 localStorage
+            localStorage.setItem('theme-mode', mode);
+          },
+
+          // 切换主题
+          toggle() {
+            const newMode = this.mode === 'light' ? 'dark' : 'light';
+            this.apply(newMode);
+          },
+
+          // 初始化主题
+          init() {
+            // 1. 优先从 localStorage 读取
+            const saved = localStorage.getItem('theme-mode');
+            if (saved === 'dark' || saved === 'light') {
+              this.apply(saved);
+              return;
+            }
+
+            // 2. 监听系统主题
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const systemMode = mediaQuery.matches ? 'dark' : 'light';
+            this.apply(systemMode);
+
+            // 3. 当系统主题变化时，且用户未手动覆盖，则跟随变化
+            mediaQuery.addEventListener('change', (e) => {
+              if (!localStorage.getItem('theme-mode')) {
+                this.apply(e.matches ? 'dark' : 'light');
+              }
+            });
+          }
+        };
+
+        // 绑定点击事件
+        toggleBtn.addEventListener('click', () => themeManager.toggle());
+
+        // 启动初始化
+        themeManager.init();
+      })();
+  </script>
+</body>
+
+</html>
