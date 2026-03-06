@@ -1011,6 +1011,9 @@ window.onload = async () => {
   function showPlaylistDetail(playlist) {
     currentPlaylist = playlist
 
+    // 显示返回按钮
+    backToSearchBtn.classList.remove("hidden")
+
     // 处理顶部标题：仅在“我喜欢”、“最近播放”和“本地和下载”时显示，其他情况隐藏
     if (
       playlist.id === "liked" ||
@@ -1362,6 +1365,8 @@ window.onload = async () => {
   // 返回搜索结果页面
   function backToSearch() {
     currentPlaylist = null
+    // 隐藏返回按钮
+    backToSearchBtn.classList.add("hidden")
     searchResultsSection.classList.remove("hidden")
     playlistDetailSection.classList.add("hidden")
     // 添加淡入动画
