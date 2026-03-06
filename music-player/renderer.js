@@ -4,67 +4,65 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     const { API_CONFIGS, fetchViaProxy } = window.utils;
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
-    async function getAvailableSongUrl(songId) {
-      const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-      try {
-        const data = await fetchViaProxy(url);
-        if (data) {
-          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
-          if (data.url) return data.url;
-          if (data.data && data.data.url) return data.data.url;
-          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
-        }
-      } catch (err) {
-        console.error('获取播放链接失败', err);
-      }
-      return '';
-    }
+    // async function getAvailableSongUrl(songId) {
+    //   const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+    //   try {
+    //     const data = await fetchViaProxy(url);
+    //     if (data) {
+    //       // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+    //       if (data.url) return data.url;
+    //       if (data.data && data.data.url) return data.data.url;
+    //       if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+    //     }
+    //   } catch (err) {
+    //     console.error('获取播放链接失败', err);
+    //   }
+    //   return '';
+    // }
 
     // 模拟 ElectronAPI
     window.ElectronAPI = {
-        searchMusic: async (keyword, offset) => {
-            try {
-                const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20`;
-                let data = await fetchViaProxy(searchUrl);
-                let songs = [];
-                if (data?.result?.songs) {
-                    songs = data.result.songs.map(song => ({
-                        id: song.id,
-                        name: song.name,
-                        artist: song.ar?.map(a => a.name).join(',') || '未知歌手',
-                        album: song.al?.name || '未知专辑',
-                        coverUrl: song.al?.picUrl || '',
-                        songId: song.id,
-                        url: ''
-                    }));
-                } else {
-                    // 尝试备用接口
-                    const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
-                    data = await fetchViaProxy(fallbackUrl);
-                    if (Array.isArray(data)) {
-                        songs = data.map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            artist: item.artist,
-                            album: item.album,
-                            coverUrl: item.pic,
-                            songId: item.id,
-                            url: item.url || ''
-                        }));
-                    }
-                }
-                // 补充播放链接
-                for (let song of songs) {
-                    if (!song.url) {
-                        song.url = await getAvailableSongUrl(song.id);
-                    }
-                }
-                return songs;
-            } catch (err) {
-                console.error('搜索失败', err);
-                return [];
+searchMusic: async (keyword, offset) => {
+    try {
+        // 1. 优先使用 meting 备用接口搜索（它可能直接返回播放链接）
+        const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
+        let data = await fetchViaProxy(fallbackUrl);
+        let songs = [];
+
+        if (Array.isArray(data)) {
+            // meting 接口返回数组，其中可能包含 url 字段
+            songs = data.map(item => ({
+                id: item.id,
+                name: item.name,
+                artist: item.artist,
+                album: item.album,
+                coverUrl: item.pic,
+                songId: item.id,
+                url: item.url || `https://music.163.com/song/media/outer/url?id=${item.id}.mp3` // 后备网易云外链
+            }));
+        } else {
+            // 2. 如果 meting 失败，尝试网易云 API
+            const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20`;
+            data = await fetchViaProxy(searchUrl);
+            if (data?.result?.songs) {
+                songs = data.result.songs.map(song => ({
+                    id: song.id,
+                    name: song.name,
+                    artist: song.ar?.map(a => a.name).join(',') || '未知歌手',
+                    album: song.al?.name || '未知专辑',
+                    coverUrl: song.al?.picUrl || '',
+                    songId: song.id,
+                    url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3` // 网易云外链
+                }));
             }
-        },
+        }
+
+        return songs;
+    } catch (err) {
+        console.error('搜索失败', err);
+        return [];
+    }
+},
         fetchLyrics: async (songId) => {
             try {
                 const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
