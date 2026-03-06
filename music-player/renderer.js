@@ -45,9 +45,9 @@ const fetchViaProxy = async (targetUrl) => {
   }
 };
 
-// // netlify代理
+// // netlify代理（已关闭）
 // const YOUR_PROXY_URL = 'https://sage-puffpuff-3a7485.netlify.app/.netlify/functions/proxy';
-// // netlify代理
+// // netlify代理（已关闭）
 // const fetchViaProxy = async (targetUrl) => {
 //   // ✅ 核心修改：通过?url=xxx传递目标URL（解决参数丢失）
 //   const encodedUrl = encodeURIComponent(targetUrl);
@@ -85,21 +85,43 @@ const fetchViaProxy = async (targetUrl) => {
 // };
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
-    async function getAvailableSongUrl(songId) {
-      const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-      try {
-        const data = await fetchViaProxy(url);
-        if (data) {
-          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
-          if (data.url) return data.url;
-          if (data.data && data.data.url) return data.data.url;
-          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+    // async function getAvailableSongUrl(songId) {
+    //   const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+    //   try {
+    //     const data = await fetchViaProxy(url);
+    //     if (data) {
+    //       // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+    //       if (data.url) return data.url;
+    //       if (data.data && data.data.url) return data.data.url;
+    //       if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+    //     }
+    //   } catch (err) {
+    //     console.error('获取播放链接失败', err);
+    //   }
+    //   return '';
+    // }
+
+async function getAvailableSongUrl(songId) {
+  const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+  try {
+    const data = await fetchViaProxy(url);
+    if (data) {
+      let playUrl = null;
+      if (data.url) playUrl = data.url;
+      else if (data.data?.url) playUrl = data.data.url;
+      if (playUrl) {
+        if (playUrl.startsWith('obj/')) {
+          playUrl = 'https://api.qijieya.cn/' + playUrl;
         }
-      } catch (err) {
-        console.error('获取播放链接失败', err);
+        return playUrl;
       }
-      return '';
     }
+  } catch (err) {
+    console.error('获取播放链接失败', err);
+  }
+  // 兜底：返回网易云外链
+  return `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+}
 
     // 模拟 ElectronAPI
     window.ElectronAPI = {
@@ -145,18 +167,22 @@ searchMusic: async (keyword, offset) => {
         return [];
     }
 },
-        fetchLyrics: async (songId) => {
-            try {
-                const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
-                const data = await fetchViaProxy(lyricUrl);
-                return {
-                    lrc: data?.lrc?.lyric || data?.lyric || '暂无歌词',
-                    tlrc: data?.tlyric?.lyric || ''
-                };
-            } catch {
-                return { lrc: '歌词加载失败' };
-            }
-        },
+fetchLyrics: async (songId) => {
+  // 1. 先用主歌词 API 尝试
+  const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
+  let data = await fetchViaProxy(lyricUrl);
+  
+  // 2. 如果失败，尝试备用歌词接口
+  if (!data) {
+    const fallbackUrl = `${API_CONFIGS.metingFallback.url}?type=lyric&id=${songId}`;
+    data = await fetchViaProxy(fallbackUrl);
+  }
+  
+  return {
+    lrc: data?.lrc?.lyric || data?.lyric || '暂无歌词',
+    tlrc: data?.tlyric?.lyric || ''
+  };
+},
         // 其他方法返回空数组或空对象（保持原有结构）
         readPlaylist: async () => [],
         savePlaylist: async () => {},
