@@ -25,7 +25,46 @@ exports.API_CONFIGS = {
   neteaseAudioUrl: { url: "https://api.qijieya.cn/meting/" },
 };
 
-// CORS代理请求
+// CORS代理请求（本地开发请使用这个）
+// exports.fetchViaProxy = async (targetUrl) => {
+//   logger.info(`发起请求：${targetUrl}`);
+//   let text;
+
+//   // 直连请求
+//   try {
+//     logger.info(`尝试直连请求：${targetUrl}`);
+//     const response = await axios.get(targetUrl, {
+//       headers: {
+//         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+//         Referer: "https://music.163.com/",
+//         Origin: "https://music.163.com/",
+//       },
+//       timeout: 10000,
+//     });
+//     if (response.status !== 200) throw new Error(`直连失败，状态码：${response.status}`);
+//     text = JSON.stringify(response.data);
+//     logger.info(`直连请求成功，返回数据长度：${text.length}`);
+//     return JSON.parse(text);
+//   } catch (directErr) {
+//     // 代理请求
+//     logger.warn(`直连失败（原因：${directErr.message}），尝试CORS代理`);
+//     try {
+//       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+//       logger.info(`代理请求地址：${proxyUrl}`);
+//       const proxyRes = await axios.get(proxyUrl, { timeout: 15000 });
+//       if (proxyRes.status !== 200) throw new Error(`代理失败，状态码：${proxyRes.status}`);
+//       text = proxyRes.data;
+//       const result = typeof text === "string" ? JSON.parse(text) : text;
+//       logger.info(`代理请求成功，返回数据长度：${JSON.stringify(result).length}`);
+//       return result;
+//     } catch (proxyErr) {
+//       logger.error(`直连+代理都失败：${proxyErr.message}，目标地址：${targetUrl}`);
+//       return null;
+//     }
+//   }
+// };
+
+//为了适配浏览器网页部署而使用的修改的函数，请注意本地开发不要（不建议）使用这个
 exports.fetchViaProxy = async (targetUrl) => {
   logger.info(`发起请求：${targetUrl}`);
   let text;
@@ -33,12 +72,19 @@ exports.fetchViaProxy = async (targetUrl) => {
   // 直连请求
   try {
     logger.info(`尝试直连请求：${targetUrl}`);
+    // 新增：条件移除敏感头
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      Referer: "https://music.163.com/",
+      Origin: "https://music.163.com/",
+    };
+    if (typeof window !== 'undefined') {
+      delete headers["User-Agent"];
+      delete headers["Referer"];
+      delete headers["Origin"];
+    }
     const response = await axios.get(targetUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        Referer: "https://music.163.com/",
-        Origin: "https://music.163.com/",
-      },
+      headers: headers,
       timeout: 10000,
     });
     if (response.status !== 200) throw new Error(`直连失败，状态码：${response.status}`);
@@ -46,7 +92,7 @@ exports.fetchViaProxy = async (targetUrl) => {
     logger.info(`直连请求成功，返回数据长度：${text.length}`);
     return JSON.parse(text);
   } catch (directErr) {
-    // 代理请求
+    // 代理请求（保持不变）
     logger.warn(`直连失败（原因：${directErr.message}），尝试CORS代理`);
     try {
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
