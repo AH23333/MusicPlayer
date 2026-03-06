@@ -3,7 +3,10 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     // 使用 utils.js 中已经定义好的 API_CONFIGS 和 fetchViaProxy
     const { API_CONFIGS } = window.utils;
 
-        // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理
+    // deno代理 
+    const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
+
+    // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理    
     // const fetchViaProxy = async (targetUrl) => {
     //     // 1. 尝试直连
     //     try {
@@ -25,64 +28,38 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     //     }
     // };
 
-    // 你的专属代理地址
+    // deno代理
+    // const fetchViaProxy = async (targetUrl) => {
+    //   try {
+    //     const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
+    //     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    //     return await response.json();
+    //   } catch (err) {
+    //     console.error('代理请求失败', err);
+    //     return null;
+    //   }
+    // };
 
-// cloudflare代理
-// const YOUR_PROXY_URL = 'https://winter-darkness-98ab.3469726343.workers.dev/';
-// cloudflare代理的const fetchViaProxy和deno的const fetchViaProxy一样
-
-// deno代理 
-const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
-// deno代理
-const fetchViaProxy = async (targetUrl) => {
-  try {
-    const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (err) {
-    console.error('代理请求失败', err);
-    return null;
-  }
-};
-
-// // netlify代理（已关闭）
-// const YOUR_PROXY_URL = 'https://sage-puffpuff-3a7485.netlify.app/.netlify/functions/proxy';
-// // netlify代理（已关闭）
-// const fetchViaProxy = async (targetUrl) => {
-//   // ✅ 核心修改：通过?url=xxx传递目标URL（解决参数丢失）
-//   const encodedUrl = encodeURIComponent(targetUrl);
-//   const url = `${YOUR_PROXY_URL}?url=${encodedUrl}`;
-  
-//   try {
-//     const response = await fetch(url);
-    
-//     // ✅ 新增：先获取文本，再解析JSON（避免HTML解析报错）
-//     const responseText = await response.text();
-//     console.log('代理响应内容:', responseText); // 调试用：查看实际返回
-    
-//     if (!response.ok) {
-//       // 解析错误响应（如果是JSON）
-//       let errorData = {};
-//       try {
-//         errorData = JSON.parse(responseText);
-//       } catch (e) {
-//         errorData = { error: `HTTP ${response.status}`, message: responseText };
-//       }
-//       throw new Error(errorData.error || `请求失败：${response.status}`);
-//     }
-    
-//     // 尝试解析JSON
-//     try {
-//       return JSON.parse(responseText);
-//     } catch (e) {
-//       console.error('JSON解析失败，响应内容:', responseText);
-//       throw new Error('返回数据不是有效的JSON格式');
-//     }
-//   } catch (err) {
-//     console.error('代理请求失败', err);
-//     return null;
-//   }
-// };
+    // deno代理
+    const fetchViaProxy = async (targetUrl) => {
+      try {
+        const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (err) {
+        // 直连失败，尝试 allorigins 代理
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+          const text = await proxyRes.text();
+          return JSON.parse(text);
+        } catch (proxyErr) {
+          console.error('代理请求失败', proxyErr);
+          return null;
+        }
+      }
+    };
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
     async function getAvailableSongUrl(songId) {
