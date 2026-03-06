@@ -1,3 +1,16 @@
+// ========== 仅浏览器环境下的兼容补丁（本地开发时请注释掉这部分代码） ==========
+if (typeof window !== 'undefined') {
+  // 1. 浏览器环境模拟 require 函数（让原有 require 不报错）
+  window.require = function(moduleName) {
+    // 只处理 axios（核心依赖），其他模块（如 logger）返回空对象
+    if (moduleName === 'axios') return window.axios;
+    return { info: ()=>{}, warn: ()=>{}, error: ()=>{} }; // logger 空实现，不输出任何日志
+  };
+  // 2. 浏览器环境把 exports 挂到 window 上，方便调用
+  window.utils = exports;
+}
+// =========================================================================
+
 // utils.js - 日志改为文件输出
 const axios = require("axios")
 const logger = require("./logger") // 引入日志工具
@@ -148,3 +161,4 @@ exports.fetchLyricsById = async (songId) => {
     metadata: metadata,
   }
 }
+
