@@ -26,7 +26,7 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     // };
 
     // 你的专属代理地址
-const YOUR_PROXY_URL = 'https://winter-darkness-98ab.3469726343.workers.dev/';
+const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
 
 const fetchViaProxy = async (targetUrl) => {
   try {
