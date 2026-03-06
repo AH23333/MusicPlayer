@@ -1,13 +1,12 @@
 // ========== 仅浏览器环境下的兼容补丁（本地开发时请注释掉这部分代码） ==========
 if (typeof window !== 'undefined') {
-  // 1. 浏览器环境模拟 require 函数（让原有 require 不报错）
+  // 1. 浏览器环境模拟 require 函数
   window.require = function(moduleName) {
-    // 只处理 axios（核心依赖），其他模块（如 logger）返回空对象
     if (moduleName === 'axios') return window.axios;
-    return { info: ()=>{}, warn: ()=>{}, error: ()=>{} }; // logger 空实现，不输出任何日志
+    return { info: ()=>{}, warn: ()=>{}, error: ()=>{} };
   };
-  // 2. 浏览器环境把 exports 挂到 window 上，方便调用
-  window.utils = exports;
+  // 2. 创建一个 exports 对象，后续代码会向它添加属性
+  window.exports = {};
 }
 // =========================================================================
 
@@ -162,3 +161,9 @@ exports.fetchLyricsById = async (songId) => {
   }
 }
 
+// ========== 仅浏览器环境下的兼容补丁（本地开发时请注释掉这部分代码） ==========
+// ========== 浏览器环境挂载到 window.utils ==========
+if (typeof window !== 'undefined') {
+  window.utils = exports;
+}
+// =========================================================================
