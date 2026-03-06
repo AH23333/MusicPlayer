@@ -116,11 +116,16 @@ npm run make
 - 确保所有测试都通过
 - 欢迎提供测试用例
 
-## 许可
+## 开发指南
 
-本项目采用MIT许可协议。您可以在遵守协议的前提下自由使用、修改和分发本项目的代码。
-
-详细信息请参阅 [LICENSE](LICENSE) 文件。
+- 由于项目作者太菜，在进行网页端部署时对项目进行了巨多修改，导致本地开发者难以对本项目二次开发
+- 故在进行二次开发前，请仔细参考以下条目对项目结构进行删改，以便于开发
+- 以下为适配本地开发的更改明细：
+- 删除netlify文件夹及其所有子文件，删除netlify.toml
+- 删除renderer.js文件头部的“浏览器环境兼容补丁”部分
+- 删除utils.js文件头部的“仅浏览器环境下的兼容补丁”部分；使用已被注释掉的CORS代理请求函数exports.fetchViaProxy，删除第二个exports.fetchViaProxy函数；删除utils.js文件尾部的“浏览器环境挂载”部分
+- 删除index.html文件尾部的前两个script模块“<script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>”与“<script src="./music-player/utils.js"></script>”
+- 未完待续~
 
 ## 参考项目
 
