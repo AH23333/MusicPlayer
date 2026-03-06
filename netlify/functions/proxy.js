@@ -13,29 +13,40 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 从路径中提取目标 URL（例如 /.netlify/functions/proxy/https://api.qijieya.cn/...）
-    const targetUrl = decodeURIComponent(event.path.replace('/.netlify/functions/proxy/', ''));
+    // ✅ 核心修改：从query参数获取目标URL（解决?&参数丢失问题）
+    const { url } = event.queryStringParameters || {};
     
-    if (!targetUrl || !targetUrl.startsWith('http')) {
+    // 校验URL
+    if (!url || !url.startsWith('http')) {
       return {
         statusCode: 400,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Missing or invalid target URL' }),
+        headers: { 
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          error: 'Missing or invalid "url" parameter',
+          tip: '请通过 ?url=xxx 传递目标API地址' 
+        }),
       };
     }
 
-    // 转发请求
+    // 解码URL（处理中文/特殊字符）
+    const targetUrl = decodeURIComponent(url);
+
+    // 转发请求到目标API
     const response = await fetch(targetUrl, {
       method: event.httpMethod,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Referer': 'https://music.163.com/',
+        'Content-Type': 'application/json',
       },
-      body: event.body ? event.body : undefined,
+      body: event.httpMethod === 'POST' ? event.body : undefined,
     });
 
+    // 获取响应内容并返回
     const body = await response.text();
-
     return {
       statusCode: response.status,
       headers: {
@@ -45,11 +56,17 @@ exports.handler = async (event) => {
       body,
     };
   } catch (error) {
-    console.error('Proxy error:', error); // 日志输出，方便调试
+    console.error('Proxy 错误详情:', error);
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: error.message }),
+      headers: { 
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        error: '代理请求失败', 
+        message: error.message 
+      }),
     };
   }
 };
