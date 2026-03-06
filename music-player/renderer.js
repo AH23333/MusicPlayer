@@ -4,26 +4,40 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     const { API_CONFIGS } = window.utils;
 
         // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理
-    const fetchViaProxy = async (targetUrl) => {
-        // 1. 尝试直连
-        try {
-            const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (directErr) {
-            // 2. 直连失败，尝试 allorigins 代理
-            try {
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-                const proxyRes = await fetch(proxyUrl);
-                if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
-                const text = await proxyRes.text();
-                return JSON.parse(text);
-            } catch (proxyErr) {
-                console.error('代理请求也失败', proxyErr);
-                return null;
-            }
-        }
-    };
+    // const fetchViaProxy = async (targetUrl) => {
+    //     // 1. 尝试直连
+    //     try {
+    //         const response = await fetch(targetUrl);
+    //         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    //         return await response.json();
+    //     } catch (directErr) {
+    //         // 2. 直连失败，尝试 allorigins 代理
+    //         try {
+    //             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+    //             const proxyRes = await fetch(proxyUrl);
+    //             if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+    //             const text = await proxyRes.text();
+    //             return JSON.parse(text);
+    //         } catch (proxyErr) {
+    //             console.error('代理请求也失败', proxyErr);
+    //             return null;
+    //         }
+    //     }
+    // };
+
+    // 你的专属代理地址
+const YOUR_PROXY_URL = 'https://winter-darkness-98ab.3469726343.workers.dev/';
+
+const fetchViaProxy = async (targetUrl) => {
+  try {
+    const response = await fetch(YOUR_PROXY_URL + targetUrl);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (err) {
+    console.error('代理请求失败', err);
+    return null;
+  }
+};
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
     async function getAvailableSongUrl(songId) {
