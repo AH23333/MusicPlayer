@@ -132,10 +132,22 @@ npm run make
 ```
   <link href="./style.css" rel="stylesheet">
 ```
+删除头部“启动提示浮窗”div块
 - 将index.html文件尾部的
 ```
   <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
   <script src="./music-player/utils.js"></script>
+  <script>
+    // 关闭浮窗逻辑
+    document.getElementById('dismiss-startup').addEventListener('click', function() {
+      const overlay = document.getElementById('startup-overlay');
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300); // 等待过渡动画结束
+    });
+  </script>
+
   <script src="./music-player/renderer.js"></script>
 ```
 修改为
@@ -143,6 +155,7 @@ npm run make
   <script src="./renderer.js"></script>
 ```
 - 将index.html移入music-player文件夹内
+
 - 未完待续~
 
 ## 参考项目
