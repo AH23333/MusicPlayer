@@ -1,60 +1,39 @@
 // ========== 浏览器环境兼容补丁（新增，本地开发请注释掉） ==========
 if (typeof window !== 'undefined' && !window.ElectronAPI) {
-    // 1. 直接定义你 utils.js 中的所有 API 链接（复制你实际的链接）
-    const API_CONFIGS = {
-        // 替换成你 utils.js 中实际可用的链接！！！
-        neteaseSearch: { url: 'https://music.163.com/weapi/cloudsearch/get/web?csrf_token=' },
-        neteaseLyric: { url: 'https://music.163.com/weapi/song/lyric?csrf_token=' },
-        neteaseAudioUrl: { url: 'https://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=' },
-        metingFallback: { url: 'https://api.injahow.cn/meting/api?server=netease' }, // 备用接口
-        // 可以继续添加你 utils.js 中的其他接口
-    };
+    // 使用 utils.js 中已经定义好的 API_CONFIGS 和 fetchViaProxy
+    const { API_CONFIGS, fetchViaProxy } = window.utils;
 
-    // 2. 复刻你 utils.js 中的 fetchViaProxy 函数（核心请求逻辑）
-    async function fetchViaProxy(url, method = 'GET', data = {}) {
-        try {
-            const options = {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Referer': 'https://music.163.com/',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    // 获取可用播放链接（复用 utils.js 的逻辑）
+    async function getAvailableSongUrl(songId) {
+        const urlSources = [
+            `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`,
+            `${API_CONFIGS.neteaseAudioUrl}?id=${songId}`,
+            `https://music.163.com/song/media/outer/url?id=${songId}.mp3`
+        ];
+        for (let url of urlSources) {
+            try {
+                const data = await fetchViaProxy(url);
+                if (data && (data.url || data.data)) {
+                    const playUrl = data.url || data.data?.url;
+                    if (playUrl && playUrl.trim() && !playUrl.includes('404')) {
+                        return playUrl;
+                    }
                 }
-            };
-
-            if (method === 'POST') {
-                options.body = JSON.stringify(data);
+            } catch (err) {
+                continue;
             }
-
-            const response = await fetch(url, options);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            return await response.json();
-        } catch (err) {
-            console.error("请求失败:", url, err);
-            return null;
         }
+        return '';
     }
 
-    // 3. 模拟 ElectronAPI（完全独立，不依赖任何外部变量）
+    // 模拟 ElectronAPI
     window.ElectronAPI = {
-        // 搜索功能（使用上面定义的 API_CONFIGS 和 fetchViaProxy）
         searchMusic: async (keyword, offset) => {
             try {
-                // 1. 优先尝试网易云主接口
-                let searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20&type=1`;
+                const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20`;
                 let data = await fetchViaProxy(searchUrl);
-                
-                // 2. 主接口失败则用备用接口
-                if (!data || !data.result || !data.result.songs) {
-                    searchUrl = `${API_CONFIGS.metingFallback.url}&type=search&keyword=${encodeURIComponent(keyword)}&page=${Math.floor(offset/20)+1}&limit=20`;
-                    data = await fetchViaProxy(searchUrl);
-                }
-
-                // 3. 统一格式化歌曲数据
                 let songs = [];
-                if (data && data.result && data.result.songs) {
-                    // 网易云接口格式
+                if (data?.result?.songs) {
                     songs = data.result.songs.map(song => ({
                         id: song.id,
                         name: song.name,
@@ -62,64 +41,55 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
                         album: song.al?.name || '未知专辑',
                         coverUrl: song.al?.picUrl || '',
                         songId: song.id,
-                        url: '' // 先留空，后续获取播放链接
+                        url: ''
                     }));
-                } else if (data && data.data) {
-                    // 备用接口格式
-                    songs = data.data.map(song => ({
-                        id: song.id,
-                        name: song.name,
-                        artist: song.artist,
-                        album: song.album,
-                        coverUrl: song.pic,
-                        songId: song.id,
-                        url: song.url || ''
-                    }));
+                } else {
+                    // 尝试备用接口
+                    const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
+                    data = await fetchViaProxy(fallbackUrl);
+                    if (Array.isArray(data)) {
+                        songs = data.map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            artist: item.artist,
+                            album: item.album,
+                            coverUrl: item.pic,
+                            songId: item.id,
+                            url: item.url || ''
+                        }));
+                    }
                 }
-
-                // 4. 为每首歌获取可用播放链接（多接口尝试）
+                // 补充播放链接
                 for (let song of songs) {
                     if (!song.url) {
                         song.url = await getAvailableSongUrl(song.id);
                     }
                 }
-
                 return songs;
             } catch (err) {
-                console.error("搜索失败:", err);
-                alert("搜索失败，请检查API链接是否可用");
+                console.error('搜索失败', err);
                 return [];
             }
         },
-
-        // 歌词功能
         fetchLyrics: async (songId) => {
             try {
-                // 1. 优先尝试网易云歌词接口
-                let lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
-                let data = await fetchViaProxy(lyricUrl);
-                
-                // 2. 备用歌词接口
-                if (!data || !data.lrc) {
-                    lyricUrl = `${API_CONFIGS.metingFallback.url}&type=lyric&id=${songId}`;
-                    data = await fetchViaProxy(lyricUrl);
-                }
-                
-                return { 
-                    lrc: data.lrc?.lyric || data.lyric || "暂无歌词",
-                    tlrc: data.tlyric?.lyric || data.tlyric || ""
+                const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
+                const data = await fetchViaProxy(lyricUrl);
+                return {
+                    lrc: data?.lrc?.lyric || data?.lyric || '暂无歌词',
+                    tlrc: data?.tlyric?.lyric || ''
                 };
-            } catch (err) {
-                return { lrc: "歌词加载失败" };
+            } catch {
+                return { lrc: '歌词加载失败' };
             }
         },
-
-        // 其他 ElectronAPI 方法（全部返回空，避免报错）
-        savePlaylist: () => {},
+        // 其他方法返回空数组或空对象（保持原有结构）
         readPlaylist: async () => [],
+        savePlaylist: async () => {},
         readLikedSongs: async () => [],
         saveLikedSongs: async () => {},
         readCustomPlaylists: async () => [],
+        saveCustomPlaylists: async () => {},
         readLatestPlayed: async () => [],
         saveLatestPlayed: async () => {},
         readDIYPlaylists: async () => [],
@@ -130,36 +100,8 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
         openFileDialog: async () => [],
         importLocalSongs: async () => ({ success: false }),
         deleteLocalSong: async () => ({ success: false }),
-        savePlaylistCover: async () => ({ success: false }),
+        savePlaylistCover: async () => ({ success: false })
     };
-
-    // 4. 获取可用播放链接（多接口尝试，解决网易云外链失效）
-    async function getAvailableSongUrl(songId) {
-        // 定义你 utils.js 中的所有备用播放链接（按优先级排序）
-        const urlSources = [
-            `${API_CONFIGS.metingFallback.url}&type=url&id=${songId}`, // 优先用备用接口
-            `${API_CONFIGS.neteaseAudioUrl}?id=${songId}`,            // 网易云音频接口
-            `https://music.163.com/song/media/outer/url?id=${songId}.mp3` // 最后兜底
-        ];
-
-        // 依次尝试每个链接源
-        for (let url of urlSources) {
-            try {
-                const data = await fetchViaProxy(url);
-                if (data && (data.url || data.data)) {
-                    const playUrl = data.url || data.data.url;
-                    // 简单验证链接有效性
-                    if (playUrl && playUrl.trim() && !playUrl.includes('404')) {
-                        return playUrl;
-                    }
-                }
-            } catch (err) {
-                continue; // 这个接口失败，试下一个
-            }
-        }
-
-        return ''; // 所有接口都失败
-    }
 }
 //=======================================================================}
 
