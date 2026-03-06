@@ -29,16 +29,18 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
 // const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
 const YOUR_PROXY_URL = 'https://sage-puffpuff-3a7485.netlify.app/.netlify/functions/proxy/';
 
-const fetchViaProxy = async (targetUrl) => {
-  try {
-    const response = await fetch(YOUR_PROXY_URL + targetUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (err) {
-    console.error('代理请求失败', err);
-    return null;
-  }
-};
+    const fetchViaProxy = async (targetUrl) => {
+      const encoded = encodeURIComponent(targetUrl);
+      const url = YOUR_PROXY_URL + encoded;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (err) {
+        console.error('代理请求失败', err);
+        return null;
+      }
+    };
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
     async function getAvailableSongUrl(songId) {
