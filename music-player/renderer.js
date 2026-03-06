@@ -24,13 +24,13 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     window.ElectronAPI = {
 searchMusic: async (keyword, offset) => {
     try {
-        // 1. 优先使用 meting 备用接口搜索（它可能直接返回播放链接）
+        // 1. 优先使用 meting 备用接口搜索
         const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
         let data = await fetchViaProxy(fallbackUrl);
         let songs = [];
 
         if (Array.isArray(data)) {
-            // meting 接口返回数组，其中可能包含 url 字段
+            // meting 接口返回数组
             songs = data.map(item => ({
                 id: item.id,
                 name: item.name,
@@ -38,7 +38,8 @@ searchMusic: async (keyword, offset) => {
                 album: item.album,
                 coverUrl: item.pic,
                 songId: item.id,
-                url: item.url || `https://music.163.com/song/media/outer/url?id=${item.id}.mp3` // 后备网易云外链
+                // 直接使用网易云外链，无需额外请求
+                url: `https://music.163.com/song/media/outer/url?id=${item.id}.mp3`
             }));
         } else {
             // 2. 如果 meting 失败，尝试网易云 API
@@ -52,7 +53,7 @@ searchMusic: async (keyword, offset) => {
                     album: song.al?.name || '未知专辑',
                     coverUrl: song.al?.picUrl || '',
                     songId: song.id,
-                    url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3` // 网易云外链
+                    url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`
                 }));
             }
         }
