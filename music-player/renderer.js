@@ -4,23 +4,21 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     const { API_CONFIGS, fetchViaProxy } = window.utils;
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
-  async function getAvailableSongUrl(songId) {
-      // 只使用 meting 备用接口获取播放链接（它最稳定）
+    async function getAvailableSongUrl(songId) {
       const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
       try {
-          const data = await fetchViaProxy(url);
-          console.log('🎵 播放链接返回数据:', data);  // 查看实际数据结构
-          if (data) {
-              // 兼容多种返回格式
-              if (data.url) return data.url;
-              if (data.data && data.data.url) return data.data.url;
-              if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
-          }
+        const data = await fetchViaProxy(url);
+        if (data) {
+          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+          if (data.url) return data.url;
+          if (data.data && data.data.url) return data.data.url;
+          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+        }
       } catch (err) {
-          console.error('❌ 获取播放链接失败:', err);
+        console.error('获取播放链接失败', err);
       }
-      return '';  // 失败返回空字符串
-  }
+      return '';
+    }
 
     // 模拟 ElectronAPI
     window.ElectronAPI = {
