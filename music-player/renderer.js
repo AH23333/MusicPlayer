@@ -1,24 +1,46 @@
 // ========== 浏览器环境兼容补丁（新增，本地开发请注释掉） ==========
 if (typeof window !== 'undefined' && !window.ElectronAPI) {
     // 使用 utils.js 中已经定义好的 API_CONFIGS 和 fetchViaProxy
-    const { API_CONFIGS, fetchViaProxy } = window.utils;
+    const { API_CONFIGS } = window.utils;
+
+        // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理
+    const fetchViaProxy = async (targetUrl) => {
+        // 1. 尝试直连
+        try {
+            const response = await fetch(targetUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (directErr) {
+            // 2. 直连失败，尝试 allorigins 代理
+            try {
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                const proxyRes = await fetch(proxyUrl);
+                if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+                const text = await proxyRes.text();
+                return JSON.parse(text);
+            } catch (proxyErr) {
+                console.error('代理请求也失败', proxyErr);
+                return null;
+            }
+        }
+    };
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
-    // async function getAvailableSongUrl(songId) {
-    //   const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-    //   try {
-    //     const data = await fetchViaProxy(url);
-    //     if (data) {
-    //       // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
-    //       if (data.url) return data.url;
-    //       if (data.data && data.data.url) return data.data.url;
-    //       if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
-    //     }
-    //   } catch (err) {
-    //     console.error('获取播放链接失败', err);
-    //   }
-    //   return '';
-    // }
+    async function getAvailableSongUrl(songId) {
+      const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+      try {
+        const data = await fetchViaProxy(url);
+        if (data) {
+          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+          if (data.url) return data.url;
+          if (data.data && data.data.url) return data.data.url;
+          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+        }
+      } catch (err) {
+        console.error('获取播放链接失败', err);
+      }
+      return '';
+    }
 
     // 模拟 ElectronAPI
     window.ElectronAPI = {
