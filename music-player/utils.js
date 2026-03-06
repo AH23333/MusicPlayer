@@ -66,6 +66,7 @@ exports.API_CONFIGS = {
 
 //为了适配浏览器网页部署而使用的修改的函数，请注意本地开发不要（不建议）使用这个
 exports.fetchViaProxy = async (targetUrl) => {
+    console.log('🔥 fetchViaProxy 收到的 URL:', targetUrl);  // 新增这一行
   logger.info(`发起请求：${targetUrl}`);
   let text;
 
