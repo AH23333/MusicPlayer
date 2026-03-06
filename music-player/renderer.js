@@ -7,7 +7,7 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     async function getAvailableSongUrl(songId) {
         const urlSources = [
             `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`,
-            `${API_CONFIGS.neteaseAudioUrl}?id=${songId}`,
+            `${API_CONFIGS.neteaseAudioUrl.url}?id=${songId}`,
             `https://music.163.com/song/media/outer/url?id=${songId}.mp3`
         ];
         for (let url of urlSources) {
