@@ -85,43 +85,21 @@ const fetchViaProxy = async (targetUrl) => {
 // };
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
-    // async function getAvailableSongUrl(songId) {
-    //   const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-    //   try {
-    //     const data = await fetchViaProxy(url);
-    //     if (data) {
-    //       // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
-    //       if (data.url) return data.url;
-    //       if (data.data && data.data.url) return data.data.url;
-    //       if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
-    //     }
-    //   } catch (err) {
-    //     console.error('获取播放链接失败', err);
-    //   }
-    //   return '';
-    // }
-
-async function getAvailableSongUrl(songId) {
-  const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-  try {
-    const data = await fetchViaProxy(url);
-    if (data) {
-      let playUrl = null;
-      if (data.url) playUrl = data.url;
-      else if (data.data?.url) playUrl = data.data.url;
-      if (playUrl) {
-        if (playUrl.startsWith('obj/')) {
-          playUrl = 'https://api.qijieya.cn/' + playUrl;
+    async function getAvailableSongUrl(songId) {
+      const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+      try {
+        const data = await fetchViaProxy(url);
+        if (data) {
+          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+          if (data.url) return data.url;
+          if (data.data && data.data.url) return data.data.url;
+          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
         }
-        return playUrl;
+      } catch (err) {
+        console.error('获取播放链接失败', err);
       }
+      return '';
     }
-  } catch (err) {
-    console.error('获取播放链接失败', err);
-  }
-  // 兜底：返回网易云外链
-  return `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
-}
 
     // 模拟 ElectronAPI
     window.ElectronAPI = {
