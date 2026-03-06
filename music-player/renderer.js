@@ -28,11 +28,11 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
     // 你的专属代理地址
 
 // cloudflare代理
-// const YOUR_PROXY_URL = 'https://winter-darkness-98ab.3469726343.workers.dev/';
+const YOUR_PROXY_URL = 'https://winter-darkness-98ab.3469726343.workers.dev/';
 // cloudflare代理的const fetchViaProxy和deno的const fetchViaProxy一样
 
 // deno代理 
-const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
+// const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
 // deno代理
 const fetchViaProxy = async (targetUrl) => {
   try {
