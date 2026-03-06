@@ -1,4 +1,4 @@
-exports.handler = async function(event, context) {
+exports.handler = async (event) => {
   // 处理预检请求（OPTIONS）
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -6,48 +6,50 @@ exports.handler = async function(event, context) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, User-Agent, Referer, Origin',
+        'Access-Control-Allow-Headers': 'Content-Type, User-Agent, Referer',
       },
       body: '',
     };
   }
 
-  const url = new URL(event.rawUrl);
-  // 提取目标URL：去掉函数路径部分
-  const targetUrl = url.pathname.replace('/.netlify/functions/proxy', '') + url.search;
-
-  if (!targetUrl) {
-    return {
-      statusCode: 400,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: 'Missing target URL'
-    };
-  }
-
   try {
+    // 从路径中提取目标 URL（例如 /.netlify/functions/proxy/https://api.qijieya.cn/...）
+    const targetUrl = decodeURIComponent(event.path.replace('/.netlify/functions/proxy/', ''));
+    
+    if (!targetUrl || !targetUrl.startsWith('http')) {
+      return {
+        statusCode: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'Missing or invalid target URL' }),
+      };
+    }
+
+    // 转发请求
     const response = await fetch(targetUrl, {
       method: event.httpMethod,
       headers: {
-        ...event.headers,
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://music.163.com/',
       },
       body: event.body ? event.body : undefined,
     });
 
     const body = await response.text();
+
     return {
       statusCode: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+        'Content-Type': response.headers.get('content-type') || 'application/json',
       },
       body,
     };
   } catch (error) {
+    console.error('Proxy error:', error); // 日志输出，方便调试
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: error.message,
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
