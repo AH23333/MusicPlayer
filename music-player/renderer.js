@@ -5,25 +5,21 @@ if (typeof window !== 'undefined' && !window.ElectronAPI) {
 
     // 获取可用播放链接（复用 utils.js 的逻辑）
     async function getAvailableSongUrl(songId) {
-        const urlSources = [
-            `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`,
-            `${API_CONFIGS.neteaseAudioUrl.url}?id=${songId}`,
-            `https://music.163.com/song/media/outer/url?id=${songId}.mp3`
-        ];
-        for (let url of urlSources) {
-            try {
-                const data = await fetchViaProxy(url);
-                if (data && (data.url || data.data)) {
-                    const playUrl = data.url || data.data?.url;
-                    if (playUrl && playUrl.trim() && !playUrl.includes('404')) {
-                        return playUrl;
-                    }
-                }
-            } catch (err) {
-                continue;
+        // 仅使用 metingFallback 获取播放链接（它应该是最稳定的）
+        const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+        try {
+            const data = await fetchViaProxy(url);
+            console.log('🎵 播放链接返回数据:', data); // 查看实际返回结构
+            // 兼容多种返回格式
+            if (data) {
+                if (data.url) return data.url;
+                if (data.data && data.data.url) return data.data.url;
+                if (data[0] && data[0].url) return data[0].url; // 某些接口返回数组
             }
+        } catch (err) {
+            console.error('获取播放链接失败', err);
         }
-        return '';
+        return ''; // 失败返回空字符串
     }
 
     // 模拟 ElectronAPI
