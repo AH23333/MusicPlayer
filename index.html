@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>音乐播放器</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./music-player/style.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -463,7 +463,7 @@
 
   <!-- 新增这1行：引入 Axios CDN（浏览器环境用） -->
   <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
-  <script src="./music-player/utils.js"></script>   <!-- 新增这一行 -->
+  <script src="./utils.js"></script>   <!-- 新增这一行 -->
   <script>
     // 关闭浮窗逻辑
     document.getElementById('dismiss-startup').addEventListener('click', function() {
@@ -475,7 +475,7 @@
     });
   </script>
 
-  <script src="./music-player/renderer.js"></script>
+  <script src="./renderer.js"></script>
   <script>
       (function () {
         // 获取元素

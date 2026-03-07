@@ -124,19 +124,11 @@ npm run make
 - 删除netlify文件夹及其所有子文件，删除netlify.toml
 - 删除renderer.js文件头部的“浏览器环境兼容补丁”部分
 - 删除utils.js文件头部的“仅浏览器环境下的兼容补丁”部分；使用已被注释掉的CORS代理请求函数exports.fetchViaProxy，删除第二个exports.fetchViaProxy函数；删除utils.js文件尾部的“浏览器环境挂载”部分
-- 将index.html文件头部的
-```
-  <link href="./music-player/style.css" rel="stylesheet">
-```
-修改为
-```
-  <link href="./style.css" rel="stylesheet">
-```
-删除头部“启动提示浮窗”div块
-- 将index.html文件尾部的
+- 删除头部“启动提示浮窗”div块
+- 删除index.html文件尾部的
 ```
   <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
-  <script src="./music-player/utils.js"></script>
+  <script src="./utils.js"></script>
   <script>
     // 关闭浮窗逻辑
     document.getElementById('dismiss-startup').addEventListener('click', function() {
@@ -147,14 +139,7 @@ npm run make
       }, 300); // 等待过渡动画结束
     });
   </script>
-
-  <script src="./music-player/renderer.js"></script>
 ```
-修改为
-```
-  <script src="./renderer.js"></script>
-```
-- 将index.html移入music-player文件夹内
 
 - 未完待续~
 
