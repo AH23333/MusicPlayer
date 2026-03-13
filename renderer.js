@@ -1,165 +1,164 @@
 // ========== 浏览器环境兼容补丁（新增，本地开发请注释掉） ==========
-if (typeof window !== 'undefined' && !window.ElectronAPI) {
-    // 使用 utils.js 中已经定义好的 API_CONFIGS 和 fetchViaProxy
-    const { API_CONFIGS } = window.utils;
+// if (typeof window !== 'undefined' && !window.ElectronAPI) {
+//     // 使用 utils.js 中已经定义好的 API_CONFIGS 和 fetchViaProxy
+//     const { API_CONFIGS } = window.utils;
 
-    // deno代理 
-    const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
+//     // deno代理
+//     const YOUR_PROXY_URL = 'https://pure-badger-14.ah23333.deno.net/';
 
-    // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理    
-    // const fetchViaProxy = async (targetUrl) => {
-    //     // 1. 尝试直连
-    //     try {
-    //         const response = await fetch(targetUrl);
-    //         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    //         return await response.json();
-    //     } catch (directErr) {
-    //         // 2. 直连失败，尝试 allorigins 代理
-    //         try {
-    //             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    //             const proxyRes = await fetch(proxyUrl);
-    //             if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
-    //             const text = await proxyRes.text();
-    //             return JSON.parse(text);
-    //         } catch (proxyErr) {
-    //             console.error('代理请求也失败', proxyErr);
-    //             return null;
-    //         }
-    //     }
-    // };
+//     // 重新定义 fetchViaProxy，使用原生 fetch 和单个代理
+//     // const fetchViaProxy = async (targetUrl) => {
+//     //     // 1. 尝试直连
+//     //     try {
+//     //         const response = await fetch(targetUrl);
+//     //         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+//     //         return await response.json();
+//     //     } catch (directErr) {
+//     //         // 2. 直连失败，尝试 allorigins 代理
+//     //         try {
+//     //             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+//     //             const proxyRes = await fetch(proxyUrl);
+//     //             if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+//     //             const text = await proxyRes.text();
+//     //             return JSON.parse(text);
+//     //         } catch (proxyErr) {
+//     //             console.error('代理请求也失败', proxyErr);
+//     //             return null;
+//     //         }
+//     //     }
+//     // };
 
-    // deno代理
-    // const fetchViaProxy = async (targetUrl) => {
-    //   try {
-    //     const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
-    //     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    //     return await response.json();
-    //   } catch (err) {
-    //     console.error('代理请求失败', err);
-    //     return null;
-    //   }
-    // };
+//     // deno代理
+//     // const fetchViaProxy = async (targetUrl) => {
+//     //   try {
+//     //     const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
+//     //     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+//     //     return await response.json();
+//     //   } catch (err) {
+//     //     console.error('代理请求失败', err);
+//     //     return null;
+//     //   }
+//     // };
 
-    // deno代理
-    const fetchViaProxy = async (targetUrl) => {
-      try {
-        const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-      } catch (err) {
-        // 直连失败，尝试 allorigins 代理
-        try {
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-          const proxyRes = await fetch(proxyUrl);
-          if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
-          const text = await proxyRes.text();
-          return JSON.parse(text);
-        } catch (proxyErr) {
-          console.error('代理请求失败', proxyErr);
-          return null;
-        }
-      }
-    };
+//     // deno代理
+//     const fetchViaProxy = async (targetUrl) => {
+//       try {
+//         const response = await fetch(YOUR_PROXY_URL + targetUrl); // 直接拼接
+//         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+//         return await response.json();
+//       } catch (err) {
+//         // 直连失败，尝试 allorigins 代理
+//         try {
+//           const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+//           const proxyRes = await fetch(proxyUrl);
+//           if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+//           const text = await proxyRes.text();
+//           return JSON.parse(text);
+//         } catch (proxyErr) {
+//           console.error('代理请求失败', proxyErr);
+//           return null;
+//         }
+//       }
+//     };
 
-    // 获取可用播放链接（复用 utils.js 的逻辑）
-    async function getAvailableSongUrl(songId) {
-      const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
-      try {
-        const data = await fetchViaProxy(url);
-        if (data) {
-          // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
-          if (data.url) return data.url;
-          if (data.data && data.data.url) return data.data.url;
-          if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
-        }
-      } catch (err) {
-        console.error('获取播放链接失败', err);
-      }
-      return '';
-    }
+//     // 获取可用播放链接（复用 utils.js 的逻辑）
+//     async function getAvailableSongUrl(songId) {
+//       const url = `${API_CONFIGS.metingFallback.url}?type=url&id=${songId}`;
+//       try {
+//         const data = await fetchViaProxy(url);
+//         if (data) {
+//           // meting API 返回格式可能是 { url: '...' } 或 { data: { url: '...' } }
+//           if (data.url) return data.url;
+//           if (data.data && data.data.url) return data.data.url;
+//           if (Array.isArray(data) && data[0] && data[0].url) return data[0].url;
+//         }
+//       } catch (err) {
+//         console.error('获取播放链接失败', err);
+//       }
+//       return '';
+//     }
 
-    // 模拟 ElectronAPI
-    window.ElectronAPI = {
-searchMusic: async (keyword, offset) => {
-    try {
-        // 1. 优先使用 meting 备用接口搜索
-        const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
-        let data = await fetchViaProxy(fallbackUrl);
-        let songs = [];
+//     // 模拟 ElectronAPI
+//     window.ElectronAPI = {
+// searchMusic: async (keyword, offset) => {
+//     try {
+//         // 1. 优先使用 meting 备用接口搜索
+//         const fallbackUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=20&offset=${offset}`;
+//         let data = await fetchViaProxy(fallbackUrl);
+//         let songs = [];
 
-        if (Array.isArray(data)) {
-            // meting 接口返回数组
-            songs = data.map(item => ({
-                id: item.id,
-                name: item.name,
-                artist: item.artist,
-                album: item.album,
-                coverUrl: item.pic,
-                songId: item.id,
-                // 直接使用网易云外链，无需额外请求
-                url: `https://music.163.com/song/media/outer/url?id=${item.id}.mp3`
-            }));
-        } else {
-            // 2. 如果 meting 失败，尝试网易云 API
-            const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20`;
-            data = await fetchViaProxy(searchUrl);
-            if (data?.result?.songs) {
-                songs = data.result.songs.map(song => ({
-                    id: song.id,
-                    name: song.name,
-                    artist: song.ar?.map(a => a.name).join(',') || '未知歌手',
-                    album: song.al?.name || '未知专辑',
-                    coverUrl: song.al?.picUrl || '',
-                    songId: song.id,
-                    url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`
-                }));
-            }
-        }
+//         if (Array.isArray(data)) {
+//             // meting 接口返回数组
+//             songs = data.map(item => ({
+//                 id: item.id,
+//                 name: item.name,
+//                 artist: item.artist,
+//                 album: item.album,
+//                 coverUrl: item.pic,
+//                 songId: item.id,
+//                 // 直接使用网易云外链，无需额外请求
+//                 url: `https://music.163.com/song/media/outer/url?id=${item.id}.mp3`
+//             }));
+//         } else {
+//             // 2. 如果 meting 失败，尝试网易云 API
+//             const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&offset=${offset}&limit=20`;
+//             data = await fetchViaProxy(searchUrl);
+//             if (data?.result?.songs) {
+//                 songs = data.result.songs.map(song => ({
+//                     id: song.id,
+//                     name: song.name,
+//                     artist: song.ar?.map(a => a.name).join(',') || '未知歌手',
+//                     album: song.al?.name || '未知专辑',
+//                     coverUrl: song.al?.picUrl || '',
+//                     songId: song.id,
+//                     url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`
+//                 }));
+//             }
+//         }
 
-        return songs;
-    } catch (err) {
-        console.error('搜索失败', err);
-        return [];
-    }
-},
-fetchLyrics: async (songId) => {
-  // 1. 先用主歌词 API 尝试
-  const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
-  let data = await fetchViaProxy(lyricUrl);
-  
-  // 2. 如果失败，尝试备用歌词接口
-  if (!data) {
-    const fallbackUrl = `${API_CONFIGS.metingFallback.url}?type=lyric&id=${songId}`;
-    data = await fetchViaProxy(fallbackUrl);
-  }
-  
-  return {
-    lrc: data?.lrc?.lyric || data?.lyric || '暂无歌词',
-    tlrc: data?.tlyric?.lyric || ''
-  };
-},
-        // 其他方法返回空数组或空对象（保持原有结构）
-        readPlaylist: async () => [],
-        savePlaylist: async () => {},
-        readLikedSongs: async () => [],
-        saveLikedSongs: async () => {},
-        readCustomPlaylists: async () => [],
-        saveCustomPlaylists: async () => {},
-        readLatestPlayed: async () => [],
-        saveLatestPlayed: async () => {},
-        readDIYPlaylists: async () => [],
-        saveDIYPlaylists: async () => true,
-        readSearchHistory: async () => [],
-        saveSearchHistory: async () => {},
-        readLocalSongs: async () => [],
-        openFileDialog: async () => [],
-        importLocalSongs: async () => ({ success: false }),
-        deleteLocalSong: async () => ({ success: false }),
-        savePlaylistCover: async () => ({ success: false })
-    };
-}
+//         return songs;
+//     } catch (err) {
+//         console.error('搜索失败', err);
+//         return [];
+//     }
+// },
+// fetchLyrics: async (songId) => {
+//   // 1. 先用主歌词 API 尝试
+//   const lyricUrl = `${API_CONFIGS.neteaseLyric.url}?id=${songId}`;
+//   let data = await fetchViaProxy(lyricUrl);
+
+//   // 2. 如果失败，尝试备用歌词接口
+//   if (!data) {
+//     const fallbackUrl = `${API_CONFIGS.metingFallback.url}?type=lyric&id=${songId}`;
+//     data = await fetchViaProxy(fallbackUrl);
+//   }
+
+//   return {
+//     lrc: data?.lrc?.lyric || data?.lyric || '暂无歌词',
+//     tlrc: data?.tlyric?.lyric || ''
+//   };
+// },
+//         // 其他方法返回空数组或空对象（保持原有结构）
+//         readPlaylist: async () => [],
+//         savePlaylist: async () => {},
+//         readLikedSongs: async () => [],
+//         saveLikedSongs: async () => {},
+//         readCustomPlaylists: async () => [],
+//         saveCustomPlaylists: async () => {},
+//         readLatestPlayed: async () => [],
+//         saveLatestPlayed: async () => {},
+//         readDIYPlaylists: async () => [],
+//         saveDIYPlaylists: async () => true,
+//         readSearchHistory: async () => [],
+//         saveSearchHistory: async () => {},
+//         readLocalSongs: async () => [],
+//         openFileDialog: async () => [],
+//         importLocalSongs: async () => ({ success: false }),
+//         deleteLocalSong: async () => ({ success: false }),
+//         savePlaylistCover: async () => ({ success: false })
+//     };
+// }
 //=======================================================================
-
 
 // ========== 原有代码从这里开始（完全保留） ==========
 

@@ -396,27 +396,36 @@ ipcMain.handle("import-local-songs", async (event, filePaths) => {
 
     for (const filePath of filePaths) {
       const fileName = path.basename(filePath)
-      const destPath = path.join(localDir, fileName)
+      // 检查文件类型，只导入音频文件
+      const ext = path.extname(fileName).toLowerCase()
+      // 支持更多音频格式，忽略大小写
+      const supportedFormats = ["mp3", "wav", "flac", "m4a", "ogg", "wma"]
+      // 提取扩展名（不含点）并转换为小写
+      const extWithoutDot = ext.substring(1).toLowerCase()
 
-      // 复制文件
-      await fs.copyFile(filePath, destPath)
-      logger.info(`导入歌曲：${fileName}`)
+      if (supportedFormats.includes(extWithoutDot)) {
+        const destPath = path.join(localDir, fileName)
 
-      // 提取歌曲信息
-      const songInfo = fileName.split(" - ")
-      importedSongs.push({
-        id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name:
-          songInfo.length > 1
-            ? songInfo[1]
-            : path.basename(fileName, path.extname(fileName)),
-        artist: songInfo.length > 1 ? songInfo[0] : "本地艺术家",
-        album: "本地专辑",
-        coverUrl: "",
-        duration: 0,
-        url: destPath,
-        local: true,
-      })
+        // 复制文件
+        await fs.copyFile(filePath, destPath)
+        logger.info(`导入歌曲：${fileName}`)
+
+        // 提取歌曲信息
+        const songInfo = fileName.split(" - ")
+        importedSongs.push({
+          id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name:
+            songInfo.length > 1
+              ? songInfo[1]
+              : path.basename(fileName, path.extname(fileName)),
+          artist: songInfo.length > 1 ? songInfo[0] : "本地艺术家",
+          album: "本地专辑",
+          coverUrl: "",
+          duration: 0,
+          url: destPath,
+          local: true,
+        })
+      }
     }
 
     logger.info(`成功导入 ${importedSongs.length} 首本地歌曲`)
@@ -444,11 +453,23 @@ ipcMain.handle("delete-local-song", async (event, songUrl) => {
 ipcMain.handle("open-file-dialog", async (event) => {
   logger.info("打开文件选择对话框")
   const { dialog } = require("electron")
-  const filePaths = dialog.showOpenDialogSync(mainWindow, {
-    properties: ["openFile", "multiSelections"],
-    filters: [{ name: "音频文件", extensions: ["mp3", "wav", "flac", "m4a"] }],
-  })
-  return filePaths
+  const window = event.sender.getOwnerBrowserWindow()
+  try {
+    // 使用异步版本的对话框
+    const result = await dialog.showOpenDialog(window, {
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "所有文件", extensions: ["*"] }],
+      title: "选择文件",
+      defaultPath: process.env.USERPROFILE + "\\Music",
+    })
+    if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+      return result.filePaths
+    } else {
+      return null
+    }
+  } catch (err) {
+    return null
+  }
 })
 
 app.on("window-all-closed", () => {

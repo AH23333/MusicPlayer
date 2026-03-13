@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": "local_1773413517596_s3e96qfjj",
+    "name": "28238480209-1-30232",
+    "artist": "本地艺术家",
+    "album": "本地专辑",
+    "coverUrl": "",
+    "duration": 0,
+    "url": "D:\\Visual Studio Code\\Something\\music-player\\ImportLocalSongs\\28238480209-1-30232.mp3",
+    "local": true
+  },
+  {
+    "id": "1810759765",
+    "songId": "1810759765",
+    "name": "春泥棒",
+    "artist": "ヨルシカ",
+    "album": "春泥棒",
+    "coverUrl": "https://p2.music.126.net/kBtj7HlFDuokeO4iyHTXaA==/109951165616927101.jpg",
+    "duration": 290279,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1810759765"
+  }
+]

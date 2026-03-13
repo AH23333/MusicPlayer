@@ -1,16 +1,16 @@
 // ========== 仅浏览器环境下的兼容补丁 ==========
-if (typeof window !== 'undefined') {
-  // 模拟 require 函数
-  window.require = function(moduleName) {
-    if (moduleName === 'axios') return window.axios;
-    // logger 等模块返回空对象（避免调用出错）
-    return { info: ()=>{}, warn: ()=>{}, error: ()=>{} };
-  };
-  // 创建 exports 对象，后续代码会向它添加属性
-  window.exports = {};
-  // 声明 exports 变量，使其指向 window.exports
-  var exports = window.exports;
-}
+// if (typeof window !== 'undefined') {
+//   // 模拟 require 函数
+//   window.require = function(moduleName) {
+//     if (moduleName === 'axios') return window.axios;
+//     // logger 等模块返回空对象（避免调用出错）
+//     return { info: ()=>{}, warn: ()=>{}, error: ()=>{} };
+//   };
+//   // 创建 exports 对象，后续代码会向它添加属性
+//   window.exports = {};
+//   // 声明 exports 变量，使其指向 window.exports
+//   var exports = window.exports;
+// }
 // =========================================================================
 
 const axios = require("axios");
@@ -26,75 +26,75 @@ exports.API_CONFIGS = {
 };
 
 // CORS代理请求（本地开发请使用这个）
-// exports.fetchViaProxy = async (targetUrl) => {
-//   logger.info(`发起请求：${targetUrl}`);
-//   let text;
-
-//   // 直连请求
-//   try {
-//     logger.info(`尝试直连请求：${targetUrl}`);
-//     const response = await axios.get(targetUrl, {
-//       headers: {
-//         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-//         Referer: "https://music.163.com/",
-//         Origin: "https://music.163.com/",
-//       },
-//       timeout: 10000,
-//     });
-//     if (response.status !== 200) throw new Error(`直连失败，状态码：${response.status}`);
-//     text = JSON.stringify(response.data);
-//     logger.info(`直连请求成功，返回数据长度：${text.length}`);
-//     return JSON.parse(text);
-//   } catch (directErr) {
-//     // 代理请求
-//     logger.warn(`直连失败（原因：${directErr.message}），尝试CORS代理`);
-//     try {
-//       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-//       logger.info(`代理请求地址：${proxyUrl}`);
-//       const proxyRes = await axios.get(proxyUrl, { timeout: 15000 });
-//       if (proxyRes.status !== 200) throw new Error(`代理失败，状态码：${proxyRes.status}`);
-//       text = proxyRes.data;
-//       const result = typeof text === "string" ? JSON.parse(text) : text;
-//       logger.info(`代理请求成功，返回数据长度：${JSON.stringify(result).length}`);
-//       return result;
-//     } catch (proxyErr) {
-//       logger.error(`直连+代理都失败：${proxyErr.message}，目标地址：${targetUrl}`);
-//       return null;
-//     }
-//   }
-// };
-
-//为了适配浏览器网页部署而使用的修改的函数，请注意本地开发不要（不建议）使用这个
 exports.fetchViaProxy = async (targetUrl) => {
   logger.info(`发起请求：${targetUrl}`);
-  
-  // 定义多个代理地址（按优先级排序）
-  const proxies = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-    'https://thingproxy.freeboard.io/fetch/'
-  ];
+  let text;
 
-  // 依次尝试每个代理
-  for (const proxy of proxies) {
+  // 直连请求
+  try {
+    logger.info(`尝试直连请求：${targetUrl}`);
+    const response = await axios.get(targetUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Referer: "https://music.163.com/",
+        Origin: "https://music.163.com/",
+      },
+      timeout: 10000,
+    });
+    if (response.status !== 200) throw new Error(`直连失败，状态码：${response.status}`);
+    text = JSON.stringify(response.data);
+    logger.info(`直连请求成功，返回数据长度：${text.length}`);
+    return JSON.parse(text);
+  } catch (directErr) {
+    // 代理请求
+    logger.warn(`直连失败（原因：${directErr.message}），尝试CORS代理`);
     try {
-      const proxyUrl = proxy + encodeURIComponent(targetUrl);
-      logger.info(`尝试代理请求：${proxyUrl}`);
-      const response = await axios.get(proxyUrl, { timeout: 15000 });
-      if (response.status === 200) {
-        const result = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-        logger.info(`代理请求成功，数据长度：${JSON.stringify(result).length}`);
-        return result;
-      }
-    } catch (err) {
-      logger.warn(`代理 ${proxy} 失败：${err.message}`);
-      continue; // 尝试下一个代理
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      logger.info(`代理请求地址：${proxyUrl}`);
+      const proxyRes = await axios.get(proxyUrl, { timeout: 15000 });
+      if (proxyRes.status !== 200) throw new Error(`代理失败，状态码：${proxyRes.status}`);
+      text = proxyRes.data;
+      const result = typeof text === "string" ? JSON.parse(text) : text;
+      logger.info(`代理请求成功，返回数据长度：${JSON.stringify(result).length}`);
+      return result;
+    } catch (proxyErr) {
+      logger.error(`直连+代理都失败：${proxyErr.message}，目标地址：${targetUrl}`);
+      return null;
     }
   }
-
-  logger.error(`所有代理均失败，目标地址：${targetUrl}`);
-  return null;
 };
+
+//为了适配浏览器网页部署而使用的修改的函数，请注意本地开发不要（不建议）使用这个
+// exports.fetchViaProxy = async (targetUrl) => {
+//   logger.info(`发起请求：${targetUrl}`);
+  
+//   // 定义多个代理地址（按优先级排序）
+//   const proxies = [
+//     'https://api.allorigins.win/raw?url=',
+//     'https://corsproxy.io/?',
+//     'https://thingproxy.freeboard.io/fetch/'
+//   ];
+
+//   // 依次尝试每个代理
+//   for (const proxy of proxies) {
+//     try {
+//       const proxyUrl = proxy + encodeURIComponent(targetUrl);
+//       logger.info(`尝试代理请求：${proxyUrl}`);
+//       const response = await axios.get(proxyUrl, { timeout: 15000 });
+//       if (response.status === 200) {
+//         const result = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+//         logger.info(`代理请求成功，数据长度：${JSON.stringify(result).length}`);
+//         return result;
+//       }
+//     } catch (err) {
+//       logger.warn(`代理 ${proxy} 失败：${err.message}`);
+//       continue; // 尝试下一个代理
+//     }
+//   }
+
+//   logger.error(`所有代理均失败，目标地址：${targetUrl}`);
+//   return null;
+// };
 
 // 格式化函数
 exports.formatArtists = (artists) => {
@@ -184,6 +184,6 @@ exports.fetchLyricsById = async (songId) => {
 };
 
 // ========== 浏览器环境挂载到 window.utils ==========
-if (typeof window !== 'undefined') {
-  window.utils = exports;
-}
+// if (typeof window !== 'undefined') {
+//   window.utils = exports;
+// }
