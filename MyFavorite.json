@@ -58,5 +58,15 @@
     "coverUrl": "https://p2.music.126.net/rD6Ul3DVakQkD8_VeL-aRw==/19162288649094546.jpg",
     "duration": 242230,
     "url": "https://api.qijieya.cn/meting/?type=url&id=487527980"
+  },
+  {
+    "id": "local_1773418001955_xeuyhofsa",
+    "name": "28238480209-1-30232",
+    "artist": "本地艺术家",
+    "album": "本地专辑",
+    "coverUrl": "",
+    "duration": 0,
+    "url": "D:\\Visual Studio Code\\Something\\music-player\\ImportLocalSongs\\28238480209-1-30232.mp3",
+    "local": true
   }
 ]

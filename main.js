@@ -102,7 +102,7 @@ ipcMain.handle("fetch-lyrics", async (event, songId) => {
 // 保存播放列表
 ipcMain.handle("save-playlist", async (event, playlist) => {
   logger.info(`保存播放列表，数量：${playlist.length}首`)
-  const filePath = path.join(app.getPath("userData"), "playlist.json")
+  const filePath = path.join(__dirname, "PlayList.json")
   try {
     await fs.writeFile(filePath, JSON.stringify(playlist, null, 2), "utf8")
     return true
@@ -115,7 +115,7 @@ ipcMain.handle("save-playlist", async (event, playlist) => {
 // 读取播放列表
 ipcMain.handle("read-playlist", async () => {
   logger.info("读取本地播放列表")
-  const filePath = path.join(app.getPath("userData"), "playlist.json")
+  const filePath = path.join(__dirname, "PlayList.json")
   try {
     await fs.access(filePath)
     const content = await fs.readFile(filePath, "utf8")
@@ -124,6 +124,13 @@ ipcMain.handle("read-playlist", async () => {
     return playlist
   } catch (err) {
     logger.warn(`播放列表文件不存在：${err.message}`)
+    // 如果文件不存在，创建一个空文件
+    try {
+      await fs.writeFile(filePath, JSON.stringify([], null, 2), "utf8")
+      logger.info("创建了空的PlayList.json文件")
+    } catch (writeErr) {
+      logger.error(`创建PlayList.json失败：${writeErr.message}`)
+    }
     return []
   }
 })
@@ -167,7 +174,7 @@ ipcMain.handle("save-liked-songs", async (event, likedSongs) => {
 // 读取自定义歌单
 ipcMain.handle("read-custom-playlists", async () => {
   logger.info("读取自定义歌单")
-  const filePath = path.join(__dirname, "playlists.json")
+  const filePath = path.join(__dirname, "PlayList.json")
   try {
     await fs.access(filePath)
     const content = await fs.readFile(filePath, "utf8")
@@ -179,9 +186,9 @@ ipcMain.handle("read-custom-playlists", async () => {
     // 如果文件不存在，创建一个空文件
     try {
       await fs.writeFile(filePath, JSON.stringify([], null, 2), "utf8")
-      logger.info("创建了空的playlists.json文件")
+      logger.info("创建了空的PlayList.json文件")
     } catch (writeErr) {
-      logger.error(`创建playlists.json失败：${writeErr.message}`)
+      logger.error(`创建PlayList.json失败：${writeErr.message}`)
     }
     return []
   }
@@ -190,7 +197,7 @@ ipcMain.handle("read-custom-playlists", async () => {
 // 保存自定义歌单
 ipcMain.handle("save-custom-playlists", async (event, playlists) => {
   logger.info(`保存自定义歌单，数量：${playlists.length}个`)
-  const filePath = path.join(__dirname, "playlists.json")
+  const filePath = path.join(__dirname, "PlayList.json")
   try {
     await fs.writeFile(filePath, JSON.stringify(playlists, null, 2), "utf8")
     return true
@@ -314,14 +321,21 @@ ipcMain.handle(
     try {
       // 创建目录（如果不存在）
       await fs.mkdir(coverDir, { recursive: true })
+
+      // 提取图片格式
+      const formatMatch = coverData.match(/^data:image\/(\w+);base64,/)
+      const format = formatMatch ? formatMatch[1] : "png"
+
       // 生成文件名
-      const fileName = `${playlistId}.png`
+      const fileName = `${playlistId}.${format}`
       const filePath = path.join(coverDir, fileName)
+
       // 解码base64数据
       const buffer = Buffer.from(
-        coverData.replace(/^data:image\/png;base64,/, ""),
+        coverData.replace(/^data:image\/\w+;base64,/, ""),
         "base64"
       )
+
       // 写入文件
       await fs.writeFile(filePath, buffer)
       logger.info(`歌单封面保存成功：${fileName}`)

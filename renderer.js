@@ -243,7 +243,7 @@ window.onload = async () => {
   let isLoadingMore = false // 防止重复加载
   let currentPlaylist = null // 当前选中的自定义歌单
   let currentCover = null // 当前上传的封面
-  // let currentEditingPlaylist = null // 当前正在编辑的歌单
+  let currentEditingPlaylistId = null // 当前正在编辑的歌单ID
   let searchHistory = [] // 搜索历史
   let selectedSongIndex = -1 // 当前选中的歌曲索引
   let selectedSongList = null // 当前选中的歌曲列表类型
@@ -254,94 +254,117 @@ window.onload = async () => {
   // ========== 核心函数定义（移到前面） ==========
   // 渲染播放列表
   function renderPlaylist() {
-    playlistList.innerHTML = ""
+    playlistList.innerHTML = "" // 清空现有内容
+
     playQueue.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = `list-group-item song-item ${index === currentSongIndex ? "active" : ""}`
       li.innerHTML = `
-        <div class="flex-1">
-          <strong>${song.name}</strong> - ${song.artist}
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="like-btn ${isLiked ? "liked" : ""}" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <button class="delete-btn" data-index="${index}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      `
+              <div class="flex-1">
+                  <strong>${song.name}</strong> - ${song.artist}
+              </div>
+              <div class="flex items-center gap-2">
+                  <button class="like-btn ${isLiked ? "liked" : ""}" data-song-id="${song.id}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                  </button>
+                  <button class="delete-btn" data-index="${index}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                  </button>
+              </div>
+          `
       li.dataset.index = index
       li.dataset.list = "playlist"
 
-      // 点击事件处理（单击选中，双击播放）
+      // 双击/单击处理
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
         const currentTime = Date.now()
-
         if (currentTime - lastClickTime < 300) {
-          // 双击：播放歌曲
           currentSongIndex = index
           playCurrentSong()
           lastClickTime = 0
         } else {
-          // 单击：选中歌曲
           lastClickTime = currentTime
-          setTimeout(() => {
-            if (Date.now() - lastClickTime >= 300) {
-              selectSong(song, index, "playlist")
-            }
-          }, 300)
+          selectSong(song, index, "playlist")
         }
       })
       playlistList.appendChild(li)
     })
-    // 保存播放列表到本地
+
+    // 保存播放列表到文件
     window.ElectronAPI.savePlaylist(playQueue)
   }
 
   // 渲染歌单侧边栏
   function renderPlaylistSidebar() {
     playlistSidebarList.innerHTML = ""
+
+    // 只渲染 diyPlaylists（可根据需要决定是否保留 customPlaylists）
     diyPlaylists.forEach((playlist, index) => {
       const li = document.createElement("li")
       li.className =
         "flex items-center gap-2 p-2 rounded hover:bg-gray-300 transition-colors duration-200 cursor-pointer dark:hover:bg-gray-700"
-      // 检查是否有封面
-      const hasCover = playlist.coverPath
+      const hasCover = playlist.coverPath && playlist.coverPath !== ""
+      const hasSongCover =
+        playlist.songs.length > 0 &&
+        playlist.songs[0].coverUrl &&
+        playlist.songs[0].coverUrl !== ""
+
       li.innerHTML = `
-        ${
-          hasCover
-            ? `
-          <img src="DIYSongListPage/${playlist.coverPath}" class="w-8 h-8 rounded object-cover" />
-        `
-            : `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-          </svg>
-        `
-        }
-        <span class="flex-1">${playlist.name}</span>
-        <span class="text-xs text-gray-400">${playlist.songs.length}</span>
-      `
+              ${
+                hasCover
+                  ? `<img src="./DIYSongListPage/${playlist.coverPath}" class="w-8 h-8 rounded object-cover" />`
+                  : hasSongCover
+                    ? `<img src="${playlist.songs[0].coverUrl}" class="w-8 h-8 rounded object-cover" />`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                          </svg>`
+              }
+              <span class="flex-1">${playlist.name}</span>
+              <span class="text-xs text-gray-400">${playlist.songs.length}</span>
+          `
       li.dataset.index = index
-      // 点击歌单
-      li.addEventListener("click", () => {
-        showPlaylistDetail(playlist)
-      })
-      // 右键菜单
+      li.addEventListener("click", () => showPlaylistDetail(playlist))
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
         showPlaylistContextMenu(e, playlist)
       })
       playlistSidebarList.appendChild(li)
     })
+  }
+
+  // 编辑歌单
+  function editPlaylist(playlist) {
+    // 存储要编辑的歌单 ID
+    currentEditingPlaylistId = playlist.id
+    // 填充表单
+    playlistName.value = playlist.name
+    playlistDescription.value = playlist.description || ""
+    // 处理封面预览
+    if (playlist.coverPath) {
+      coverPreview.innerHTML = `<img src="./DIYSongListPage/${playlist.coverPath}" class="w-full h-full object-cover rounded-md">`
+      currentCover = null // 编辑模式下，初始为null，只有选择新封面时才更新
+    } else {
+      coverPreview.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      `
+      currentCover = null
+    }
+    // 更改模态框标题和按钮文本
+    document.querySelector("#playlistEditModal h2").textContent = "修改歌单"
+    document.querySelector(
+      '#playlistEditForm button[type="submit"]'
+    ).textContent = "保存"
+    // 显示模态框
+    playlistEditModal.classList.remove("hidden")
   }
 
   // 设置活跃模式按钮
@@ -554,8 +577,8 @@ window.onload = async () => {
       return
     }
 
-    const name = nameInput.value.trim()
-    const description = descInput.value.trim()
+    const name = playlistName.value.trim()
+    const description = playlistDescription.value.trim() // 直接使用 playlistDescription 变量
 
     console.log("【提交】获取到的 name:", name)
     console.log("【提交】获取到的 description:", description) // 必须能看到值
@@ -1035,37 +1058,69 @@ window.onload = async () => {
       document.getElementById("playlistDetailName").textContent = ""
       document.getElementById("playlistSongCount").textContent = ""
       document.getElementById("playlistDetailDescription").textContent = ""
-      // 隐藏封面容器并清除封面
+      // 隐藏封面容器
       const playlistCoverContainer = document.getElementById(
         "playlistCoverContainer"
       )
-      const playlistCoverImg = document.getElementById("playlistCoverImg")
       playlistCoverContainer.classList.add("hidden")
-      playlistCoverImg.src = ""
     } else {
       // 自定义歌单显示完整信息
       playlistInfoArea.classList.remove("hidden")
 
       // 处理歌单封面
-      const playlistCoverImg = document.getElementById("playlistCoverImg")
       const playlistCoverContainer = document.getElementById(
         "playlistCoverContainer"
       )
 
-      if (playlist.songs.length === 0) {
-        playlistCoverContainer.classList.add("hidden")
-      } else {
-        playlistCoverContainer.classList.remove("hidden")
-        if (playlist.coverPath) {
-          playlistCoverImg.src = `DIYSongListPage/${playlist.coverPath}`
-        } else {
-          const firstSong = playlist.songs[0]
-          playlistCoverImg.src = firstSong.coverUrl || "默认封面地址" // 保持原有默认封面
+      // 显示封面容器
+      playlistCoverContainer.classList.remove("hidden")
+
+      // 重置容器内容，确保playlistCoverImg元素存在
+      playlistCoverContainer.innerHTML = `
+        <img id="playlistCoverImg" class="w-24 h-24 rounded-lg shadow-md object-cover" src="" alt="歌单封面" />
+      `
+      const playlistCoverImg = document.getElementById("playlistCoverImg")
+
+      // 优先显示用户上传的封面
+      if (playlist.coverPath && playlist.coverPath !== "") {
+        playlistCoverImg.src = `./DIYSongListPage/${playlist.coverPath}`
+        playlistCoverImg.style.display = "block"
+
+        // 添加错误处理，当封面加载失败时显示默认图标
+        playlistCoverImg.onerror = function () {
+          // 封面加载失败时显示默认图标
+          playlistCoverContainer.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-gray-400 rounded-lg shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+            </svg>
+          `
         }
+      } else if (playlist.songs.length > 0) {
+        // 如果没有用户上传的封面但歌单有歌曲，使用第一首歌的封面
+        const firstSong = playlist.songs[0]
+        if (firstSong.coverUrl && firstSong.coverUrl !== "") {
+          playlistCoverImg.src = firstSong.coverUrl
+          playlistCoverImg.style.display = "block"
+        } else {
+          // 如果第一首歌也没有封面，显示默认音符图标
+          playlistCoverContainer.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-gray-400 rounded-lg shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+            </svg>
+          `
+        }
+      } else {
+        // 如果没有用户上传的封面且歌单没有歌曲，显示默认音符图标
+        playlistCoverContainer.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-gray-400 rounded-lg shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+          </svg>
+        `
       }
     }
 
     renderPlaylistDetail(playlist)
+    // 无论从哪个页面切换过来，都隐藏搜索结果区域，显示歌单详情区域
     searchResultsSection.classList.add("hidden")
     playlistDetailSection.classList.remove("hidden")
     // 添加淡入动画
@@ -1077,87 +1132,75 @@ window.onload = async () => {
   // 渲染歌单详情
   function renderPlaylistDetail(playlist) {
     playlistDetailList.innerHTML = ""
+
     playlist.songs.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = "song-item p-4"
       li.innerHTML = `
-        <div class="flex-1">
-          <h3 class="font-medium dark:text-white">${song.name}</h3>
-          <p class="text-xs text-gray-400 dark:text-gray-500">${song.artist} - ${song.album}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-          <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 dark:text-gray-500" data-index="${index}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-          <button class="more-btn" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
-        </div>
-      `
-      // 设置歌曲列表属性
+              <div class="flex-1">
+                  <h3 class="font-medium dark:text-white">${song.name}</h3>
+                  <p class="text-xs text-gray-400 dark:text-gray-500">${song.artist} - ${song.album}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                  <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}" data-song-id="${song.id}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                  </button>
+                  <button class="add-to-playlist" data-song-id="${song.id}">+</button>
+                  <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 dark:text-gray-500" data-index="${index}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                  </button>
+                  <button class="more-btn" data-song-id="${song.id}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                  </button>
+              </div>
+          `
       li.dataset.index = index
       li.dataset.list = "playlist-detail"
 
-      // 点击事件处理（单击选中，双击播放）
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
         const currentTime = Date.now()
-
         if (currentTime - lastClickTime < 300) {
-          // 双击：播放歌曲
           playSelectedSong(song, "playlist-detail")
           lastClickTime = 0
         } else {
-          // 单击：选中歌曲
           lastClickTime = currentTime
-          setTimeout(() => {
-            if (Date.now() - lastClickTime >= 300) {
-              selectSong(song, index, "playlist-detail")
-            }
-          }, 300)
+          selectSong(song, index, "playlist-detail")
         }
       })
-      // 喜欢按钮点击事件
+
       li.querySelector(".like-btn").addEventListener("click", (e) => {
         e.stopPropagation()
         toggleLike(song)
         renderPlaylistDetail(playlist)
       })
-      // 添加到播放列表的点击事件
+
       li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
         e.stopPropagation()
         showAddToPlaylistMenu(e, song)
       })
-      // 删除按钮点击事件
+
       li.querySelector(".delete-btn").addEventListener("click", async (e) => {
         e.stopPropagation()
         if (playlist.id === "liked") {
-          await toggleLike(song) // 切换喜欢状态
-          renderPlaylistDetail(playlist) // 重新渲染当前歌单
+          await toggleLike(song)
+          renderPlaylistDetail(playlist)
         } else if (playlist.id === "recent") {
           await removeFromLatestPlayed(song)
           renderPlaylistDetail(playlist)
         } else if (playlist.id === "local") {
-          // 删除本地歌曲
           const result = await window.ElectronAPI.deleteLocalSong(song.url)
           if (result.success) {
-            // 重新读取本地歌曲
             localSongs = await window.ElectronAPI.readLocalSongs()
-            document.getElementById("localCount").textContent =
-              localSongs.length
-            // 重新显示本地歌曲
+            document.getElementById("localCount").textContent = localSongs.length
             showLocalSongs()
             showToast(`已删除本地歌曲：${song.name}`)
           } else {
@@ -1167,11 +1210,12 @@ window.onload = async () => {
           removeFromCustomPlaylist(playlist, index)
         }
       })
-      // 更多按钮点击事件
+
       li.querySelector(".more-btn").addEventListener("click", (e) => {
         e.stopPropagation()
         showToast("更多功能开发中...")
       })
+
       playlistDetailList.appendChild(li)
     })
   }
@@ -1252,39 +1296,6 @@ window.onload = async () => {
     currentSongIndex = 0
     playCurrentSong()
     showToast(`开始播放歌单《${selectedPlaylist.name}》`)
-  }
-
-  let currentEditingPlaylistId = null
-
-  function editPlaylist(playlist) {
-    // 存储要编辑的歌单 ID
-    currentEditingPlaylistId = playlist.id
-
-    // 填充表单
-    playlistName.value = playlist.name
-    playlistDescription.value = playlist.description || ""
-
-    // 显示现有封面
-    if (playlist.coverPath) {
-      coverPreview.innerHTML = `<img src="DIYSongListPage/${playlist.coverPath}" class="w-full h-full object-cover rounded" />`
-      currentCover = playlist.coverPath
-    } else {
-      coverPreview.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    `
-      currentCover = null
-    }
-
-    // 更改模态框标题和按钮文本
-    document.querySelector("#playlistEditModal h2").textContent = "修改歌单"
-    document.querySelector(
-      '#playlistEditForm button[type="submit"]'
-    ).textContent = "保存"
-
-    // 显示模态框
-    playlistEditModal.classList.remove("hidden")
   }
 
   // 删除歌单
@@ -1376,69 +1387,75 @@ window.onload = async () => {
 
   // 渲染搜索结果列表
   function renderSearchResults(songs) {
-    songs.forEach((song) => {
+    if (searchOffset === 0) {
+      searchResultList.innerHTML = "" // 清空，保留容器上的滚动监听
+    }
+
+    songs.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = "song-item p-4 transition-colors duration-200"
       li.innerHTML = `
-        <div class="flex-1">
-          <h3 class="font-medium dark:text-white">${song.name}</h3>
-          <p class="text-sm text-gray-400 dark:text-gray-500">${song.artist} - ${song.album}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-          <button class="more-btn" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
-        </div>
-      `
-      // 设置歌曲列表属性
-      li.dataset.index = songs.indexOf(song)
+              <div class="flex-1">
+                  <h3 class="font-medium dark:text-white">${song.name}</h3>
+                  <p class="text-sm text-gray-400 dark:text-gray-500">${song.artist} - ${song.album}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                  <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}" data-song-id="${song.id}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                  </button>
+                  <button class="add-to-playlist" data-song-id="${song.id}">+</button>
+                  <button class="more-btn" data-song-id="${song.id}">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                  </button>
+              </div>
+          `
+      const globalIndex = searchResults.length - songs.length + index
+      li.dataset.index = globalIndex
       li.dataset.list = "search"
+      li.dataset.songId = song.id
 
-      // 点击事件处理（单击选中，双击播放）
       let lastClickTime = 0
-
       li.addEventListener("click", (e) => {
         const now = Date.now()
-
         if (now - lastClickTime < 300) {
-          // 双击：播放歌曲
           playSelectedSong(song, "search")
           lastClickTime = 0
         } else {
-          // 单击：选中歌曲
           lastClickTime = now
-          selectSong(song, songs.indexOf(song), "search")
+          selectSong(song, globalIndex, "search")
         }
       })
-      // 喜欢按钮点击事件
+
       li.querySelector(".like-btn").addEventListener("click", (e) => {
         e.stopPropagation()
         toggleLike(song)
-        renderSearchResults([song]) // 重新渲染当前歌曲
+        const likeBtn = li.querySelector(".like-btn")
+        const isNowLiked = likedSongs.some((item) => item.id === song.id)
+        likeBtn.className = `like-btn ${isNowLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`
+        likeBtn
+          .querySelector("svg")
+          .setAttribute("fill", isNowLiked ? "currentColor" : "none")
       })
-      // 添加到播放列表的点击事件
+
       li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
-        e.stopPropagation() // 阻止触发播放
+        e.stopPropagation()
         showAddToPlaylistMenu(e, song)
       })
-      // 更多按钮点击事件
+
       li.querySelector(".more-btn").addEventListener("click", (e) => {
         e.stopPropagation()
         showToast("更多功能开发中...")
       })
+
       searchResultList.appendChild(li)
     })
-    // 显示加载更多按钮（如果有更多数据）
+
     loadMoreBtn.style.display =
       songs.length >= PAGE_SIZE ? "inline-block" : "none"
   }
@@ -1483,71 +1500,6 @@ window.onload = async () => {
         showToast("移除失败")
       }
     }
-  }
-
-  // 渲染播放列表
-  function renderPlaylist() {
-    playlistList.innerHTML = ""
-    playQueue.forEach((song, index) => {
-      if (!song.id) return
-      const isLiked = likedSongs.some((item) => item.id === song.id)
-      const li = document.createElement("li")
-      li.className = `song-item p-4 ${index === currentSongIndex ? "bg-gray-200 dark:bg-gray-800" : ""}`
-      li.innerHTML = `
-        <div class="flex-1">
-          <h3 class="font-medium dark:text-white">${song.name}</h3>
-          <p class="text-xs text-gray-400 dark:text-gray-500">${song.artist} - ${song.album}</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
-          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-          <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 dark:text-gray-500" data-index="${index}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-          <button class="more-btn" data-song-id="${song.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </button>
-        </div>
-      `
-      li.dataset.index = index
-      // 点击播放
-      li.addEventListener("click", () => {
-        currentSongIndex = index
-        playCurrentSong()
-      })
-      // 喜欢按钮点击事件
-      li.querySelector(".like-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        toggleLike(song)
-        renderPlaylist() // 重新渲染播放列表
-      })
-      // 添加到播放列表的点击事件
-      li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
-        e.stopPropagation() // 阻止触发播放
-        showAddToPlaylistMenu(e, song)
-      })
-      // 删除按钮点击事件
-      li.querySelector(".delete-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        removeFromPlaylist(index)
-      })
-      // 更多按钮点击事件
-      li.querySelector(".more-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showToast("更多功能开发中...")
-      })
-      playlistList.appendChild(li)
-    })
-    // 保存播放列表到本地
-    window.ElectronAPI.savePlaylist(playQueue)
   }
 
   // 添加歌曲到播放列表（尾部）
@@ -1800,11 +1752,6 @@ window.onload = async () => {
   }
 
   // ========== 播放模式切换 ==========
-  // 设置激活的模式按钮
-  function setActiveModeBtn(btn) {
-    modeBtns.forEach((b) => b.classList.remove("active"))
-    btn.classList.add("active")
-  }
 
   // 模式按钮点击事件
   modeBtns.forEach((btn) => {
@@ -1886,16 +1833,15 @@ window.onload = async () => {
   // 加载搜索结果
   async function loadSearchResults(keyword, offset) {
     try {
-      // 注意：需要修改main.js的search-music接口，支持offset参数
       const songs = await window.ElectronAPI.searchMusic(keyword, offset)
       if (offset === 0 && songs.length === 0) {
-        alert("未找到相关歌曲")
+        showToast("未找到相关歌曲")
         return
       }
       searchResults = [...searchResults, ...songs]
       renderSearchResults(songs)
     } catch (err) {
-      alert("搜索失败，请查看log.txt日志")
+      showToast("搜索失败，请查看日志")
     }
   }
 
@@ -1908,12 +1854,31 @@ window.onload = async () => {
     }
   })
 
-  // 清空按钮点击事件
-  clearSearchBtn.addEventListener("click", () => {
-    searchInput.value = ""
-    clearSearchBtn.classList.add("hidden")
-    searchInput.focus() // 让搜索框重新获得焦点
-    searchHistoryContainer.classList.add("hidden") // 同时关闭搜索历史浮窗
+  async function performSearch(keyword) {
+    if (!keyword) return
+    searchOffset = 0
+    searchResultList.innerHTML = ""
+    await loadSearchResults(keyword, searchOffset)
+    await updateSearchHistory(keyword)
+    searchResultsSection.classList.remove("hidden")
+    playlistDetailSection.classList.add("hidden")
+    searchResultsSection.classList.remove("fade-in")
+    void searchResultsSection.offsetWidth
+    searchResultsSection.classList.add("fade-in")
+  }
+
+  // 搜索按钮点击
+  searchBtn.addEventListener("click", () => {
+    const keyword = searchInput.value.trim()
+    performSearch(keyword)
+  })
+
+  // 回车搜索
+  searchInput.addEventListener("keypress", async (e) => {
+    if (e.key === "Enter") {
+      const keyword = searchInput.value.trim()
+      performSearch(keyword)
+    }
   })
 
   // 初始状态检查（如页面加载时已有默认文本）
@@ -1936,27 +1901,6 @@ window.onload = async () => {
   } else {
     // audioPlayer element not found
   }
-
-  // 搜索框回车搜索
-  searchInput.addEventListener("keypress", async (e) => {
-    if (e.key === "Enter") {
-      const keyword = searchInput.value.trim()
-      if (keyword) {
-        searchOffset = 0
-        searchResultList.innerHTML = ""
-        await loadSearchResults(keyword, searchOffset)
-        // 更新搜索历史
-        await updateSearchHistory(keyword)
-        // 跳转到搜索结果界面
-        searchResultsSection.classList.remove("hidden")
-        playlistDetailSection.classList.add("hidden")
-        // 添加淡入动画
-        searchResultsSection.classList.remove("fade-in")
-        void searchResultsSection.offsetWidth // 强制重绘
-        searchResultsSection.classList.add("fade-in")
-      }
-    }
-  })
 
   // 滚动监听，当滚动到搜索结果底部时自动加载更多
   searchResultList.addEventListener("scroll", () => {
@@ -2006,4 +1950,3 @@ window.onload = async () => {
     }
   })
 }
-

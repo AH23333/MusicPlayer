@@ -6,16 +6,6 @@
     "coverPath": "",
     "songs": [
       {
-        "id": "1810759765",
-        "songId": "1810759765",
-        "name": "春泥棒",
-        "artist": "ヨルシカ",
-        "album": "春泥棒",
-        "coverUrl": "https://p2.music.126.net/kBtj7HlFDuokeO4iyHTXaA==/109951165616927101.jpg",
-        "duration": 290279,
-        "url": "https://api.qijieya.cn/meting/?type=url&id=1810759765"
-      },
-      {
         "id": "1357953768",
         "songId": "1357953768",
         "name": "だから僕は音楽を辞めた",
@@ -72,7 +62,7 @@
     "id": "1773412085765",
     "name": "自定义",
     "description": "diy",
-    "coverPath": "1773412085765.png",
+    "coverPath": "1773412085765.jpeg",
     "songs": [],
     "createdAt": "2026-03-13T14:28:05.774Z"
   }
