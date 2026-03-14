@@ -30,7 +30,7 @@
 </head>
 
 <body class="min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-white">
-  
+
   <!-- 启动提示浮窗 -->
   <!-- <div id="startup-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.3 ease;">
     <div style="background: white; max-width: 90%; width: 400px; padding: 2rem; border-radius: 1rem; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; font-family: 'Inter', system-ui, sans-serif; color: #1f2937;" class="dark:bg-gray-800 dark:text-white">
@@ -56,13 +56,39 @@
         id="sidebarResizer"></div>
       <!-- 用户信息 -->
       <div class="p-4 border-b border-gray-300 dark:border-gray-700">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-            <span class="text-white font-semibold">AH</span>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <span class="text-white font-semibold">AH</span>
+            </div>
+            <div>
+              <div class="font-medium">用户信息</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">用户消息</div>
+            </div>
           </div>
-          <div>
-            <div class="font-medium">用户信息</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500">用户消息</div>
+          <div class="flex items-center gap-2">
+            <button id="importUserBtn"
+              class="p-1 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700 relative group"
+              title="导入用户信息">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">导入用户信息</span>
+            </button>
+            <button id="exportUserBtn"
+              class="p-1 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700 relative group"
+              title="导出用户信息">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">导出用户信息</span>
+            </button>
           </div>
         </div>
       </div>
@@ -281,7 +307,8 @@
       <div class="w-full md:flex-1 max-w-3xl flex flex-col h-full md:h-full px-4 md:px-0"> <!-- 窄屏加内边距 -->
         <!-- 歌曲信息 -->
         <div class="text-center mb-4 md:mb-6 flex-shrink-0"> <!-- 减小底部边距 -->
-          <h2 class="text-xl md:text-2xl font-bold dark:text-white mb-1 md:mb-2 truncate" id="lyricsSongTitle">未播放歌曲</h2>
+          <h2 class="text-xl md:text-2xl font-bold dark:text-white mb-1 md:mb-2 truncate" id="lyricsSongTitle">未播放歌曲
+          </h2>
           <p class="text-gray-400 dark:text-gray-500 truncate text-sm md:text-base" id="lyricsSongArtist">--</p>
         </div>
         <!-- 歌词区域 -->

@@ -434,6 +434,181 @@ ipcMain.handle("import-playlist", async (event) => {
   }
 })
 
+// 导出用户信息
+ipcMain.handle("export-user-info", async (event) => {
+  logger.info("导出用户信息")
+  const { dialog } = require("electron")
+  const window = event.sender.getOwnerBrowserWindow()
+  try {
+    // 读取所有用户数据
+    const userData = {
+      likedSongs: [],
+      followedArtists: [],
+      diyPlaylists: [],
+      searchHistory: [],
+      latestPlayed: [],
+    }
+
+    // 读取我喜欢的歌曲
+    const likedPath = path.join(__dirname, "MyFavorite.json")
+    try {
+      await fs.access(likedPath)
+      const likedContent = await fs.readFile(likedPath, "utf8")
+      userData.likedSongs = JSON.parse(likedContent) || []
+    } catch (err) {
+      logger.warn(`我喜欢的歌曲文件不存在：${err.message}`)
+    }
+
+    // 读取关注歌手
+    const followedPath = path.join(__dirname, "FollowedArtists.json")
+    try {
+      await fs.access(followedPath)
+      const followedContent = await fs.readFile(followedPath, "utf8")
+      userData.followedArtists = JSON.parse(followedContent) || []
+    } catch (err) {
+      logger.warn(`关注歌手文件不存在：${err.message}`)
+    }
+
+    // 读取自定义歌单
+    const diyPath = path.join(__dirname, "DIYSongList.json")
+    try {
+      await fs.access(diyPath)
+      const diyContent = await fs.readFile(diyPath, "utf8")
+      userData.diyPlaylists = JSON.parse(diyContent) || []
+    } catch (err) {
+      logger.warn(`自定义歌单文件不存在：${err.message}`)
+    }
+
+    // 读取搜索历史
+    const searchPath = path.join(__dirname, "SearchHistory.json")
+    try {
+      await fs.access(searchPath)
+      const searchContent = await fs.readFile(searchPath, "utf8")
+      userData.searchHistory = JSON.parse(searchContent) || []
+    } catch (err) {
+      logger.warn(`搜索历史文件不存在：${err.message}`)
+    }
+
+    // 读取最近播放
+    const recentPath = path.join(__dirname, "Latest.json")
+    try {
+      await fs.access(recentPath)
+      const recentContent = await fs.readFile(recentPath, "utf8")
+      userData.latestPlayed = JSON.parse(recentContent) || []
+    } catch (err) {
+      logger.warn(`最近播放文件不存在：${err.message}`)
+    }
+
+    // 打开文件保存对话框
+    const result = await dialog.showSaveDialog(window, {
+      title: "导出用户信息",
+      defaultPath: "User.json",
+      filters: [{ name: "JSON文件", extensions: ["json"] }],
+    })
+
+    if (!result.canceled && result.filePath) {
+      // 保存文件
+      await fs.writeFile(
+        result.filePath,
+        JSON.stringify(userData, null, 2),
+        "utf8"
+      )
+      logger.info(`用户信息导出成功：${result.filePath}`)
+      return { success: true, filePath: result.filePath }
+    } else {
+      return { success: false, error: "用户取消导出" }
+    }
+  } catch (err) {
+    logger.error(`导出用户信息失败：${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+// 导入用户信息
+ipcMain.handle("import-user-info", async (event) => {
+  logger.info("导入用户信息")
+  const { dialog } = require("electron")
+  const window = event.sender.getOwnerBrowserWindow()
+  try {
+    // 打开文件选择对话框
+    const result = await dialog.showOpenDialog(window, {
+      title: "导入用户信息",
+      properties: ["openFile"],
+      filters: [{ name: "JSON文件", extensions: ["json"] }],
+    })
+
+    if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+      const importPath = result.filePaths[0]
+      // 读取导入的文件内容
+      const content = await fs.readFile(importPath, "utf8")
+      const userData = JSON.parse(content)
+
+      // 验证用户数据格式
+      if (typeof userData === "object" && userData !== null) {
+        // 保存我喜欢的歌曲
+        if (Array.isArray(userData.likedSongs)) {
+          const likedPath = path.join(__dirname, "MyFavorite.json")
+          await fs.writeFile(
+            likedPath,
+            JSON.stringify(userData.likedSongs, null, 2),
+            "utf8"
+          )
+        }
+
+        // 保存关注歌手
+        if (Array.isArray(userData.followedArtists)) {
+          const followedPath = path.join(__dirname, "FollowedArtists.json")
+          await fs.writeFile(
+            followedPath,
+            JSON.stringify(userData.followedArtists, null, 2),
+            "utf8"
+          )
+        }
+
+        // 保存自定义歌单
+        if (Array.isArray(userData.diyPlaylists)) {
+          const diyPath = path.join(__dirname, "DIYSongList.json")
+          await fs.writeFile(
+            diyPath,
+            JSON.stringify(userData.diyPlaylists, null, 2),
+            "utf8"
+          )
+        }
+
+        // 保存搜索历史
+        if (Array.isArray(userData.searchHistory)) {
+          const searchPath = path.join(__dirname, "SearchHistory.json")
+          await fs.writeFile(
+            searchPath,
+            JSON.stringify(userData.searchHistory, null, 2),
+            "utf8"
+          )
+        }
+
+        // 保存最近播放
+        if (Array.isArray(userData.latestPlayed)) {
+          const recentPath = path.join(__dirname, "Latest.json")
+          await fs.writeFile(
+            recentPath,
+            JSON.stringify(userData.latestPlayed, null, 2),
+            "utf8"
+          )
+        }
+
+        logger.info(`用户信息导入成功：${importPath}`)
+        return { success: true }
+      } else {
+        throw new Error("用户数据格式错误")
+      }
+    } else {
+      return { success: false, error: "用户取消导入" }
+    }
+  } catch (err) {
+    logger.error(`导入用户信息失败：${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
 // 读取搜索历史
 ipcMain.handle("read-search-history", async () => {
   const filePath = path.join(__dirname, "SearchHistory.json")

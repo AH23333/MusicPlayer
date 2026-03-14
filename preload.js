@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   // 新增：导入导出歌单
   exportPlaylist: (playlist) => ipcRenderer.invoke("export-playlist", playlist),
   importPlaylist: () => ipcRenderer.invoke("import-playlist"),
+  // 新增：导入导出用户信息
+  exportUserInfo: () => ipcRenderer.invoke("export-user-info"),
+  importUserInfo: () => ipcRenderer.invoke("import-user-info"),
   // 新增：搜索历史
   readSearchHistory: () => ipcRenderer.invoke("read-search-history"),
   saveSearchHistory: (searchHistory) =>

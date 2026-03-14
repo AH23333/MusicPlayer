@@ -252,6 +252,34 @@ window.onload = async () => {
   const PAGE_SIZE = 20 // 每次加载20条
   const MAX_LATEST_PLAYED = 50 // 最近播放最大数量
 
+  // 用户信息导入导出按钮
+  const importUserBtn = document.getElementById("importUserBtn")
+  const exportUserBtn = document.getElementById("exportUserBtn")
+
+  // 导出用户信息
+  exportUserBtn.addEventListener("click", async () => {
+    const result = await window.ElectronAPI.exportUserInfo()
+    if (result.success) {
+      showToast(`用户信息导出成功：${result.filePath}`)
+    } else {
+      showToast(`导出失败：${result.error}`)
+    }
+  })
+
+  // 导入用户信息
+  importUserBtn.addEventListener("click", async () => {
+    const result = await window.ElectronAPI.importUserInfo()
+    if (result.success) {
+      showToast("用户信息导入成功，重启应用生效")
+      // 重新加载应用
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    } else {
+      showToast(`导入失败：${result.error}`)
+    }
+  })
+
   // ========== 核心函数定义（移到前面） ==========
   // 渲染播放列表
   function renderPlaylist() {
