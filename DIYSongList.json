@@ -1,6 +1,6 @@
 [
   {
-    "id": "1773412030566",
+    "id": "playlist_1773475666081_8bvg8dbez",
     "name": "yorushika",
     "description": "1",
     "coverPath": "",
@@ -55,15 +55,24 @@
         "duration": 242230,
         "url": "https://api.qijieya.cn/meting/?type=url&id=487527980"
       }
-    ],
-    "createdAt": "2026-03-13T14:27:10.566Z"
+    ]
   },
   {
-    "id": "1773412085765",
-    "name": "自定义",
-    "description": "diy",
-    "coverPath": "1773412085765.jpeg",
-    "songs": [],
-    "createdAt": "2026-03-13T14:28:05.774Z"
+    "id": "playlist_1773475674375_sm2lqb17h",
+    "name": "测试",
+    "description": "",
+    "coverPath": "",
+    "songs": [
+      {
+        "id": "2122534120",
+        "songId": "2122534120",
+        "name": "浸春芜",
+        "artist": "塞壬唱片-MSR/宋柏/十音/解伟苓",
+        "album": "浸春芜",
+        "coverUrl": "https://p1.music.126.net/C7f7h50l9-bjqRx9sRsrQw==/109951169299656333.jpg",
+        "duration": 223384,
+        "url": "https://api.qijieya.cn/meting/?type=url&id=2122534120"
+      }
+    ]
   }
 ]
