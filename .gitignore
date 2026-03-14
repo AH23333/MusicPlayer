@@ -1,0 +1,12 @@
+node_modules/
+ImportLocalSongs/
+DIYSongListPage/
+out/
+
+log.txt
+DIYSongList.json
+MyFavorite.json
+PlayList.json
+SearchHistory.json
+Latest.json
+FollowedArtists.json
