@@ -38,7 +38,7 @@
 
 ### 2. 清理现有依赖（如果需要）
 
-如果当前node_modules存在则需要重新安装：
+如果当前node\_modules存在则需要重新安装：
 
 ```bash
 # 删除现有的node_modules文件夹（如果有的话）
@@ -125,6 +125,7 @@ npm run make
 - 删除utils.js文件头部的“仅浏览器环境下的兼容补丁”部分；使用已被注释掉的CORS代理请求函数exports.fetchViaProxy，删除第二个exports.fetchViaProxy函数；删除utils.js文件尾部的“浏览器环境挂载”部分
 - 删除index.html文件头部的“启动提示浮窗”div块
 - 删除index.html文件尾部的
+
 ```
   <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
   <script src="./utils.js"></script>
@@ -140,9 +141,25 @@ npm run make
   </script>
 ```
 
-- 未完待续~
+- 未完待续\~
 
 ## 参考项目
 
 - [aura-music](https://github.com/dingyi222666/aura-music.git)
 - [Meting](https://github.com/metowolf/Meting.git)
+
+# 更新日志
+
+## 2026.3.14
+
+- 修复了歌曲导入功能
+- 优化了歌曲功能按钮的位置
+- 优化了鼠标单击歌曲高亮卡顿的问题
+- 优化了播放列表高亮当前正在播放歌曲的问题
+
+* 增加了更多右键功能
+* 增加了关注歌手功能
+* 增加了歌单导入导出功能
+* 增加了用户信息导入导出功能
+* 增加了歌词界面在页面过窄时自动调整的功能
+
