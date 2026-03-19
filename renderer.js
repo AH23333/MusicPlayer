@@ -881,7 +881,6 @@ window.onload = async () => {
     document.querySelector("#searchResultsSection h2").textContent = "关注歌手"
 
     // 清空搜索结果列表
-    const searchResultList = document.getElementById("searchResultList")
     searchResultList.innerHTML = ""
 
     // 隐藏加载更多按钮
@@ -1792,12 +1791,22 @@ window.onload = async () => {
 
   // 渲染搜索结果列表
   function renderSearchResults(songs) {
+    console.log(`开始渲染搜索结果，结果数量：${songs.length}`)
+    console.log(`searchResultList 元素：`, searchResultList)
+    console.log(`searchOffset：${searchOffset}`)
+
     if (searchOffset === 0) {
+      console.log("清空搜索结果列表")
       searchResultList.innerHTML = "" // 清空，保留容器上的滚动监听
     }
 
+    console.log("开始遍历歌曲列表：")
     songs.forEach((song, index) => {
-      if (!song.id) return
+      console.log(`处理第 ${index} 首歌：`, song)
+      if (!song.id) {
+        console.log(`跳过无ID的歌曲：`, song)
+        return
+      }
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = "song-item p-4 transition-colors duration-200"
@@ -1866,9 +1875,11 @@ window.onload = async () => {
         showSongContextMenu(e, song)
       })
 
+      console.log("将歌曲添加到搜索结果列表")
       searchResultList.appendChild(li)
     })
 
+    console.log("渲染完成，设置加载更多按钮")
     loadMoreBtn.style.display =
       songs.length >= PAGE_SIZE ? "inline-block" : "none"
   }
@@ -2385,14 +2396,25 @@ window.onload = async () => {
   // 加载搜索结果
   async function loadSearchResults(keyword, offset) {
     try {
+      console.log(`开始加载搜索结果，关键词：${keyword}，偏移量：${offset}`)
       const songs = await window.ElectronAPI.searchMusic(keyword, offset)
-      if (offset === 0 && songs.length === 0) {
+      console.log(`后端返回搜索结果：`, songs)
+      console.log(`返回结果类型：${typeof songs}`)
+      console.log(`返回结果长度：${songs ? songs.length : 0}`)
+
+      if (offset === 0 && (!songs || songs.length === 0)) {
+        console.log("未找到相关歌曲")
         showToast("未找到相关歌曲")
         return
       }
-      searchResults = [...searchResults, ...songs]
-      renderSearchResults(songs)
+
+      if (songs && songs.length > 0) {
+        searchResults = [...searchResults, ...songs]
+        console.log(`合并后搜索结果长度：${searchResults.length}`)
+        renderSearchResults(songs)
+      }
     } catch (err) {
+      console.error("搜索失败：", err)
       showToast("搜索失败，请查看日志")
     }
   }

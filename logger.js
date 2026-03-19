@@ -11,8 +11,8 @@ function initLogFile() {
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true })
   }
-  // 每次启动清空旧日志（可选注释）
-  if (fs.existsSync(LOG_FILE_PATH)) {
+  // 不再清空旧日志，直接续写
+  if (!fs.existsSync(LOG_FILE_PATH)) {
     fs.writeFileSync(LOG_FILE_PATH, "", { encoding: "utf8" })
   }
 }

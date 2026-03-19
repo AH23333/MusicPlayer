@@ -1,1 +1,92 @@
-[]
+[
+  {
+    "id": "2122534120",
+    "songId": "2122534120",
+    "name": "浸春芜",
+    "artist": "塞壬唱片-MSR/宋柏/十音/解伟苓",
+    "album": "浸春芜",
+    "coverUrl": "https://p1.music.126.net/C7f7h50l9-bjqRx9sRsrQw==/109951169299656333.jpg",
+    "duration": 223384,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=2122534120"
+  },
+  {
+    "id": "1403774122",
+    "songId": "1403774122",
+    "name": "Speed of Light",
+    "artist": "塞壬唱片-MSR/DJ Okawari/二宮愛",
+    "album": "Speed of Light",
+    "coverUrl": "https://p1.music.126.net/slodr8c8GhxdkgaHnA1jCg==/109951164497982814.jpg",
+    "duration": 245817,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1403774122"
+  },
+  {
+    "id": "1357953768",
+    "songId": "1357953768",
+    "name": "だから僕は音楽を辞めた",
+    "artist": "ヨルシカ",
+    "album": "だから僕は音楽を辞めた",
+    "coverUrl": "https://p2.music.126.net/AVhYLte6khAcd3wOO65avw==/109951170245162530.jpg",
+    "duration": 242973,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1357953768"
+  },
+  {
+    "id": "1466519473",
+    "songId": "1466519473",
+    "name": "花人局",
+    "artist": "ヨルシカ",
+    "album": "盗作",
+    "coverUrl": "https://p2.music.126.net/033ZocR9XnX1MdcXCWW_iQ==/109951165180340452.jpg",
+    "duration": 333704,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1466519473"
+  },
+  {
+    "id": "local_1773418001955_xeuyhofsa",
+    "name": "28238480209-1-30232",
+    "artist": "本地艺术家",
+    "album": "本地专辑",
+    "coverUrl": "",
+    "duration": 0,
+    "url": "D:\\Visual Studio Code\\Something\\music-player\\ImportLocalSongs\\28238480209-1-30232.mp3",
+    "local": true
+  },
+  {
+    "id": "2634153295",
+    "songId": "2634153295",
+    "name": "アポリア",
+    "artist": "ヨルシカ",
+    "album": "アポリア",
+    "coverUrl": "https://p1.music.126.net/Pm_XyfxR0gu5XCb-5vR9KA==/109951170023203859.jpg",
+    "duration": 230209,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=2634153295"
+  },
+  {
+    "id": "1466520413",
+    "songId": "1466520413",
+    "name": "爆弾魔 (Re-Recording)",
+    "artist": "ヨルシカ",
+    "album": "盗作",
+    "coverUrl": "https://p1.music.126.net/033ZocR9XnX1MdcXCWW_iQ==/109951165180340452.jpg",
+    "duration": 215729,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1466520413"
+  },
+  {
+    "id": "local_1773413517596_s3e96qfjj",
+    "name": "28238480209-1-30232",
+    "artist": "本地艺术家",
+    "album": "本地专辑",
+    "coverUrl": "",
+    "duration": 0,
+    "url": "D:\\Visual Studio Code\\Something\\music-player\\ImportLocalSongs\\28238480209-1-30232.mp3",
+    "local": true
+  },
+  {
+    "id": "1810759765",
+    "songId": "1810759765",
+    "name": "春泥棒",
+    "artist": "ヨルシカ",
+    "album": "春泥棒",
+    "coverUrl": "https://p2.music.126.net/kBtj7HlFDuokeO4iyHTXaA==/109951165616927101.jpg",
+    "duration": 290279,
+    "url": "https://api.qijieya.cn/meting/?type=url&id=1810759765"
+  }
+]

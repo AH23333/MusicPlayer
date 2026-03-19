@@ -53,37 +53,50 @@ ipcMain.handle("search-music", async (event, keyword, offset = 0) => {
   logger.info(`开始搜索，关键词：${keyword}，偏移量：${offset}`)
   if (!keyword) return []
 
-  // 方案1：网易云API（支持offset）
-  const searchUrl = `${API_CONFIGS.neteaseSearch.url}?keywords=${encodeURIComponent(keyword)}&limit=${PAGE_SIZE}&offset=${offset}`
-  const searchData = await fetchViaProxy(searchUrl)
-
-  if (searchData?.result?.songs?.length) {
-    const songs = searchData.result.songs
-      .map(mapNeteaseSongToTrack)
-      .filter(Boolean)
-    logger.info(`网易云API返回 ${songs.length} 条结果`)
-    return songs
-  }
-
-  // 方案2：Meting备用API
-  logger.warn("网易云API无数据，切换到Meting备用API")
-  const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&keyword=${encodeURIComponent(keyword)}&limit=${PAGE_SIZE}&offset=${offset}`
+  // 直接使用Meting API（因为网易云API已失效）
+  logger.info("使用Meting API进行搜索")
+  const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=${PAGE_SIZE}&offset=${offset}`
   const metingData = await fetchViaProxy(metingUrl)
+
+  logger.info(`Meting API返回数据类型: ${typeof metingData}`)
+  if (Array.isArray(metingData)) {
+    logger.info(`Meting API返回数组长度: ${metingData.length}`)
+    if (metingData.length > 0) {
+      logger.info(`第一个元素结构: ${JSON.stringify(metingData[0])}`)
+    }
+  } else if (metingData) {
+    logger.info(`Meting API返回数据: ${JSON.stringify(metingData)}`)
+  }
 
   if (metingData && Array.isArray(metingData)) {
     const songs = metingData
-      .map((item) => ({
-        id: item.id || item.songid || "",
-        songId: item.id || item.songid || "",
-        name: item.name || item.title || "",
-        artist: item.artist || item.singer || "未知歌手",
-        album: item.album || "未知专辑",
-        coverUrl: item.pic || item.cover || "",
-        duration: item.duration || 0,
-        url: `${API_CONFIGS.neteaseAudioUrl.url}?type=url&id=${item.id}`,
-      }))
+      .map((item) => {
+        // 从url字段中提取歌曲ID
+        let songId = item.id || item.songid || item.songId || ""
+        if (!songId && item.url) {
+          const idMatch = item.url.match(/id=(\d+)/)
+          if (idMatch && idMatch[1]) {
+            songId = idMatch[1]
+          }
+        }
+        return {
+          id: songId,
+          songId: songId,
+          name: item.name || item.title || "",
+          artist: item.artist || item.singer || "未知歌手",
+          album: item.album || "未知专辑",
+          coverUrl: item.pic || item.cover || "",
+          duration: item.duration || 0,
+          url:
+            item.url ||
+            `${API_CONFIGS.neteaseAudioUrl.url}?type=url&id=${songId}`,
+        }
+      })
       .filter((item) => item.id)
-    logger.info(`Meting API返回 ${songs.length} 条结果`)
+    logger.info(`解析后得到 ${songs.length} 条有效结果`)
+    if (songs.length > 0) {
+      logger.info(`第一个解析结果: ${JSON.stringify(songs[0])}`)
+    }
     return songs
   }
 

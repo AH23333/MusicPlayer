@@ -10,3 +10,6 @@ PlayList.json
 SearchHistory.json
 Latest.json
 FollowedArtists.json
+test-api.js
+test-multiple-searches.js
+test-qijie-api.js
