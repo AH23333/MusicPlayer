@@ -29,7 +29,7 @@ function createWindow() {
   })
 
   mainWindow.loadFile(path.join(__dirname, "index.html"))
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools() // 注释掉，避免自动打开控制台
   logger.info("窗口创建完成，预加载脚本已配置") // 替换console.log
 }
 
