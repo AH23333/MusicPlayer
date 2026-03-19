@@ -30,9 +30,9 @@
 </head>
 
 <body class="min-h-screen bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-white">
-  
+
   <!-- 启动提示浮窗 -->
-  <div id="startup-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.3 ease;">
+  <!-- <div id="startup-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.3 ease;">
     <div style="background: white; max-width: 90%; width: 400px; padding: 2rem; border-radius: 1rem; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; font-family: 'Inter', system-ui, sans-serif; color: #1f2937;" class="dark:bg-gray-800 dark:text-white">
       <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
         ⚠️ API问题已修复，网页版搜索功能与其他体验尚不完善<br>建议本地安装使用
@@ -42,7 +42,7 @@
         <button id="dismiss-startup" style="background-color: transparent; border: 2px solid #1DB954; color: #1DB954; padding: 0.8rem 1.5rem; border-radius: 9999px; font-weight: 600; cursor: pointer; transition: all 0.2;" onmouseover="this.style.backgroundColor='#1DB954'; this.style.color='white'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#1DB954'">我已知晓，仍然体验网页版</button>
       </div>
     </div>
-  </div>
+  </div> -->
   <!-- 启动提示浮窗结束 -->
   
   <!-- 主界面 -->
@@ -56,19 +56,58 @@
         id="sidebarResizer"></div>
       <!-- 用户信息 -->
       <div class="p-4 border-b border-gray-300 dark:border-gray-700">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-            <span class="text-white font-semibold">AH</span>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <span class="text-white font-semibold">AH</span>
+            </div>
+            <div>
+              <div class="font-medium">用户信息</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">用户消息</div>
+            </div>
           </div>
-          <div>
-            <div class="font-medium">用户信息</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500">用户消息</div>
+          <div class="flex items-center gap-2">
+            <button id="importUserBtn"
+              class="p-1 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700 relative group"
+              title="导入用户信息">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">导入用户信息</span>
+            </button>
+            <button id="exportUserBtn"
+              class="p-1 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700 relative group"
+              title="导出用户信息">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">导出用户信息</span>
+            </button>
           </div>
         </div>
       </div>
 
       <!-- 常用功能 -->
       <div class="p-4">
+        <div class="mb-6">
+          <button id="followedSongsBtn"
+            class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>关注歌手</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500" id="followCount">0</span>
+          </button>
+        </div>
+
         <div class="mb-6">
           <button id="likeSongsBtn"
             class="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700">
@@ -209,16 +248,40 @@
           </div>
 
           <!-- 歌单信息区域 -->
-          <div class="flex items-center mb-6" id="playlistInfoArea">
-            <div class="mr-4" id="playlistCoverContainer">
-              <img id="playlistCoverImg" src="" alt="歌单封面" class="w-20 h-20 rounded-lg shadow-md object-cover">
-            </div>
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-semibold dark:text-white" id="playlistDetailName">歌单名称</h3>
-                <span class="text-sm text-gray-500 dark:text-gray-400" id="playlistSongCount">0首</span>
+          <div class="flex items-center justify-between mb-6" id="playlistInfoArea">
+            <div class="flex items-center">
+              <div class="mr-4" id="playlistCoverContainer">
+                <img id="playlistCoverImg" src="" alt="歌单封面" class="w-20 h-20 rounded-lg shadow-md object-cover">
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="playlistDetailDescription">歌单描述</p>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-semibold dark:text-white" id="playlistDetailName">歌单名称</h3>
+                  <span class="text-sm text-gray-500 dark:text-gray-400" id="playlistSongCount">0首</span>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="playlistDetailDescription">歌单描述</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="exportPlaylistBtn"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors duration-200 flex items-center gap-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                导出
+              </button>
+              <button id="playPlaylistBtn"
+                class="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors duration-200 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                播放
+              </button>
             </div>
           </div>
 
@@ -233,22 +296,23 @@
     </div>
   </div>
 
-  <!-- 歌词界面 -->
+  <!-- 歌词界面 (合并自 index2.html，优化窄屏显示) -->
   <div id="lyricsInterface" class="fixed inset-0 bg-gray-100 z-45 hidden dark:bg-gray-900">
-    <div class="h-full flex items-center justify-center p-4">
-      <!-- 左侧专辑封面 -->
-      <div class="flex-shrink-0 mr-20 ml-8">
+    <div class="h-full flex items-center justify-center p-4 md:p-8"> <!-- 缩小默认内边距 -->
+      <!-- 左侧专辑封面：仅在中等屏幕及以上显示 -->
+      <div class="flex-shrink-0 mr-16 ml-8 hidden md:block">
         <img src="" alt="专辑封面" class="w-96 h-96 object-cover rounded-2xl shadow-2xl" id="lyricsCoverImg">
       </div>
-      <!-- 右侧歌词 -->
-      <div class="flex-1 max-w-2xl flex flex-col h-3/4">
+      <!-- 右侧歌词：窄屏时占满宽度，中等屏幕以上保持 flex-1 -->
+      <div class="w-full md:flex-1 max-w-3xl flex flex-col h-full md:h-full px-4 md:px-0"> <!-- 窄屏加内边距 -->
         <!-- 歌曲信息 -->
-        <div class="text-center mb-2 flex-shrink-0">
-          <h2 class="text-xl font-bold dark:text-white mb-1 truncate" id="lyricsSongTitle">未播放歌曲</h2>
-          <p class="text-gray-400 dark:text-gray-500 truncate text-sm" id="lyricsSongArtist">--</p>
+        <div class="text-center mb-4 md:mb-6 flex-shrink-0"> <!-- 减小底部边距 -->
+          <h2 class="text-xl md:text-2xl font-bold dark:text-white mb-1 md:mb-2 truncate" id="lyricsSongTitle">未播放歌曲
+          </h2>
+          <p class="text-gray-400 dark:text-gray-500 truncate text-sm md:text-base" id="lyricsSongArtist">--</p>
         </div>
         <!-- 歌词区域 -->
-        <div class="flex-1 overflow-y-auto lyrics-scroll-container">
+        <div class="flex-1 min-h-[50vh] md:min-h-[70vh] overflow-y-auto lyrics-scroll-container"> <!-- 窄屏时降低最小高度 -->
           <div class="lyrics-area" id="lyricsArea">
             请选择歌曲播放以显示歌词
           </div>
@@ -429,6 +493,15 @@
           </div>
         </div>
         <div class="flex justify-end gap-3">
+          <button type="button" id="importPlaylistBtnModal"
+            class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded transition-colors duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            导入歌单
+          </button>
           <button type="button" id="cancelPlaylistBtn"
             class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded transition-colors duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600">
             取消
@@ -462,8 +535,8 @@
   </div>
 
   <!-- 新增这1行：引入 Axios CDN（浏览器环境用） -->
-  <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
-  <script src="./utils.js"></script>   <!-- 新增这一行 -->
+  <!-- <script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
+  <script src="./utils.js"></script>
   <script>
     // 关闭浮窗逻辑
     document.getElementById('dismiss-startup').addEventListener('click', function() {
@@ -473,7 +546,7 @@
         overlay.style.display = 'none';
       }, 300); // 等待过渡动画结束
     });
-  </script>
+  </script> -->
 
   <script src="./renderer.js"></script>
   <script>

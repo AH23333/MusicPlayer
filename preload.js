@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   readLikedSongs: () => ipcRenderer.invoke("read-liked-songs"),
   saveLikedSongs: (likedSongs) =>
     ipcRenderer.invoke("save-liked-songs", likedSongs),
+  // 新增：关注歌手
+  readFollowedArtists: () => ipcRenderer.invoke("read-followed-artists"),
+  saveFollowedArtists: (followedArtists) =>
+    ipcRenderer.invoke("save-followed-artists", followedArtists),
   // 新增：自定义歌单
   readCustomPlaylists: () => ipcRenderer.invoke("read-custom-playlists"),
   saveCustomPlaylists: (playlists) =>
@@ -27,6 +31,12 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   saveDIYPlaylists: (playlists) =>
     ipcRenderer.invoke("save-diy-playlists", playlists),
   savePlaylistCover: (data) => ipcRenderer.invoke("save-playlist-cover", data),
+  // 新增：导入导出歌单
+  exportPlaylist: (playlist) => ipcRenderer.invoke("export-playlist", playlist),
+  importPlaylist: () => ipcRenderer.invoke("import-playlist"),
+  // 新增：导入导出用户信息
+  exportUserInfo: () => ipcRenderer.invoke("export-user-info"),
+  importUserInfo: () => ipcRenderer.invoke("import-user-info"),
   // 新增：搜索历史
   readSearchHistory: () => ipcRenderer.invoke("read-search-history"),
   saveSearchHistory: (searchHistory) =>

@@ -1,0 +1,15 @@
+node_modules/
+ImportLocalSongs/
+DIYSongListPage/
+out/
+
+log.txt
+DIYSongList.json
+MyFavorite.json
+PlayList.json
+SearchHistory.json
+Latest.json
+FollowedArtists.json
+test-api.js
+test-multiple-searches.js
+test-qijie-api.js

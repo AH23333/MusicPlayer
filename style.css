@@ -49,6 +49,16 @@
   background-color: rgb(75 85 99) !important;
 }
 
+.song-item.active {
+  background-color: rgba(29, 185, 84, 0.1);
+  /* 半透明绿色背景，根据主题调整 */
+  border-left: 3px solid #1DB954;
+}
+
+.dark .song-item.active {
+  background-color: rgba(29, 185, 84, 0.2);
+}
+
 /* 歌词滚动容器优化 - 隐藏滚动条并添加遮罩 */
 .lyrics-scroll-container {
   scroll-behavior: smooth;
