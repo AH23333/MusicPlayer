@@ -44,7 +44,7 @@
     </div>
   </div> -->
   <!-- 启动提示浮窗结束 -->
-  
+
   <!-- 主界面 -->
   <div id="mainInterface" class="flex h-screen overflow-hidden">
     <!-- 左侧导航栏 -->
@@ -88,6 +88,19 @@
               </svg>
               <span
                 class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">导出用户信息</span>
+            </button>
+            <button id="checkUpdateBtn"
+              class="p-1 rounded hover:bg-gray-300 transition-colors duration-200 dark:hover:bg-gray-700 relative group"
+              title="检查更新">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span
+                class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">检查更新</span>
+              <span id="updateBadge"
+                class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full opacity-0 transition-opacity duration-200"></span>
             </button>
           </div>
         </div>
@@ -449,6 +462,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+
+          <!-- 更新状态提示 -->
+          <div id="updateStatus" class="ml-3 text-xs text-gray-500 dark:text-gray-400 hidden">
+            <span id="updateText"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -605,6 +623,22 @@
         themeManager.init();
       })();
   </script>
+
+  <!-- 更新提示模态框 -->
+  <div id="updateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+      <h3 class="text-lg font-bold mb-3 dark:text-white" id="updateModalTitle">发现新版本</h3>
+      <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 whitespace-pre-line" id="updateModalText">是否立即下载更新？</p>
+      <div class="flex gap-3 justify-center">
+        <button id="updateDownloadBtn"
+          class="w-[120px] py-2 bg-primary text-white rounded-lg hover:bg-green-600 transition-colors">前往下载</button>
+        <button id="updateGitHubBtn"
+          class="w-[120px] py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors hidden">打开GitHub</button>
+        <button id="updateLaterBtn"
+          class="w-[120px] py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors">稍后</button>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

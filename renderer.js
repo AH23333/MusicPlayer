@@ -255,6 +255,7 @@ window.onload = async () => {
   // 用户信息导入导出按钮
   const importUserBtn = document.getElementById("importUserBtn")
   const exportUserBtn = document.getElementById("exportUserBtn")
+  const checkUpdateBtn = document.getElementById("checkUpdateBtn")
 
   // 导出用户信息
   exportUserBtn.addEventListener("click", async () => {
@@ -279,6 +280,112 @@ window.onload = async () => {
       showToast(`导入失败：${result.error}`)
     }
   })
+
+  // 检查更新按钮
+  checkUpdateBtn.addEventListener("click", async () => {
+    // 隐藏更新徽章
+    hideUpdateBadge()
+
+    const result = await window.ElectronAPI.checkForUpdates()
+    if (result && result.success) {
+      if (result.hasUpdate) {
+        showUpdateModal(result)
+      } else {
+        showToast("当前已是最新版本")
+      }
+    } else {
+      // API调用失败
+      showToast(result?.message || "检查更新失败")
+    }
+  })
+
+  // 监听自动更新事件
+  window.ElectronAPI.onUpdateAvailable((info) => {
+    // 显示更新徽章
+    showUpdateBadge()
+    showUpdateModal(info)
+  })
+
+  // 显示更新徽章
+  function showUpdateBadge() {
+    const badge = document.getElementById("updateBadge")
+    if (badge) {
+      badge.classList.remove("opacity-0")
+      badge.classList.add("opacity-100")
+    }
+  }
+
+  // 隐藏更新徽章
+  function hideUpdateBadge() {
+    const badge = document.getElementById("updateBadge")
+    if (badge) {
+      badge.classList.remove("opacity-100")
+      badge.classList.add("opacity-0")
+    }
+  }
+
+  // 存储当前更新信息
+  let currentUpdateInfo = null
+
+  // 显示更新模态框
+  function showUpdateModal(info) {
+    const modal = document.getElementById("updateModal")
+    const title = document.getElementById("updateModalTitle")
+    const text = document.getElementById("updateModalText")
+    const downloadBtn = document.getElementById("updateDownloadBtn")
+    const gitHubBtn = document.getElementById("updateGitHubBtn")
+    const laterBtn = document.getElementById("updateLaterBtn")
+
+    // 存储当前更新信息
+    currentUpdateInfo = info
+
+    if (info.hasUpdate) {
+      title.textContent = "发现新版本"
+      text.innerHTML = `当前版本：${info.currentVersion || "1.0.0"}<br>最新版本：${info.latestVersion || "未知"}<br><br>请手动下载更新覆盖安装，注意备份用户数据！`
+      downloadBtn.textContent = "前往下载"
+      downloadBtn.classList.remove("hidden")
+    } else {
+      title.textContent = "更新检查"
+      text.textContent = "当前已是最新版本"
+      downloadBtn.classList.add("hidden")
+    }
+    gitHubBtn.classList.add("hidden") // 移除重复的GitHub按钮
+    laterBtn.classList.remove("hidden")
+    modal.classList.remove("hidden")
+  }
+
+  // 隐藏更新模态框
+  function hideUpdateModal() {
+    document.getElementById("updateModal").classList.add("hidden")
+    // 清空当前更新信息
+    currentUpdateInfo = null
+  }
+
+  // 更新模态框按钮事件
+  document
+    .getElementById("updateDownloadBtn")
+    .addEventListener("click", async () => {
+      if (currentUpdateInfo && currentUpdateInfo.downloadUrl) {
+        await window.ElectronAPI.openDownloadPage(currentUpdateInfo.downloadUrl)
+        showToast("请下载最新版本覆盖安装，记得备份用户数据！")
+      } else {
+        await window.ElectronAPI.openDownloadPage()
+      }
+      hideUpdateModal()
+    })
+
+  document.getElementById("updateLaterBtn").addEventListener("click", () => {
+    hideUpdateModal()
+  })
+
+  // 打开GitHub按钮事件
+  document
+    .getElementById("updateGitHubBtn")
+    .addEventListener("click", async () => {
+      await window.ElectronAPI.openDownloadPage()
+      showToast("正在打开GitHub releases页面...")
+      hideUpdateModal()
+    })
 
   // ========== 核心函数定义（移到前面） ==========
   // 渲染播放列表
@@ -514,6 +621,21 @@ window.onload = async () => {
   } catch (err) {
     console.error("读取本地歌曲失败:", err)
   }
+
+  // 应用启动时检查更新并显示徽章
+  async function checkUpdateOnStartup() {
+    try {
+      const result = await window.ElectronAPI.checkForUpdates()
+      if (result && result.success && result.hasUpdate) {
+        showUpdateBadge()
+      }
+    } catch (err) {
+      console.error("启动时检查更新失败:", err)
+    }
+  }
+
+  // 调用启动时检查更新
+  checkUpdateOnStartup()
 
   // 搜索历史相关DOM元素
   const searchHistoryContainer = document.getElementById(

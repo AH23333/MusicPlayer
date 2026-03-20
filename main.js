@@ -1,5 +1,5 @@
 // main.js - 日志改为文件输出
-const { app, BrowserWindow, ipcMain } = require("electron")
+const { app, BrowserWindow, ipcMain, shell } = require("electron")
 const path = require("path")
 const fs = require("fs").promises
 // 引入日志工具
@@ -38,6 +38,82 @@ app.whenReady().then(() => {
   logger.init() // 初始化日志文件
   logger.info("Electron应用启动") // 替换console.log
   createWindow()
+  // 移除自动检查更新，避免API调用
+})
+
+// GitHub相关配置
+const GITHUB_REPO = "AH23333/MusicPlayer"
+const CURRENT_VERSION = app.getVersion()
+
+// 获取最新版本信息（使用GitHub Releases RSS feed）
+async function getLatestVersion() {
+  try {
+    const feedUrl = `https://github.com/${GITHUB_REPO}/releases.atom`
+    const response = await fetch(feedUrl)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const text = await response.text()
+
+    // 使用简单的字符串匹配提取最新版本号
+    // 查找所有包含版本号的模式
+    const versionMatch = text.match(/v?(\d+\.\d+\.\d+)/)
+    if (versionMatch) {
+      return versionMatch[1]
+    }
+
+    // 如果没有找到版本号，返回默认版本
+    return "1.0.0"
+  } catch (err) {
+    logger.error(`获取最新版本失败：${err.message}`)
+    return "1.0.0"
+  }
+}
+
+// IPC：检查更新
+ipcMain.handle("check-for-updates", async () => {
+  try {
+    const latestVersion = await getLatestVersion()
+    const currentVersion = CURRENT_VERSION
+
+    if (latestVersion) {
+      // 简单的版本比较
+      const hasUpdate = latestVersion !== currentVersion
+      return {
+        success: true,
+        hasUpdate: hasUpdate,
+        currentVersion: currentVersion,
+        latestVersion: latestVersion,
+        message: hasUpdate ? "发现新版本" : "当前已是最新版本",
+        openGitHub: true,
+      }
+    } else {
+      // 如果获取版本失败，仍然允许用户前往GitHub
+      return {
+        success: true,
+        hasUpdate: true,
+        message: "检查更新",
+        openGitHub: true,
+      }
+    }
+  } catch (err) {
+    logger.error(`检查更新失败：${err.message}`)
+    return {
+      success: true,
+      hasUpdate: true,
+      message: "检查更新",
+      openGitHub: true,
+    }
+  }
+})
+
+// IPC：打开下载页面
+ipcMain.handle("open-download-page", async (event, url) => {
+  if (url) {
+    await shell.openExternal(url)
+    return { success: true }
+  }
+  // 如果没有提供URL，打开GitHub releases页面
+  await shell.openExternal(`https://github.com/${GITHUB_REPO}/releases`)
+  return { success: true }
 })
 
 // ========== IPC通信逻辑（日志全部改为文件输出） ==========

@@ -48,4 +48,9 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   deleteLocalSong: (songUrl) =>
     ipcRenderer.invoke("delete-local-song", songUrl),
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
+  // 新增：检查更新（手动模式）
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+  openDownloadPage: (url) => ipcRenderer.invoke("open-download-page", url),
+  onUpdateAvailable: (callback) =>
+    ipcRenderer.on("update-available", (event, info) => callback(info)),
 })
