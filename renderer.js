@@ -1372,7 +1372,7 @@ window.onload = async () => {
     try {
       const lyrics = await window.ElectronAPI.fetchLyrics(song.songId)
       if (lyrics && (lyrics.lrc || lyrics.tlrc)) {
-        renderLyrics(lyrics.lrc || lyrics.tlrc)
+        renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId)
       } else {
         // 显示友好的无歌词提示
         if (lyricsArea) {
