@@ -1,36 +1,59 @@
-import store from '../store/index.js'
-import api from '../services/api.js'
+import store from "../store/index.js"
+import api from "../services/api.js"
 
 class Player {
   constructor() {
-    this.audioElement = document.getElementById('audioPlayer')
+    this.audioElement = document.getElementById("audioPlayer")
     this.currentLyrics = []
     this.init()
   }
 
   init() {
     // 绑定音频事件
-    this.audioElement.addEventListener('ended', this.handleEnded.bind(this))
-    this.audioElement.addEventListener('timeupdate', this.handleTimeUpdate.bind(this))
-    this.audioElement.addEventListener('error', this.handleError.bind(this))
+    this.audioElement.addEventListener("ended", this.handleEnded.bind(this))
+    this.audioElement.addEventListener(
+      "timeupdate",
+      this.handleTimeUpdate.bind(this)
+    )
+    this.audioElement.addEventListener("error", this.handleError.bind(this))
   }
 
   // 播放歌曲
   playSong(index) {
     const state = store.getState()
-    const { playQueue } = state
-    
-    if (playQueue.length === 0 || index < 0 || index >= playQueue.length) {
+    const { playQueue, shuffledPlayQueue, playMode } = state
+
+    if (playQueue.length === 0) {
       return
     }
 
-    const song = playQueue[index]
+    let song
+    if (playMode === "shuffle") {
+      // 确保shuffledPlayQueue已初始化
+      if (shuffledPlayQueue.length === 0) {
+        const shuffled = this.shuffleArray(playQueue)
+        store.dispatch("setShuffledPlayQueue", shuffled)
+      }
+
+      if (index < 0 || index >= shuffledPlayQueue.length) {
+        return
+      }
+
+      song = shuffledPlayQueue[index]
+    } else {
+      if (index < 0 || index >= playQueue.length) {
+        return
+      }
+
+      song = playQueue[index]
+    }
+
     this.audioElement.src = song.url
     this.audioElement.play()
-    store.dispatch('setCurrentSongIndex', index)
+    store.dispatch("setCurrentSongIndex", index)
 
     // 添加到最近播放
-    store.dispatch('addToLatestPlayed', song)
+    store.dispatch("addToLatestPlayed", song)
     api.saveLatestPlayed(store.getState().latestPlayed)
   }
 
@@ -43,23 +66,41 @@ class Player {
     }
   }
 
+  // 随机打乱数组（Fisher-Yates 算法）
+  shuffleArray(array) {
+    const shuffled = [...array]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+
   // 上一首
   playPrevious() {
     const state = store.getState()
-    const { playQueue, currentSongIndex, playMode } = state
-    
+    const { playQueue, shuffledPlayQueue, currentSongIndex, playMode } = state
+
     if (playQueue.length === 0) return
 
     let newIndex
     switch (playMode) {
-      case 'order':
+      case "order":
         newIndex = (currentSongIndex - 1 + playQueue.length) % playQueue.length
         break
-      case 'reverse':
+      case "reverse":
         newIndex = (currentSongIndex + 1) % playQueue.length
         break
-      case 'shuffle':
-        newIndex = Math.floor(Math.random() * playQueue.length)
+      case "shuffle":
+        // 确保shuffledPlayQueue已初始化
+        if (shuffledPlayQueue.length === 0) {
+          const shuffled = this.shuffleArray(playQueue)
+          store.dispatch("setShuffledPlayQueue", shuffled)
+        }
+        // 在打乱后的队列中按顺序播放
+        newIndex =
+          (currentSongIndex - 1 + shuffledPlayQueue.length) %
+          shuffledPlayQueue.length
         break
       default:
         newIndex = (currentSongIndex - 1 + playQueue.length) % playQueue.length
@@ -71,20 +112,34 @@ class Player {
   // 下一首
   playNext() {
     const state = store.getState()
-    const { playQueue, currentSongIndex, playMode } = state
-    
+    const { playQueue, shuffledPlayQueue, currentSongIndex, playMode } = state
+
     if (playQueue.length === 0) return
 
     let newIndex
     switch (playMode) {
-      case 'order':
+      case "order":
         newIndex = (currentSongIndex + 1) % playQueue.length
         break
-      case 'reverse':
+      case "reverse":
         newIndex = (currentSongIndex - 1 + playQueue.length) % playQueue.length
         break
-      case 'shuffle':
-        newIndex = Math.floor(Math.random() * playQueue.length)
+      case "shuffle":
+        // 确保shuffledPlayQueue已初始化
+        if (shuffledPlayQueue.length === 0) {
+          const shuffled = this.shuffleArray(playQueue)
+          store.dispatch("setShuffledPlayQueue", shuffled)
+        }
+        // 检查是否播放到了最后一首
+        if (currentSongIndex >= shuffledPlayQueue.length - 1) {
+          // 重新打乱并从头开始播放
+          const shuffled = this.shuffleArray(playQueue)
+          store.dispatch("setShuffledPlayQueue", shuffled)
+          newIndex = 0
+        } else {
+          // 按顺序播放下一首
+          newIndex = currentSongIndex + 1
+        }
         break
       default:
         newIndex = (currentSongIndex + 1) % playQueue.length
@@ -98,7 +153,7 @@ class Player {
     const state = store.getState()
     const { playMode } = state
 
-    if (playMode === 'singleLoop') {
+    if (playMode === "singleLoop") {
       // 单曲循环
       this.audioElement.play()
     } else {
@@ -110,14 +165,14 @@ class Player {
   // 处理时间更新
   handleTimeUpdate() {
     // 触发歌词高亮更新
-    if (typeof window.updateLyricHighlight === 'function') {
+    if (typeof window.updateLyricHighlight === "function") {
       window.updateLyricHighlight(this.audioElement.currentTime)
     }
   }
 
   // 处理错误
   handleError() {
-    console.error('音频播放错误:', this.audioElement.error)
+    console.error("音频播放错误:", this.audioElement.error)
   }
 
   // 设置音量
@@ -152,8 +207,8 @@ class Player {
       this.currentLyrics = lyrics
       return lyrics
     } catch (error) {
-      console.error('加载歌词失败:', error)
-      return { lrc: '', tlrc: '', metadata: [] }
+      console.error("加载歌词失败:", error)
+      return { lrc: "", tlrc: "", metadata: [] }
     }
   }
 }

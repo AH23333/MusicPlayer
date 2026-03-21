@@ -93,11 +93,18 @@ class Playlist {
     this.savePlaylist()
   }
 
-  // 随机打乱播放队列
+  // 随机打乱播放队列（仅用于手动打乱）
   shufflePlaylist() {
     const state = store.getState()
     const { playQueue } = state
-    const shuffled = [...playQueue].sort(() => Math.random() - 0.5)
+    
+    // 使用Fisher-Yates算法打乱
+    const shuffled = [...playQueue]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    
     store.dispatch('setPlayQueue', shuffled)
     this.savePlaylist()
   }

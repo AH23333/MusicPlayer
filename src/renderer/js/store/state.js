@@ -2,6 +2,8 @@
 const initialState = {
   // 播放队列
   playQueue: [],
+  // 打乱后的播放队列副本（用于随机播放）
+  shuffledPlayQueue: [],
   // 当前播放索引
   currentSongIndex: -1,
   // 播放模式
