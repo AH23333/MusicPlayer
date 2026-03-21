@@ -27,6 +27,17 @@
 - **离线播放**：支持离线状态下播放本地歌曲
 - **跨平台**：支持 Windows、macOS、Linux
 
+## 📷 项目截图
+
+![主界面黑](./snapshot/Snipaste_2026-03-21_22-11-12.png)
+![主界面白](./snapshot/Snipaste_2026-03-21_22-12-03.png)
+![主界面右键](./snapshot/Snipaste_2026-03-21_22-12-57.png)
+![歌词黑](./snapshot/Snipaste_2026-03-21_22-11-30.png)
+![歌词白](./snapshot/Snipaste_2026-03-21_22-11-47.png)
+![创建歌单](./snapshot/Snipaste_2026-03-21_22-13-10.png)
+![自定义歌单](./snapshot/Snipaste_2026-03-21_22-15-07.png)
+![关注歌手/播放列表](./snapshot/Snipaste_2026-03-21_22-16-14.png)
+
 ## 🛠️ 技术栈
 
 - **Electron**：跨平台桌面应用框架
