@@ -162,6 +162,8 @@
 
 // ========== 原有代码从这里开始（完全保留） ==========
 
+// ========== 性能优化辅助函数 ==========
+
 window.onload = async () => {
   // ========== DOM元素获取 ==========
   // 搜索相关
@@ -170,6 +172,7 @@ window.onload = async () => {
   const clearSearchBtn = document.getElementById("clearSearchBtn")
   const searchResultList = document.getElementById("searchResultList")
   const loadMoreBtn = document.getElementById("loadMoreBtn")
+  const searchCache = new Map()
   // 播放列表相关
   const playlistList = document.getElementById("playlistList")
   const playlistSidebarList = document.getElementById("playlistSidebarList")
@@ -194,6 +197,7 @@ window.onload = async () => {
   const lyricsCoverImg = document.getElementById("lyricsCoverImg")
   const lyricsSongTitle = document.getElementById("lyricsSongTitle")
   const lyricsSongArtist = document.getElementById("lyricsSongArtist")
+  const lyricsCache = new Map()
 
   // 播放器相关
   const audioPlayer = document.getElementById("audioPlayer")
@@ -248,6 +252,9 @@ window.onload = async () => {
   let searchHistory = [] // 搜索历史
   let selectedSongIndex = -1 // 当前选中的歌曲索引
   let selectedSongList = null // 当前选中的歌曲列表类型
+  let isSearching = false
+  let lastActiveIndex = -1
+  let animationFrameId = null
   const MAX_SEARCH_HISTORY = 50 // 最大搜索历史记录数
   const PAGE_SIZE = 20 // 每次加载20条
   const MAX_LATEST_PLAYED = 50 // 最近播放最大数量
@@ -256,6 +263,75 @@ window.onload = async () => {
   const importUserBtn = document.getElementById("importUserBtn")
   const exportUserBtn = document.getElementById("exportUserBtn")
   const checkUpdateBtn = document.getElementById("checkUpdateBtn")
+
+  // ========== 辅助函数 ==========
+  function debounce(fn, delay) {
+    let timer
+    const debounced = function (...args) {
+      console.log("[防抖] 调用，延迟", delay, "ms")
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        console.log("[防抖] 执行目标函数")
+        fn.apply(this, args)
+      }, delay)
+    }
+    debounced.cancel = () => clearTimeout(timer)
+    return debounced
+  }
+
+  function throttle(fn, delay) {
+    let last = 0
+    return function (...args) {
+      const now = Date.now()
+      if (now - last >= delay) {
+        last = now
+        fn.apply(this, args)
+      }
+    }
+  }
+
+  let likedSavesQueue = []
+  let likedSaveTimer = null
+  let recentSavesQueue = []
+  let recentSaveTimer = null
+
+  function flushLikedSaves() {
+    if (likedSaveTimer) clearTimeout(likedSaveTimer)
+    likedSaveTimer = setTimeout(async () => {
+      if (likedSavesQueue.length) {
+        const latest = likedSavesQueue[likedSavesQueue.length - 1]
+        likedSongs = latest
+        await window.ElectronAPI.saveLikedSongs(likedSongs)
+        likeCount.textContent = likedSongs.length
+        likedSavesQueue = []
+      }
+      likedSaveTimer = null
+    }, 500)
+  }
+
+  function flushRecentSaves() {
+    if (recentSaveTimer) clearTimeout(recentSaveTimer)
+    recentSaveTimer = setTimeout(async () => {
+      if (recentSavesQueue.length) {
+        const latest = recentSavesQueue[recentSavesQueue.length - 1]
+        latestPlayed = latest
+        await window.ElectronAPI.saveLatestPlayed(latestPlayed)
+        recentCount.textContent = latestPlayed.length
+        recentSavesQueue = []
+      }
+      recentSaveTimer = null
+    }, 500)
+  }
+
+  function escapeHtml(str) {
+    if (!str) return ""
+    return str.replace(/[&<>]/g, function (m) {
+      if (m === "&") return "&amp;"
+      if (m === "<") return "&lt;"
+      if (m === ">") return "&gt;"
+      return m
+    })
+  }
 
   // 导出用户信息
   exportUserBtn.addEventListener("click", async () => {
@@ -390,96 +466,58 @@ window.onload = async () => {
   // ========== 核心函数定义（移到前面） ==========
   // 渲染播放列表
   function renderPlaylist() {
-    playlistList.innerHTML = "" // 清空现有内容
-
+    playlistList.innerHTML = ""
     playQueue.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = `song-item p-4 ${index === currentSongIndex ? "active" : ""} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200`
       li.innerHTML = `
-              <div class="flex items-center justify-between">
-                  <div class="flex-1 min-w-0">  <!-- 防止文字溢出 -->
-                      <div class="font-medium dark:text-white truncate">${song.name}</div>
-                      <div class="text-xs text-gray-400 dark:text-gray-500 truncate">${song.artist}</div>
-                  </div>
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                      <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                      </button>
-                      <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-                      <button class="more-btn" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
-                      </button>
-                      <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors dark:text-gray-500" data-index="${index}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                      </button>
-                  </div>
-              </div>
-          `
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
+          <button class="more-btn" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+          <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors dark:text-gray-500" data-index="${index}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    `
       li.dataset.index = index
       li.dataset.list = "playlist"
-
-      // 双击/单击处理
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
-        const currentTime = Date.now()
-        if (currentTime - lastClickTime < 300) {
+        const now = Date.now()
+        if (now - lastClickTime < 300) {
           currentSongIndex = index
           playCurrentSong()
           lastClickTime = 0
         } else {
-          lastClickTime = currentTime
+          lastClickTime = now
           selectSong(song, index, "playlist")
         }
       })
-
-      // 喜欢按钮点击事件
-      li.querySelector(".like-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        toggleLike(song)
-        const likeBtn = li.querySelector(".like-btn")
-        const isNowLiked = likedSongs.some((item) => item.id === song.id)
-        likeBtn.className = `like-btn ${isNowLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors`
-        likeBtn
-          .querySelector("svg")
-          .setAttribute("fill", isNowLiked ? "currentColor" : "none")
-      })
-
-      // 添加到歌单按钮点击事件
-      li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showAddToPlaylistMenu(e, song)
-      })
-
-      // 更多按钮点击事件
-      li.querySelector(".more-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showToast("更多功能开发中...")
-      })
-
-      // 删除按钮点击事件
-      li.querySelector(".delete-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        removeFromPlaylist(index)
-      })
-
-      // 右键菜单事件
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
         showSongContextMenu(e, song)
       })
-
       playlistList.appendChild(li)
     })
-
-    // 保存播放列表到文件
     window.ElectronAPI.savePlaylist(playQueue)
   }
 
@@ -679,22 +717,33 @@ window.onload = async () => {
       li.textContent = item
       li.addEventListener("click", async () => {
         searchInput.value = item
-        searchInput.dispatchEvent(new Event("input")) // 触发 input 事件以更新清空按钮
         searchHistoryContainer.classList.add("hidden")
+        // 手动更新清空按钮状态
+        if (searchInput.value.trim() !== "") {
+          clearSearchBtn.classList.remove("hidden")
+        } else {
+          clearSearchBtn.classList.add("hidden")
+        }
         // 自动搜索
         const keyword = item.trim()
         if (keyword) {
           searchOffset = 0
           searchResultList.innerHTML = ""
+          // 先显示搜索结果区域
+          searchResultsSection.classList.remove("hidden")
+          playlistDetailSection.classList.add("hidden")
+          // 隐藏返回按钮
+          backToSearchBtn.classList.add("hidden")
+          // 显示加载动画
+          searchResultList.innerHTML =
+            '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
+          // 加载搜索结果
           await loadSearchResults(keyword, searchOffset)
           // 更新搜索历史
           await updateSearchHistory(keyword)
-          // 跳转到搜索结果界面
-          searchResultsSection.classList.remove("hidden")
-          playlistDetailSection.classList.add("hidden")
-          // 添加淡入动画
+          // 添加淡入动画（只执行一次）
           searchResultsSection.classList.remove("fade-in")
-          void searchResultsSection.offsetWidth // 强制重绘
+          void searchResultsSection.offsetWidth
           searchResultsSection.classList.add("fade-in")
         }
       })
@@ -1048,20 +1097,37 @@ window.onload = async () => {
         searchResultList.appendChild(li)
 
         // 添加双击事件，自动搜索该歌手
-        li.addEventListener("dblclick", () => {
+        li.addEventListener("dblclick", async () => {
           // 填充搜索栏
           const searchInput = document.getElementById("searchInput")
           searchInput.value = artistName
-          searchInput.dispatchEvent(new Event("input"))
+          // 手动更新清空按钮状态
+          if (searchInput.value.trim() !== "") {
+            clearSearchBtn.classList.remove("hidden")
+          } else {
+            clearSearchBtn.classList.add("hidden")
+          }
 
           // 自动搜索
           searchOffset = 0
           searchResultList.innerHTML = ""
-          loadSearchResults(artistName, searchOffset)
-
+          // 先显示搜索结果区域
+          searchResultsSection.classList.remove("hidden")
+          playlistDetailSection.classList.add("hidden")
+          // 隐藏返回按钮
+          backToSearchBtn.classList.add("hidden")
+          // 显示加载动画
+          searchResultList.innerHTML =
+            '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
+          // 加载搜索结果
+          await loadSearchResults(artistName, searchOffset)
           // 更新搜索结果标题
           document.querySelector("#searchResultsSection h2").textContent =
             `搜索结果: ${artistName}`
+          // 添加淡入动画（只执行一次）
+          searchResultsSection.classList.remove("fade-in")
+          void searchResultsSection.offsetWidth
+          searchResultsSection.classList.add("fade-in")
         })
 
         // 添加取消关注按钮事件
@@ -1076,6 +1142,11 @@ window.onload = async () => {
         })
       })
     }
+
+    // 添加淡入动画
+    searchResultsSection.classList.remove("fade-in")
+    void searchResultsSection.offsetWidth
+    searchResultsSection.classList.add("fade-in")
   }
 
   // ========== 歌词核心功能 ==========
@@ -1116,23 +1187,20 @@ window.onload = async () => {
   }
 
   // 渲染歌词（带滚动和高亮）
-  function renderLyrics(lyrics) {
-    currentLyrics = parseLyrics(lyrics)
-
-    // 检查lyricsArea是否存在
-    if (!lyricsArea) {
-      return
+  function renderLyrics(lyrics, songId) {
+    if (lyricsCache.has(songId)) {
+      currentLyrics = lyricsCache.get(songId)
+    } else {
+      currentLyrics = parseLyrics(lyrics)
+      lyricsCache.set(songId, currentLyrics)
     }
-
+    if (!lyricsArea) return
     lyricsArea.innerHTML = ""
     lyricLines = []
-
     if (currentLyrics.length === 0) {
       lyricsArea.innerHTML = '<div class="lyrics-empty">暂无歌词</div>'
       return
     }
-
-    // 添加空行作为顶部填充，让歌词从中间开始显示（减少顶部填充）
     for (let i = 0; i < 3; i++) {
       const emptyLine = document.createElement("div")
       emptyLine.className = "lyric-line"
@@ -1141,8 +1209,6 @@ window.onload = async () => {
       lyricsArea.appendChild(emptyLine)
       lyricLines.push(emptyLine)
     }
-
-    // 渲染实际歌词
     currentLyrics.forEach((lyric, index) => {
       const line = document.createElement("div")
       line.className = "lyric-line"
@@ -1151,8 +1217,6 @@ window.onload = async () => {
       lyricsArea.appendChild(line)
       lyricLines.push(line)
     })
-
-    // 添加空行作为底部填充（减少底部填充）
     for (let i = 0; i < 3; i++) {
       const emptyLine = document.createElement("div")
       emptyLine.className = "lyric-line"
@@ -1161,65 +1225,52 @@ window.onload = async () => {
       lyricsArea.appendChild(emptyLine)
       lyricLines.push(emptyLine)
     }
-
-    // 渲染完成后立即更新歌词高亮
+    lastActiveIndex = -1
     updateLyricHighlight()
   }
 
   // 歌词滚动和高亮（监听音频播放进度）- 简化可靠版
   function updateLyricHighlight() {
-    // 确保lyricsArea存在
-    if (!lyricsArea || !audioPlayer || currentLyrics.length === 0) return
-
-    const currentTime = audioPlayer.currentTime
-    let activeIndex = -1
-
-    // 简化歌词匹配算法
-    for (let i = 0; i < currentLyrics.length; i++) {
-      const currentLyricTime = currentLyrics[i].time
-      const nextLyricTime =
-        i < currentLyrics.length - 1 ? currentLyrics[i + 1].time : Infinity
-
-      // 当前时间在歌词时间范围内
-      if (currentTime >= currentLyricTime && currentTime < nextLyricTime) {
-        activeIndex = i
-        break
-      }
-    }
-
-    // 移除所有高亮
-    lyricLines.forEach((line) => {
-      line.classList.remove("active")
-    })
-
-    // 高亮当前歌词
-    if (activeIndex >= 0 && activeIndex < currentLyrics.length) {
-      // 计算实际歌词行的索引（考虑空行填充）
-      const actualLyricIndex = activeIndex + 3 // 3个顶部空行
-      if (actualLyricIndex < lyricLines.length) {
-        const activeLine = lyricLines[actualLyricIndex]
-        activeLine.classList.add("active")
-
-        // 简化滚动算法：直接滚动到当前歌词元素
-        const scrollContainer = lyricsArea.parentElement
-        if (scrollContainer && activeLine.offsetParent) {
-          // 获取当前歌词元素相对于滚动容器的位置
-          const lineRect = activeLine.getBoundingClientRect()
-          const containerRect = scrollContainer.getBoundingClientRect()
-
-          // 计算需要滚动的距离
-          const lineTop = lineRect.top + scrollContainer.scrollTop
-          const containerMiddle = containerRect.height / 2
-          const targetScrollTop = lineTop - containerMiddle
-
-          // 平滑滚动
-          scrollContainer.scrollTo({
-            top: Math.max(0, targetScrollTop),
-            behavior: "smooth",
-          })
+    if (animationFrameId) return
+    animationFrameId = requestAnimationFrame(() => {
+      animationFrameId = null
+      if (!lyricsArea || !audioPlayer || currentLyrics.length === 0) return
+      const currentTime = audioPlayer.currentTime
+      let activeIndex = -1
+      let left = 0,
+        right = currentLyrics.length - 1
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2)
+        if (currentLyrics[mid].time <= currentTime) {
+          activeIndex = mid
+          left = mid + 1
+        } else {
+          right = mid - 1
         }
       }
-    }
+      if (activeIndex !== lastActiveIndex) {
+        if (lastActiveIndex !== undefined && lyricLines[lastActiveIndex + 3]) {
+          lyricLines[lastActiveIndex + 3].classList.remove("active")
+        }
+        if (activeIndex !== -1 && lyricLines[activeIndex + 3]) {
+          lyricLines[activeIndex + 3].classList.add("active")
+          const activeLine = lyricLines[activeIndex + 3]
+          const scrollContainer = lyricsArea.parentElement
+          if (scrollContainer && activeLine.offsetParent) {
+            const lineRect = activeLine.getBoundingClientRect()
+            const containerRect = scrollContainer.getBoundingClientRect()
+            const lineTop = lineRect.top + scrollContainer.scrollTop
+            const containerMiddle = containerRect.height / 2
+            const targetScrollTop = lineTop - containerMiddle
+            scrollContainer.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: "smooth",
+            })
+          }
+        }
+        lastActiveIndex = activeIndex
+      }
+    })
   }
 
   // ========== 播放列表核心功能 ==========
@@ -1493,102 +1544,54 @@ window.onload = async () => {
   // 渲染歌单详情
   function renderPlaylistDetail(playlist) {
     playlistDetailList.innerHTML = ""
-
     playlist.songs.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = "song-item p-4"
       li.innerHTML = `
-              <div class="flex items-center justify-between">
-                  <div class="flex-1 min-w-0">
-                      <h3 class="font-medium dark:text-white truncate">${song.name}</h3>
-                      <p class="text-xs text-gray-400 dark:text-gray-500 truncate">${song.artist} - ${song.album}</p>
-                  </div>
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                      <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                      </button>
-                      <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-                      <button class="more-btn" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
-                      </button>
-                      <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 dark:text-gray-500" data-index="${index}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                      </button>
-                  </div>
-              </div>
-          `
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
+          <p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
+          <button class="more-btn" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+          <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 dark:text-gray-500" data-index="${index}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    `
       li.dataset.index = index
       li.dataset.list = "playlist-detail"
-
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
-        const currentTime = Date.now()
-        if (currentTime - lastClickTime < 300) {
+        const now = Date.now()
+        if (now - lastClickTime < 300) {
           playSelectedSong(song, "playlist-detail")
           lastClickTime = 0
         } else {
-          lastClickTime = currentTime
+          lastClickTime = now
           selectSong(song, index, "playlist-detail")
         }
       })
-
-      li.querySelector(".like-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        toggleLike(song)
-        renderPlaylistDetail(playlist)
-      })
-
-      li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showAddToPlaylistMenu(e, song)
-      })
-
-      li.querySelector(".delete-btn").addEventListener("click", async (e) => {
-        e.stopPropagation()
-        if (playlist.id === "liked") {
-          await toggleLike(song)
-          renderPlaylistDetail(playlist)
-        } else if (playlist.id === "recent") {
-          await removeFromLatestPlayed(song)
-          renderPlaylistDetail(playlist)
-        } else if (playlist.id === "local") {
-          const result = await window.ElectronAPI.deleteLocalSong(song.url)
-          if (result.success) {
-            localSongs = await window.ElectronAPI.readLocalSongs()
-            document.getElementById("localCount").textContent =
-              localSongs.length
-            showLocalSongs()
-            showToast(`已删除本地歌曲：${song.name}`)
-          } else {
-            showToast(`删除失败：${result.error}`)
-          }
-        } else if (playlist.id === "followed") {
-          await toggleFollow(song)
-          renderPlaylistDetail(playlist)
-        } else {
-          removeFromCustomPlaylist(playlist, index)
-        }
-      })
-
-      li.querySelector(".more-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showToast("更多功能开发中...")
-      })
-
-      // 右键菜单事件
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
         showSongContextMenu(e, song)
       })
-
       playlistDetailList.appendChild(li)
     })
   }
@@ -1754,6 +1757,46 @@ window.onload = async () => {
     })
   }
 
+  // 存储初始搜索状态
+  let initialSearchState = null
+
+  // 保存当前搜索结果的函数
+  function saveCurrentSearchState() {
+    return {
+      searchResults: [...searchResults],
+      searchOffset: searchOffset,
+      searchTitle: document.querySelector("#searchResultsSection h2")
+        .textContent,
+    }
+  }
+
+  // 恢复搜索结果的函数
+  function restoreSearchState(state) {
+    if (!state) return
+    searchResults = state.searchResults
+    searchOffset = state.searchOffset
+    document.querySelector("#searchResultsSection h2").textContent =
+      state.searchTitle
+
+    // 重新渲染搜索结果
+    searchResultList.innerHTML = ""
+    if (searchResults.length > 0) {
+      renderSearchResults(searchResults, 0)
+    }
+
+    // 显示加载更多按钮（如果有更多结果）
+    if (searchResults.length >= PAGE_SIZE) {
+      document.getElementById("loadMoreBtn").style.display = "block"
+    } else {
+      document.getElementById("loadMoreBtn").style.display = "none"
+    }
+  }
+
+  // 初始化搜索状态（只在搜索结果页面初始化）
+  function initSearchState() {
+    initialSearchState = saveCurrentSearchState()
+  }
+
   // 返回搜索结果页面
   function backToSearch() {
     currentPlaylist = null
@@ -1761,6 +1804,10 @@ window.onload = async () => {
     backToSearchBtn.classList.add("hidden")
     searchResultsSection.classList.remove("hidden")
     playlistDetailSection.classList.add("hidden")
+
+    // 恢复初始搜索状态
+    restoreSearchState(initialSearchState)
+
     // 添加淡入动画
     searchResultsSection.classList.remove("fade-in")
     void searchResultsSection.offsetWidth // 强制重绘
@@ -1777,13 +1824,8 @@ window.onload = async () => {
       likedSongs.push(song)
       showToast(`已添加《${song.name}》到"我喜欢"`)
     }
-    // 保存到 MyFavorite.json 文件
-    try {
-      await window.ElectronAPI.saveLikedSongs(likedSongs)
-      likeCount.textContent = likedSongs.length
-    } catch (err) {
-      console.error("保存我喜欢的歌曲失败:", err)
-    }
+    likedSavesQueue.push([...likedSongs])
+    flushLikedSaves()
   }
 
   // 切换歌手关注状态
@@ -1912,52 +1954,42 @@ window.onload = async () => {
   }
 
   // 渲染搜索结果列表
-  function renderSearchResults(songs) {
-    console.log(`开始渲染搜索结果，结果数量：${songs.length}`)
-    console.log(`searchResultList 元素：`, searchResultList)
-    console.log(`searchOffset：${searchOffset}`)
-
-    if (searchOffset === 0) {
-      console.log("清空搜索结果列表")
-      searchResultList.innerHTML = "" // 清空，保留容器上的滚动监听
+  // 渲染搜索结果列表
+  function renderSearchResults(songs, offset = 0) {
+    // offset === 0 时，替换全部内容（清空列表）
+    if (offset === 0) {
+      searchResultList.innerHTML = ""
     }
 
-    console.log("开始遍历歌曲列表：")
-    songs.forEach((song, index) => {
-      console.log(`处理第 ${index} 首歌：`, song)
-      if (!song.id) {
-        console.log(`跳过无ID的歌曲：`, song)
-        return
-      }
+    songs.forEach((song, idx) => {
+      if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
       const li = document.createElement("li")
       li.className = "song-item p-4 transition-colors duration-200"
       li.innerHTML = `
-              <div class="flex items-center justify-between">
-                  <div class="flex-1 min-w-0">
-                      <h3 class="font-medium dark:text-white truncate">${song.name}</h3>
-                      <p class="text-sm text-gray-400 dark:text-gray-500 truncate">${song.artist} - ${song.album}</p>
-                  </div>
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                      <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                      </button>
-                      <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-                      <button class="more-btn" data-song-id="${song.id}">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
-                      </button>
-                  </div>
-              </div>
-          `
-      const globalIndex = searchResults.length - songs.length + index
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
+          <p class="text-sm text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+          <button class="add-to-playlist" data-song-id="${song.id}">+</button>
+          <button class="more-btn" data-song-id="${song.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    `
+      const globalIndex = searchResults.length - songs.length + idx
       li.dataset.index = globalIndex
       li.dataset.list = "search"
-      li.dataset.songId = song.id
-
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
         const now = Date.now()
@@ -1969,41 +2001,17 @@ window.onload = async () => {
           selectSong(song, globalIndex, "search")
         }
       })
-
-      li.querySelector(".like-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        toggleLike(song)
-        const likeBtn = li.querySelector(".like-btn")
-        const isNowLiked = likedSongs.some((item) => item.id === song.id)
-        likeBtn.className = `like-btn ${isNowLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`
-        likeBtn
-          .querySelector("svg")
-          .setAttribute("fill", isNowLiked ? "currentColor" : "none")
-      })
-
-      li.querySelector(".add-to-playlist").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showAddToPlaylistMenu(e, song)
-      })
-
-      li.querySelector(".more-btn").addEventListener("click", (e) => {
-        e.stopPropagation()
-        showToast("更多功能开发中...")
-      })
-
-      // 右键菜单事件
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
         showSongContextMenu(e, song)
       })
-
-      console.log("将歌曲添加到搜索结果列表")
       searchResultList.appendChild(li)
     })
 
-    console.log("渲染完成，设置加载更多按钮")
-    loadMoreBtn.style.display =
-      songs.length >= PAGE_SIZE ? "inline-block" : "none"
+    // 控制“加载更多”按钮显示
+    loadMoreBtn.style.display = songs.length >= PAGE_SIZE ? "block" : "none"
+    // 确保按钮居中显示
+    loadMoreBtn.style.margin = "0 auto"
   }
 
   // 从播放列表中删除歌曲
@@ -2280,21 +2288,40 @@ window.onload = async () => {
 
   // 添加歌曲到最近播放
   async function addToLatestPlayed(song) {
-    // 移除已存在的相同歌曲
     latestPlayed = latestPlayed.filter((item) => item.id !== song.id)
-    // 添加到开头
     latestPlayed.unshift(song)
-    // 限制数量
     if (latestPlayed.length > MAX_LATEST_PLAYED) {
       latestPlayed = latestPlayed.slice(0, MAX_LATEST_PLAYED)
     }
-    // 更新显示数量
-    recentCount.textContent = latestPlayed.length
-    // 保存到文件
-    try {
-      await window.ElectronAPI.saveLatestPlayed(latestPlayed)
-    } catch (err) {
-      console.error("保存最近播放失败:", err)
+    recentSavesQueue.push([...latestPlayed])
+    flushRecentSaves()
+  }
+
+  async function preloadNextSong() {
+    if (!playQueue.length) return
+    let nextIndex = currentSongIndex
+    switch (playMode) {
+      case "order":
+      case "listLoop":
+        nextIndex = (currentSongIndex + 1) % playQueue.length
+        break
+      case "reverse":
+        nextIndex = (currentSongIndex - 1 + playQueue.length) % playQueue.length
+        break
+      case "shuffle":
+        nextIndex = Math.floor(Math.random() * playQueue.length)
+        break
+      case "singleLoop":
+        return
+    }
+    const nextSong = playQueue[nextIndex]
+    if (nextSong && nextSong.url && nextSong.url !== audioPlayer.src) {
+      const link = document.createElement("link")
+      link.rel = "preload"
+      link.as = "audio"
+      link.href = nextSong.url
+      document.head.appendChild(link)
+      setTimeout(() => link.remove(), 10000)
     }
   }
 
@@ -2343,6 +2370,115 @@ window.onload = async () => {
       ) {
         showToast("播放失败：歌曲链接可能失效")
       }
+    }
+    preloadNextSong()
+  }
+
+  // ========== 事件委托处理函数 ==========
+  function handlePlaylistClick(e) {
+    const target = e.target.closest("button")
+    if (!target) return
+    const li = target.closest("li")
+    const index = parseInt(li?.dataset.index, 10)
+    if (isNaN(index)) return
+    const song = playQueue[index]
+    if (!song) return
+
+    if (target.classList.contains("like-btn")) {
+      e.stopPropagation()
+      toggleLike(song)
+      const isLiked = likedSongs.some((item) => item.id === song.id)
+      target.className = `like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors`
+      target
+        .querySelector("svg")
+        .setAttribute("fill", isLiked ? "currentColor" : "none")
+    } else if (target.classList.contains("add-to-playlist")) {
+      e.stopPropagation()
+      showAddToPlaylistMenu(e, song)
+    } else if (target.classList.contains("delete-btn")) {
+      e.stopPropagation()
+      removeFromPlaylist(index)
+    } else if (target.classList.contains("more-btn")) {
+      e.stopPropagation()
+      showToast("更多功能开发中...")
+    }
+  }
+
+  function handleSearchResultClick(e) {
+    const target = e.target.closest("button")
+    if (!target) return
+    const li = target.closest("li")
+    const globalIndex = parseInt(li?.dataset.index, 10)
+    if (isNaN(globalIndex)) return
+    const song = searchResults[globalIndex]
+    if (!song) return
+
+    if (target.classList.contains("like-btn")) {
+      e.stopPropagation()
+      toggleLike(song)
+      const isLiked = likedSongs.some((item) => item.id === song.id)
+      target.className = `like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors`
+      target
+        .querySelector("svg")
+        .setAttribute("fill", isLiked ? "currentColor" : "none")
+    } else if (target.classList.contains("add-to-playlist")) {
+      e.stopPropagation()
+      showAddToPlaylistMenu(e, song)
+    } else if (target.classList.contains("more-btn")) {
+      e.stopPropagation()
+      showToast("更多功能开发中...")
+    }
+  }
+
+  function handlePlaylistDetailClick(e) {
+    const target = e.target.closest("button")
+    if (!target) return
+    const li = target.closest("li")
+    const index = parseInt(li?.dataset.index, 10)
+    if (isNaN(index) || !currentPlaylist) return
+    const song = currentPlaylist.songs[index]
+    if (!song) return
+
+    if (target.classList.contains("like-btn")) {
+      e.stopPropagation()
+      toggleLike(song)
+      const isLiked = likedSongs.some((item) => item.id === song.id)
+      target.className = `like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors`
+      target
+        .querySelector("svg")
+        .setAttribute("fill", isLiked ? "currentColor" : "none")
+    } else if (target.classList.contains("add-to-playlist")) {
+      e.stopPropagation()
+      showAddToPlaylistMenu(e, song)
+    } else if (target.classList.contains("delete-btn")) {
+      e.stopPropagation()
+      if (currentPlaylist.id === "liked") {
+        toggleLike(song)
+        renderPlaylistDetail(currentPlaylist)
+      } else if (currentPlaylist.id === "recent") {
+        removeFromLatestPlayed(song)
+        renderPlaylistDetail(currentPlaylist)
+      } else if (currentPlaylist.id === "local") {
+        window.ElectronAPI.deleteLocalSong(song.url).then(async (result) => {
+          if (result.success) {
+            localSongs = await window.ElectronAPI.readLocalSongs()
+            document.getElementById("localCount").textContent =
+              localSongs.length
+            showLocalSongs()
+            showToast(`已删除本地歌曲：${song.name}`)
+          } else {
+            showToast(`删除失败：${result.error}`)
+          }
+        })
+      } else if (currentPlaylist.id === "followed") {
+        toggleFollowArtist(song.artist)
+        renderPlaylistDetail(currentPlaylist)
+      } else {
+        removeFromCustomPlaylist(currentPlaylist, index)
+      }
+    } else if (target.classList.contains("more-btn")) {
+      e.stopPropagation()
+      showToast("更多功能开发中...")
     }
   }
 
@@ -2488,26 +2624,256 @@ window.onload = async () => {
   backToSearchBtn.addEventListener("click", backToSearch)
 
   // ========== 搜索功能 ==========
-  // 搜索按钮点击
-  searchBtn.addEventListener("click", async () => {
-    const keyword = searchInput.value.trim()
-    if (!keyword) return
+  // 搜索防抖和滚动节流
+  // const performSearch = async (keyword) => {
+  //   console.log("[搜索] performSearch 被调用，关键词：", keyword)
+  //   if (!keyword) return
+  //   searchOffset = 0
+  //   searchResultList.innerHTML = ""
+  //   // 先显示搜索结果区域，但不添加淡入动画
+  //   searchResultsSection.classList.remove("hidden")
+  //   playlistDetailSection.classList.add("hidden")
+  //   // 加载搜索结果
+  //   await loadSearchResults(keyword, searchOffset)
+  //   // 更新搜索历史
+  //   updateSearchHistory(keyword)
+  //   // 添加淡入动画
+  //   searchResultsSection.classList.remove("fade-in")
+  //   void searchResultsSection.offsetWidth
+  //   searchResultsSection.classList.add("fade-in")
+  // }
 
-    searchOffset = 0
-    searchResultList.innerHTML = ""
-    await loadSearchResults(keyword, searchOffset)
-    // 更新搜索历史
-    await updateSearchHistory(keyword)
-    // 跳转到搜索结果界面
-    searchResultsSection.classList.remove("hidden")
-    playlistDetailSection.classList.add("hidden")
-    // 添加淡入动画
-    searchResultsSection.classList.remove("fade-in")
-    void searchResultsSection.offsetWidth // 强制重绘
-    searchResultsSection.classList.add("fade-in")
+  // const debouncedSearch = debounce(performSearch, 300)
+
+  // async function loadSearchResults(keyword, offset) {
+  //   console.log(
+  //     "[搜索] loadSearchResults 被调用，关键词：",
+  //     keyword,
+  //     "偏移量：",
+  //     offset
+  //   )
+  //   const cacheKey = `${keyword}_${offset}`
+  //   let songs
+
+  //   // 先尝试从缓存获取数据
+  //   if (searchCache.has(cacheKey)) {
+  //     console.log("[搜索] 命中缓存，key:", cacheKey)
+  //     songs = searchCache.get(cacheKey)
+  //   } else {
+  //     // 缓存未命中，发起API请求
+  //     try {
+  //       console.log("[搜索] 发起API请求，关键词：", keyword)
+  //       songs = await window.ElectronAPI.searchMusic(keyword, offset)
+  //       console.log("[搜索] API返回结果：", songs?.length || 0, "条")
+
+  //       // 将API返回的结果存入缓存
+  //       if (songs && songs.length > 0) {
+  //         searchCache.set(cacheKey, songs)
+  //       }
+  //     } catch (err) {
+  //       console.error("[搜索] API请求失败：", err)
+  //       showToast("搜索失败，请查看日志")
+  //       return
+  //     }
+  //   }
+
+  //   // 处理搜索结果
+  //   if (songs && songs.length > 0) {
+  //     // 更新搜索结果数组
+  //     if (offset === 0) searchResults = songs
+  //     else searchResults = [...searchResults, ...songs]
+
+  //     // 渲染搜索结果
+  //     renderSearchResults(songs, offset)
+  //   } else if (offset === 0) {
+  //     console.log("[搜索] 未找到歌曲")
+  //     showToast("未找到相关歌曲")
+  //   }
+  // }
+
+  // // 输入时只更新清空按钮状态，不触发搜索
+  // searchInput.addEventListener("input", (e) => {
+  //   const keyword = e.target.value.trim()
+  //   if (!keyword) {
+  //     searchResultList.innerHTML = ""
+  //     loadMoreBtn.style.display = "none"
+  //   }
+  //   // 控制清空按钮显示/隐藏
+  //   if (searchInput.value.trim() !== "") {
+  //     clearSearchBtn.classList.remove("hidden")
+  //   } else {
+  //     clearSearchBtn.classList.add("hidden")
+  //   }
+  // })
+
+  // // 点击搜索按钮立即搜索
+  // searchBtn.addEventListener("click", () => {
+  //   const keyword = searchInput.value.trim()
+  //   performSearch(keyword)
+  //   debouncedSearch.cancel()
+  // })
+
+  // // 回车立即搜索
+  // searchInput.addEventListener("keypress", (e) => {
+  //   if (e.key === "Enter") {
+  //     const keyword = searchInput.value.trim()
+  //     performSearch(keyword)
+  //     debouncedSearch.cancel()
+  //   }
+  // })
+
+  // // 滚动加载节流
+  // const handleScroll = throttle(() => {
+  //   const { scrollTop, scrollHeight, clientHeight } = searchResultList
+  //   if (scrollTop + clientHeight >= scrollHeight - 100) {
+  //     if (!isLoadingMore) {
+  //       const keyword = searchInput.value.trim()
+  //       if (keyword) {
+  //         isLoadingMore = true
+  //         searchOffset += PAGE_SIZE
+  //         loadSearchResults(keyword, searchOffset).finally(() => {
+  //           isLoadingMore = false
+  //         })
+  //       }
+  //     }
+  //   }
+  // }, 200)
+  // searchResultList.addEventListener("scroll", handleScroll)
+
+  // // 加载更多按钮（保持不变）
+  // loadMoreBtn.addEventListener("click", async () => {
+  //   const keyword = searchInput.value.trim()
+  //   if (!keyword) return
+  //   searchOffset += PAGE_SIZE
+  //   await loadSearchResults(keyword, searchOffset)
+  // })
+
+  // // 初始状态检查（如页面加载时已有默认文本）
+  // if (searchInput.value.trim() !== "") {
+  //   clearSearchBtn.classList.remove("hidden")
+  // }
+
+  // ========== 搜索功能（仅手动触发，无防抖） ==========
+  async function loadSearchResults(keyword, offset) {
+    console.log(
+      "[搜索] loadSearchResults 被调用，关键词：",
+      keyword,
+      "偏移量：",
+      offset
+    )
+
+    // 偏移量为0时，先显示加载动画
+    if (offset === 0) {
+      searchResultList.innerHTML = `
+      <div class="p-10 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p>
+      </div>`
+    }
+
+    const cacheKey = `${keyword}_${offset}`
+    let songs
+
+    // 尝试从缓存获取
+    if (searchCache.has(cacheKey)) {
+      console.log("[搜索] 命中缓存，key:", cacheKey)
+      songs = searchCache.get(cacheKey)
+    } else {
+      try {
+        console.log("[搜索] 发起API请求，关键词：", keyword)
+        songs = await window.ElectronAPI.searchMusic(keyword, offset)
+        console.log("[搜索] API返回结果：", songs?.length || 0, "条")
+        if (songs && songs.length > 0) {
+          searchCache.set(cacheKey, songs)
+        }
+      } catch (err) {
+        console.error("[搜索] API请求失败：", err)
+        showToast("搜索失败，请查看日志")
+        // 失败时清除加载动画并显示错误提示
+        if (offset === 0) {
+          searchResultList.innerHTML =
+            '<div class="p-10 text-center text-red-500 dark:text-red-400">搜索失败，请稍后重试</div>'
+          loadMoreBtn.style.display = "none"
+        }
+        return
+      }
+    }
+
+    // 处理搜索结果
+    if (songs && songs.length > 0) {
+      // 更新搜索结果数组
+      if (offset === 0) {
+        searchResults = songs
+        // 清空列表（由 renderSearchResults 内部处理）
+        renderSearchResults(songs, offset)
+        // 添加淡入动画（仅首次加载时）
+        searchResultsSection.classList.remove("fade-in")
+        void searchResultsSection.offsetWidth
+        searchResultsSection.classList.add("fade-in")
+      } else {
+        searchResults = [...searchResults, ...songs]
+        renderSearchResults(songs, offset)
+      }
+    } else if (offset === 0) {
+      // 无结果
+      console.log("[搜索] 未找到歌曲")
+      searchResultList.innerHTML =
+        '<div class="p-10 text-center text-gray-500 dark:text-gray-400">未找到相关歌曲</div>'
+      loadMoreBtn.style.display = "none"
+    }
+  }
+
+  // 执行搜索（重置偏移量并清空列表）
+  async function performSearch(keyword) {
+    if (!keyword || isSearching) return // 防止重复搜索
+
+    isSearching = true
+    try {
+      searchOffset = 0
+      // 显示搜索结果区域，隐藏歌单详情
+      searchResultsSection.classList.remove("hidden")
+      playlistDetailSection.classList.add("hidden")
+      backToSearchBtn.classList.add("hidden")
+
+      // 加载搜索结果（内部会处理加载动画和渲染）
+      await loadSearchResults(keyword, searchOffset)
+
+      // 更新搜索历史
+      await updateSearchHistory(keyword)
+      // 初始化搜索状态
+      initSearchState()
+    } finally {
+      isSearching = false
+    }
+  }
+
+  // 输入框仅控制清空按钮（不触发搜索）
+  searchInput.addEventListener("input", () => {
+    if (searchInput.value.trim() !== "") {
+      clearSearchBtn.classList.remove("hidden")
+    } else {
+      clearSearchBtn.classList.add("hidden")
+      // 可选：清空搜索结果
+      searchResultList.innerHTML = ""
+      loadMoreBtn.style.display = "none"
+    }
   })
 
-  // 加载更多搜索结果
+  // 搜索按钮
+  searchBtn.addEventListener("click", () => {
+    const keyword = searchInput.value.trim()
+    performSearch(keyword)
+  })
+
+  // 回车搜索
+  searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      const keyword = searchInput.value.trim()
+      performSearch(keyword)
+    }
+  })
+
+  // 加载更多按钮
   loadMoreBtn.addEventListener("click", async () => {
     const keyword = searchInput.value.trim()
     if (!keyword) return
@@ -2515,69 +2881,7 @@ window.onload = async () => {
     await loadSearchResults(keyword, searchOffset)
   })
 
-  // 加载搜索结果
-  async function loadSearchResults(keyword, offset) {
-    try {
-      console.log(`开始加载搜索结果，关键词：${keyword}，偏移量：${offset}`)
-      const songs = await window.ElectronAPI.searchMusic(keyword, offset)
-      console.log(`后端返回搜索结果：`, songs)
-      console.log(`返回结果类型：${typeof songs}`)
-      console.log(`返回结果长度：${songs ? songs.length : 0}`)
-
-      if (offset === 0 && (!songs || songs.length === 0)) {
-        console.log("未找到相关歌曲")
-        showToast("未找到相关歌曲")
-        return
-      }
-
-      if (songs && songs.length > 0) {
-        searchResults = [...searchResults, ...songs]
-        console.log(`合并后搜索结果长度：${searchResults.length}`)
-        renderSearchResults(songs)
-      }
-    } catch (err) {
-      console.error("搜索失败：", err)
-      showToast("搜索失败，请查看日志")
-    }
-  }
-
-  // 控制清空按钮显示/隐藏
-  searchInput.addEventListener("input", () => {
-    if (searchInput.value.trim() !== "") {
-      clearSearchBtn.classList.remove("hidden")
-    } else {
-      clearSearchBtn.classList.add("hidden")
-    }
-  })
-
-  async function performSearch(keyword) {
-    if (!keyword) return
-    searchOffset = 0
-    searchResultList.innerHTML = ""
-    await loadSearchResults(keyword, searchOffset)
-    await updateSearchHistory(keyword)
-    searchResultsSection.classList.remove("hidden")
-    playlistDetailSection.classList.add("hidden")
-    searchResultsSection.classList.remove("fade-in")
-    void searchResultsSection.offsetWidth
-    searchResultsSection.classList.add("fade-in")
-  }
-
-  // 搜索按钮点击
-  searchBtn.addEventListener("click", () => {
-    const keyword = searchInput.value.trim()
-    performSearch(keyword)
-  })
-
-  // 回车搜索
-  searchInput.addEventListener("keypress", async (e) => {
-    if (e.key === "Enter") {
-      const keyword = searchInput.value.trim()
-      performSearch(keyword)
-    }
-  })
-
-  // 初始状态检查（如页面加载时已有默认文本）
+  // 初始状态检查
   if (searchInput.value.trim() !== "") {
     clearSearchBtn.classList.remove("hidden")
   }
@@ -2599,23 +2903,23 @@ window.onload = async () => {
   }
 
   // 滚动监听，当滚动到搜索结果底部时自动加载更多
-  searchResultList.addEventListener("scroll", () => {
-    const { scrollTop, scrollHeight, clientHeight } = searchResultList
-    // 当滚动到距离底部100px以内时，自动加载更多
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
-      // 检查是否正在搜索中，避免重复请求
-      if (!isLoadingMore) {
-        const keyword = searchInput.value.trim()
-        if (keyword) {
-          isLoadingMore = true
-          searchOffset += PAGE_SIZE
-          loadSearchResults(keyword, searchOffset).finally(() => {
-            isLoadingMore = false
-          })
-        }
-      }
-    }
-  })
+  // searchResultList.addEventListener("scroll", () => {
+  //   const { scrollTop, scrollHeight, clientHeight } = searchResultList
+  //   // 当滚动到距离底部100px以内时，自动加载更多
+  //   if (scrollTop + clientHeight >= scrollHeight - 100) {
+  //     // 检查是否正在搜索中，避免重复请求
+  //     if (!isLoadingMore) {
+  //       const keyword = searchInput.value.trim()
+  //       if (keyword) {
+  //         isLoadingMore = true
+  //         searchOffset += PAGE_SIZE
+  //         loadSearchResults(keyword, searchOffset).finally(() => {
+  //           isLoadingMore = false
+  //         })
+  //       }
+  //     }
+  //   }
+  // })
 
   // 侧边栏拉伸功能
   const sidebar = document.getElementById("sidebar")
@@ -2644,5 +2948,23 @@ window.onload = async () => {
       isResizing = false
       document.body.style.cursor = ""
     }
+  })
+
+  // 绑定事件委托
+  playlistList.addEventListener("click", handlePlaylistClick)
+  searchResultList.addEventListener("click", handleSearchResultClick)
+  playlistDetailList.addEventListener("click", handlePlaylistDetailClick)
+
+  window.addEventListener("beforeunload", () => {
+    playlistList.removeEventListener("click", handlePlaylistClick)
+    searchResultList.removeEventListener("click", handleSearchResultClick)
+    playlistDetailList.removeEventListener("click", handlePlaylistDetailClick)
+    searchResultList.removeEventListener("scroll", handleScroll)
+    if (likedSaveTimer) clearTimeout(likedSaveTimer)
+    if (recentSaveTimer) clearTimeout(recentSaveTimer)
+    if (debouncedSearch.cancel) debouncedSearch.cancel()
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    audioPlayer.removeEventListener("timeupdate", updateLyricHighlight)
+    audioPlayer.removeEventListener("ended", playNextSong)
   })
 }

@@ -576,3 +576,1390 @@
 [2026/3/20 23:39:36] [INFO] 搜索历史读取成功，共0条记录
 [2026/3/20 23:39:36] [INFO] 读取本地歌曲
 [2026/3/20 23:39:36] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:17:38] [INFO] Electron应用启动
+[2026/3/21 01:17:39] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:17:39] [INFO] 读取本地播放列表
+[2026/3/21 01:17:39] [INFO] 读取到 0 首歌曲
+[2026/3/21 01:17:39] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:17:39] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 01:17:39] [INFO] 读取关注歌手列表
+[2026/3/21 01:17:39] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:17:39] [INFO] 读取自定义歌单
+[2026/3/21 01:17:39] [INFO] 读取到 0 个自定义歌单
+[2026/3/21 01:17:39] [INFO] 读取最近播放
+[2026/3/21 01:17:39] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 01:17:39] [INFO] 读取自建歌单
+[2026/3/21 01:17:39] [INFO] 读取到 0 个自建歌单
+[2026/3/21 01:17:39] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 01:17:39] [INFO] 读取本地歌曲
+[2026/3/21 01:17:39] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:17:49] [INFO] 导入用户信息
+[2026/3/21 01:17:52] [INFO] 用户信息导入成功：D:\下载\User.json
+[2026/3/21 01:17:54] [INFO] 读取本地播放列表
+[2026/3/21 01:17:54] [INFO] 读取到 0 首歌曲
+[2026/3/21 01:17:54] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:17:54] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 01:17:54] [INFO] 读取关注歌手列表
+[2026/3/21 01:17:54] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:17:54] [INFO] 读取自定义歌单
+[2026/3/21 01:17:54] [INFO] 读取到 0 个自定义歌单
+[2026/3/21 01:17:54] [INFO] 读取最近播放
+[2026/3/21 01:17:54] [INFO] 读取到 9 首最近播放的歌曲
+[2026/3/21 01:17:54] [INFO] 读取自建歌单
+[2026/3/21 01:17:54] [INFO] 读取到 2 个自建歌单
+[2026/3/21 01:17:54] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 01:17:54] [INFO] 读取本地歌曲
+[2026/3/21 01:17:54] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:18:09] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:18:09] [INFO] 获取歌词，歌曲ID：1357953768
+[2026/3/21 01:18:09] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1357953768
+[2026/3/21 01:18:09] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1357953768
+[2026/3/21 01:18:09] [INFO] 直连请求成功，返回数据长度：2376
+[2026/3/21 01:18:10] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:18:10] [INFO] 保存最近播放，数量：9首
+[2026/3/21 01:22:18] [INFO] 获取歌词，歌曲ID：1466519473
+[2026/3/21 01:22:18] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1466519473
+[2026/3/21 01:22:18] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1466519473
+[2026/3/21 01:22:18] [INFO] 直连请求成功，返回数据长度：2140
+[2026/3/21 01:22:19] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:22:19] [INFO] 保存最近播放，数量：9首
+[2026/3/21 01:23:03] [INFO] 获取歌词，歌曲ID：1357953768
+[2026/3/21 01:23:03] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1357953768
+[2026/3/21 01:23:03] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1357953768
+[2026/3/21 01:23:04] [INFO] 直连请求成功，返回数据长度：2376
+[2026/3/21 01:23:04] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:23:04] [INFO] 保存最近播放，数量：9首
+[2026/3/21 01:23:06] [INFO] 获取歌词，歌曲ID：1466519473
+[2026/3/21 01:23:06] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1466519473
+[2026/3/21 01:23:06] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1466519473
+[2026/3/21 01:23:06] [INFO] 直连请求成功，返回数据长度：2140
+[2026/3/21 01:23:06] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:23:06] [INFO] 保存最近播放，数量：9首
+[2026/3/21 01:23:12] [INFO] 获取歌词，歌曲ID：2036445129
+[2026/3/21 01:23:12] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2036445129
+[2026/3/21 01:23:12] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2036445129
+[2026/3/21 01:23:13] [INFO] 直连请求成功，返回数据长度：1560
+[2026/3/21 01:23:13] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:23:13] [INFO] 保存最近播放，数量：10首
+[2026/3/21 01:43:44] [INFO] Electron应用启动
+[2026/3/21 01:43:44] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:43:45] [INFO] 读取本地播放列表
+[2026/3/21 01:43:45] [INFO] 读取到 5 首歌曲
+[2026/3/21 01:43:45] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:43:45] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:43:45] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 01:43:45] [INFO] 读取关注歌手列表
+[2026/3/21 01:43:45] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:43:45] [INFO] 读取自定义歌单
+[2026/3/21 01:43:45] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 01:43:45] [INFO] 读取最近播放
+[2026/3/21 01:43:45] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 01:43:45] [INFO] 读取自建歌单
+[2026/3/21 01:43:45] [INFO] 读取到 2 个自建歌单
+[2026/3/21 01:43:45] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 01:43:45] [INFO] 读取本地歌曲
+[2026/3/21 01:43:45] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:43:48] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:43:48] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:48] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:43:48] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:43:48] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:43:48] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:48] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:43:48] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:43:48] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:49] [INFO] 直连请求成功，返回数据长度：5900
+[2026/3/21 01:43:49] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:49] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:49] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:43:49] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:49] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:43:49] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:49] [INFO] 直连请求成功，返回数据长度：5900
+[2026/3/21 01:43:49] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:49] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:49] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:43:49] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:49] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:43:52] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 01:43:52] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:52] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 01:43:52] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 01:43:52] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 01:43:52] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:52] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 01:43:52] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 01:43:52] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:53] [INFO] 直连请求成功，返回数据长度：5571
+[2026/3/21 01:43:53] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:53] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:53] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 01:43:53] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:53] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 01:43:53] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:53] [INFO] 直连请求成功，返回数据长度：5571
+[2026/3/21 01:43:53] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:53] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:53] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 01:43:53] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:53] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 01:43:57] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 01:43:57] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:57] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:43:57] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:43:57] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 01:43:57] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:43:57] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:43:57] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:43:57] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:57] [INFO] 直连请求成功，返回数据长度：5421
+[2026/3/21 01:43:57] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:57] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:57] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 01:43:57] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:57] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 01:43:57] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:43:58] [INFO] 直连请求成功，返回数据长度：5421
+[2026/3/21 01:43:58] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:43:58] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:43:58] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 01:43:58] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:43:58] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 01:47:01] [INFO] Electron应用启动
+[2026/3/21 01:47:01] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:47:01] [INFO] 读取本地播放列表
+[2026/3/21 01:47:01] [INFO] 读取到 5 首歌曲
+[2026/3/21 01:47:01] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:47:01] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:47:01] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 01:47:01] [INFO] 读取关注歌手列表
+[2026/3/21 01:47:01] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:47:01] [INFO] 读取自定义歌单
+[2026/3/21 01:47:01] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 01:47:01] [INFO] 读取最近播放
+[2026/3/21 01:47:01] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 01:47:01] [INFO] 读取自建歌单
+[2026/3/21 01:47:01] [INFO] 读取到 2 个自建歌单
+[2026/3/21 01:47:01] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 01:47:01] [INFO] 读取本地歌曲
+[2026/3/21 01:47:01] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:47:04] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 01:47:04] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:47:04] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:47:04] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:47:04] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 01:47:04] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:47:04] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:47:04] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 01:47:04] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:47:04] [INFO] 直连请求成功，返回数据长度：5421
+[2026/3/21 01:47:04] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:47:04] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:47:04] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 01:47:04] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:47:04] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 01:47:04] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:47:04] [INFO] 直连请求成功，返回数据长度：5421
+[2026/3/21 01:47:04] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:47:04] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:47:04] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 01:47:04] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:47:04] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 01:47:09] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:47:09] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:47:09] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:47:09] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:47:10] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:47:10] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:47:10] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:47:10] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:47:10] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:47:10] [INFO] 直连请求成功，返回数据长度：5907
+[2026/3/21 01:47:10] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:47:10] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:47:10] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:47:10] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:47:10] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:47:10] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:47:11] [INFO] 直连请求成功，返回数据长度：5907
+[2026/3/21 01:47:11] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:47:11] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:47:11] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:47:11] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:47:11] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:48:05] [INFO] Electron应用启动
+[2026/3/21 01:48:06] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:48:06] [INFO] 读取本地播放列表
+[2026/3/21 01:48:06] [INFO] 读取到 5 首歌曲
+[2026/3/21 01:48:06] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:48:06] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:48:06] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 01:48:06] [INFO] 读取关注歌手列表
+[2026/3/21 01:48:06] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:48:06] [INFO] 读取自定义歌单
+[2026/3/21 01:48:06] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 01:48:06] [INFO] 读取最近播放
+[2026/3/21 01:48:06] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 01:48:06] [INFO] 读取自建歌单
+[2026/3/21 01:48:06] [INFO] 读取到 2 个自建歌单
+[2026/3/21 01:48:06] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 01:48:06] [INFO] 读取本地歌曲
+[2026/3/21 01:48:06] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:48:08] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:48:08] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:48:08] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:48:08] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:48:09] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 01:48:09] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:48:09] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:48:09] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 01:48:09] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:48:09] [INFO] 直连请求成功，返回数据长度：5907
+[2026/3/21 01:48:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:48:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:48:09] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:48:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:48:09] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:48:09] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 01:48:09] [INFO] 直连请求成功，返回数据长度：5907
+[2026/3/21 01:48:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:48:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:48:09] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:48:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:48:09] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:48:12] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：20
+[2026/3/21 01:48:12] [INFO] 使用Meting API进行搜索
+[2026/3/21 01:48:12] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=20
+[2026/3/21 01:48:12] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=20
+[2026/3/21 01:48:13] [INFO] 直连请求成功，返回数据长度：5907
+[2026/3/21 01:48:13] [INFO] Meting API返回数据类型: object
+[2026/3/21 01:48:13] [INFO] Meting API返回数组长度: 20
+[2026/3/21 01:48:13] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 01:48:13] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 01:48:13] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 01:52:12] [INFO] Electron应用启动
+[2026/3/21 01:52:12] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:52:12] [INFO] 读取本地播放列表
+[2026/3/21 01:52:12] [INFO] 读取到 5 首歌曲
+[2026/3/21 01:52:12] [INFO] 保存播放列表，数量：5首
+[2026/3/21 01:52:12] [INFO] 读取我喜欢的歌曲
+[2026/3/21 01:52:12] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 01:52:12] [INFO] 读取关注歌手列表
+[2026/3/21 01:52:12] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 01:52:12] [INFO] 读取自定义歌单
+[2026/3/21 01:52:12] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 01:52:12] [INFO] 读取最近播放
+[2026/3/21 01:52:12] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 01:52:12] [INFO] 读取自建歌单
+[2026/3/21 01:52:12] [INFO] 读取到 2 个自建歌单
+[2026/3/21 01:52:12] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 01:52:12] [INFO] 读取本地歌曲
+[2026/3/21 01:52:12] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 01:56:47] [INFO] Electron应用启动
+[2026/3/21 01:56:47] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 01:57:12] [INFO] Electron应用启动
+[2026/3/21 01:57:12] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:01:04] [INFO] Electron应用启动
+[2026/3/21 02:01:04] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:01:04] [INFO] 读取本地播放列表
+[2026/3/21 02:01:04] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:01:04] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:01:04] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:01:04] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:01:04] [INFO] 读取关注歌手列表
+[2026/3/21 02:01:04] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:01:04] [INFO] 读取自定义歌单
+[2026/3/21 02:01:04] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:01:04] [INFO] 读取最近播放
+[2026/3/21 02:01:04] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:01:04] [INFO] 读取自建歌单
+[2026/3/21 02:01:04] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:01:04] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 02:01:04] [INFO] 读取本地歌曲
+[2026/3/21 02:01:04] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:01:06] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:01:06] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:01:06] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:01:06] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:01:07] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:01:07] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:01:07] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:01:07] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:01:07] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:01:07] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:01:07] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:01:07] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:01:07] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:01:07] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:01:07] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:01:07] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:01:07] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:01:07] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:01:07] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:01:07] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:01:07] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:01:07] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:05:59] [INFO] Electron应用启动
+[2026/3/21 02:05:59] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:06:02] [INFO] 读取本地播放列表
+[2026/3/21 02:06:02] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:06:02] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:06:02] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:06:02] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:06:02] [INFO] 读取关注歌手列表
+[2026/3/21 02:06:02] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:06:02] [INFO] 读取自定义歌单
+[2026/3/21 02:06:02] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:06:02] [INFO] 读取最近播放
+[2026/3/21 02:06:02] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:06:02] [INFO] 读取自建歌单
+[2026/3/21 02:06:02] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:06:02] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 02:06:02] [INFO] 读取本地歌曲
+[2026/3/21 02:06:02] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:06:07] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:06:07] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:06:07] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:06:07] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:06:08] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:06:08] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:06:08] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:06:08] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:06:08] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:06:08] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:06:08] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:06:08] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:06:08] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:06:08] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:06:08] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:06:08] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:06:08] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:06:08] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:06:08] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:06:08] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:06:08] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:06:08] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:06:12] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 02:06:12] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:06:12] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:06:12] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:06:12] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 02:06:12] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:06:12] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:06:12] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:06:12] [INFO] 直连请求成功，返回数据长度：5423
+[2026/3/21 02:06:12] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:06:12] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:06:12] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 02:06:13] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:06:13] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 02:06:13] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:06:13] [INFO] 直连请求成功，返回数据长度：5423
+[2026/3/21 02:06:13] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:06:13] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:06:13] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 02:06:13] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:06:13] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 02:06:13] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:06:58] [INFO] Electron应用启动
+[2026/3/21 02:06:58] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:06:58] [INFO] 读取本地播放列表
+[2026/3/21 02:06:58] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:06:58] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:06:58] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:06:58] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:06:58] [INFO] 读取关注歌手列表
+[2026/3/21 02:06:58] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:06:58] [INFO] 读取自定义歌单
+[2026/3/21 02:06:58] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:06:58] [INFO] 读取最近播放
+[2026/3/21 02:06:58] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:06:58] [INFO] 读取自建歌单
+[2026/3/21 02:06:58] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:06:58] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 02:06:58] [INFO] 读取本地歌曲
+[2026/3/21 02:06:58] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:07:00] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 02:07:00] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:07:00] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:07:00] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:07:00] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 02:07:00] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:07:00] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:07:00] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:07:00] [INFO] 直连请求成功，返回数据长度：5423
+[2026/3/21 02:07:00] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:07:00] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:07:00] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 02:07:00] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:07:00] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 02:07:00] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:07:01] [INFO] 直连请求成功，返回数据长度：5423
+[2026/3/21 02:07:01] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:07:01] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:07:01] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 02:07:01] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:07:01] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 02:07:01] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:08:11] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 02:08:11] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:08:11] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:08:11] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:08:11] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 02:08:11] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:08:11] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:08:11] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:08:11] [INFO] 直连请求成功，返回数据长度：5536
+[2026/3/21 02:08:11] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:08:11] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:08:11] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 02:08:11] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:08:11] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 02:08:11] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:08:12] [INFO] 直连请求成功，返回数据长度：5536
+[2026/3/21 02:08:12] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:08:12] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:08:12] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 02:08:12] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:08:12] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 02:08:12] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:13:30] [INFO] Electron应用启动
+[2026/3/21 02:13:30] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:13:30] [INFO] 读取本地播放列表
+[2026/3/21 02:13:30] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:13:30] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:13:30] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:13:30] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:13:30] [INFO] 读取关注歌手列表
+[2026/3/21 02:13:30] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:13:30] [INFO] 读取自定义歌单
+[2026/3/21 02:13:30] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:13:30] [INFO] 读取最近播放
+[2026/3/21 02:13:30] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:13:30] [INFO] 读取自建歌单
+[2026/3/21 02:13:30] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:13:30] [INFO] 搜索历史读取成功，共3条记录
+[2026/3/21 02:13:30] [INFO] 读取本地歌曲
+[2026/3/21 02:13:30] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:13:53] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 02:13:53] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:13:53] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:13:53] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:13:54] [INFO] 直连请求成功，返回数据长度：5536
+[2026/3/21 02:13:54] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:13:54] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:13:54] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 02:13:54] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:13:54] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 02:13:54] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:13:58] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 02:13:58] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:13:58] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:13:58] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 02:13:59] [INFO] 直连请求成功，返回数据长度：5423
+[2026/3/21 02:13:59] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:13:59] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:13:59] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 02:13:59] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:13:59] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 02:13:59] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:14:00] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:14:00] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:00] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:14:00] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:14:01] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:14:01] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:01] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:01] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:14:01] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:01] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:14:01] [INFO] 搜索历史保存成功，共3条记录
+[2026/3/21 02:14:05] [INFO] 开始搜索，关键词：塞，偏移量：0
+[2026/3/21 02:14:05] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:05] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E&limit=20&offset=0
+[2026/3/21 02:14:05] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E&limit=20&offset=0
+[2026/3/21 02:14:05] [INFO] 直连请求成功，返回数据长度：5564
+[2026/3/21 02:14:05] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:05] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:05] [INFO] 第一个元素结构: {"name":"塞","artist":"yk (Hello1103)","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355564097","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172836467113","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355564097"}
+[2026/3/21 02:14:05] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:05] [INFO] 第一个解析结果: {"id":"3355564097","songId":"3355564097","name":"塞","artist":"yk (Hello1103)","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172836467113","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355564097"}
+[2026/3/21 02:14:05] [INFO] 搜索历史保存成功，共4条记录
+[2026/3/21 02:14:07] [INFO] 开始搜索，关键词：f，偏移量：0
+[2026/3/21 02:14:07] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:07] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=f&limit=20&offset=0
+[2026/3/21 02:14:07] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=f&limit=20&offset=0
+[2026/3/21 02:14:07] [INFO] 开始搜索，关键词：flo，偏移量：0
+[2026/3/21 02:14:07] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:07] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flo&limit=20&offset=0
+[2026/3/21 02:14:07] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flo&limit=20&offset=0
+[2026/3/21 02:14:07] [INFO] 直连请求成功，返回数据长度：5664
+[2026/3/21 02:14:07] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:07] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:07] [INFO] 第一个元素结构: {"name":"F.","artist":"李子豪(HtFR)","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1915755155","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951166989963371","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1915755155"}
+[2026/3/21 02:14:07] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:07] [INFO] 第一个解析结果: {"id":"1915755155","songId":"1915755155","name":"F.","artist":"李子豪(HtFR)","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951166989963371","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1915755155"}
+[2026/3/21 02:14:07] [INFO] 搜索历史保存成功，共5条记录
+[2026/3/21 02:14:08] [INFO] 直连请求成功，返回数据长度：5586
+[2026/3/21 02:14:08] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:08] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:08] [INFO] 第一个元素结构: {"name":"Leak It","artist":"FLO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3361032834","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172912938191","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3361032834"}
+[2026/3/21 02:14:08] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:08] [INFO] 第一个解析结果: {"id":"3361032834","songId":"3361032834","name":"Leak It","artist":"FLO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172912938191","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3361032834"}
+[2026/3/21 02:14:08] [INFO] 搜索历史保存成功，共6条记录
+[2026/3/21 02:14:08] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 02:14:08] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:08] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:14:08] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:14:08] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 02:14:08] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:08] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:14:08] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:14:09] [INFO] 直连请求成功，返回数据长度：5613
+[2026/3/21 02:14:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:09] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 02:14:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:09] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 02:14:09] [INFO] 搜索历史保存成功，共7条记录
+[2026/3/21 02:14:09] [INFO] 开始搜索，关键词：flower d，偏移量：0
+[2026/3/21 02:14:09] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:09] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20d&limit=20&offset=0
+[2026/3/21 02:14:09] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20d&limit=20&offset=0
+[2026/3/21 02:14:09] [INFO] 直连请求成功，返回数据长度：5613
+[2026/3/21 02:14:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:09] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 02:14:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:09] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 02:14:09] [INFO] 搜索历史保存成功，共7条记录
+[2026/3/21 02:14:09] [INFO] 开始搜索，关键词：flower dan，偏移量：0
+[2026/3/21 02:14:09] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:09] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dan&limit=20&offset=0
+[2026/3/21 02:14:09] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dan&limit=20&offset=0
+[2026/3/21 02:14:09] [INFO] 直连请求成功，返回数据长度：5774
+[2026/3/21 02:14:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:09] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 02:14:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:09] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 02:14:09] [INFO] 搜索历史保存成功，共8条记录
+[2026/3/21 02:14:10] [INFO] 开始搜索，关键词：flower dance，偏移量：0
+[2026/3/21 02:14:10] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:10] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 02:14:10] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 02:14:10] [INFO] 直连请求成功，返回数据长度：5729
+[2026/3/21 02:14:10] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:10] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:10] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 02:14:10] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:10] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 02:14:10] [INFO] 搜索历史保存成功，共9条记录
+[2026/3/21 02:14:10] [INFO] 直连请求成功，返回数据长度：5797
+[2026/3/21 02:14:10] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:10] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:10] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 02:14:10] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:10] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 02:14:10] [INFO] 搜索历史保存成功，共10条记录
+[2026/3/21 02:14:22] [INFO] 搜索历史保存成功，共10条记录
+[2026/3/21 02:14:29] [INFO] 搜索历史保存成功，共10条记录
+[2026/3/21 02:14:30] [INFO] 搜索历史保存成功，共10条记录
+[2026/3/21 02:14:32] [INFO] 开始搜索，关键词：flower da，偏移量：0
+[2026/3/21 02:14:32] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:14:32] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20da&limit=20&offset=0
+[2026/3/21 02:14:32] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20da&limit=20&offset=0
+[2026/3/21 02:14:33] [INFO] 直连请求成功，返回数据长度：5795
+[2026/3/21 02:14:33] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:14:33] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:14:33] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 02:14:33] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:14:33] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 02:14:33] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:14:34] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:14:35] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:17:06] [INFO] Electron应用启动
+[2026/3/21 02:17:06] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:17:06] [INFO] 读取本地播放列表
+[2026/3/21 02:17:06] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:17:06] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:17:06] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:17:06] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:17:06] [INFO] 读取关注歌手列表
+[2026/3/21 02:17:06] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:17:06] [INFO] 读取自定义歌单
+[2026/3/21 02:17:06] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:17:06] [INFO] 读取最近播放
+[2026/3/21 02:17:06] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:17:06] [INFO] 读取自建歌单
+[2026/3/21 02:17:06] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:17:06] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 02:17:06] [INFO] 读取本地歌曲
+[2026/3/21 02:17:06] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:17:08] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 02:17:08] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:17:08] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:17:08] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 02:17:09] [INFO] 直连请求成功，返回数据长度：5613
+[2026/3/21 02:17:09] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:17:09] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:17:09] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 02:17:09] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:17:09] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 02:17:09] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:17:15] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 02:17:15] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:17:15] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:17:15] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 02:17:16] [INFO] 直连请求成功，返回数据长度：5894
+[2026/3/21 02:17:16] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:17:16] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:17:16] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 02:17:16] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:17:16] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 02:17:16] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:17:20] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 02:17:20] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:17:20] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:17:20] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:17:20] [INFO] 直连请求成功，返回数据长度：5536
+[2026/3/21 02:17:20] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:17:20] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:17:20] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 02:17:20] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:17:20] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 02:17:20] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 02:25:22] [INFO] Electron应用启动
+[2026/3/21 02:25:22] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 02:25:22] [INFO] 读取本地播放列表
+[2026/3/21 02:25:22] [INFO] 读取到 5 首歌曲
+[2026/3/21 02:25:22] [INFO] 保存播放列表，数量：5首
+[2026/3/21 02:25:22] [INFO] 读取我喜欢的歌曲
+[2026/3/21 02:25:22] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 02:25:22] [INFO] 读取关注歌手列表
+[2026/3/21 02:25:22] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 02:25:22] [INFO] 读取自定义歌单
+[2026/3/21 02:25:22] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 02:25:22] [INFO] 读取最近播放
+[2026/3/21 02:25:22] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 02:25:22] [INFO] 读取自建歌单
+[2026/3/21 02:25:22] [INFO] 读取到 2 个自建歌单
+[2026/3/21 02:25:22] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 02:25:22] [INFO] 读取本地歌曲
+[2026/3/21 02:25:22] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 02:25:31] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 02:25:31] [INFO] 使用Meting API进行搜索
+[2026/3/21 02:25:31] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:25:31] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 02:25:32] [INFO] 直连请求成功，返回数据长度：5536
+[2026/3/21 02:25:32] [INFO] Meting API返回数据类型: object
+[2026/3/21 02:25:32] [INFO] Meting API返回数组长度: 20
+[2026/3/21 02:25:32] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 02:25:32] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 02:25:32] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 02:25:32] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:36:50] [INFO] Electron应用启动
+[2026/3/21 11:36:50] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:36:51] [INFO] 读取本地播放列表
+[2026/3/21 11:36:51] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:36:51] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:36:51] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:36:51] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:36:51] [INFO] 读取关注歌手列表
+[2026/3/21 11:36:51] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:36:51] [INFO] 读取自定义歌单
+[2026/3/21 11:36:51] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:36:51] [INFO] 读取最近播放
+[2026/3/21 11:36:51] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:36:51] [INFO] 读取自建歌单
+[2026/3/21 11:36:51] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:36:51] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:36:51] [INFO] 读取本地歌曲
+[2026/3/21 11:36:51] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:36:54] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:36:54] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:36:54] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:36:54] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:36:55] [INFO] 直连请求成功，返回数据长度：5527
+[2026/3/21 11:36:55] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:36:55] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:36:55] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:36:55] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:36:55] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:36:55] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:36:57] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 11:36:57] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:36:57] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 11:36:57] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 11:36:57] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 11:36:57] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:36:57] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:36:57] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 11:36:57] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:36:57] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 11:36:57] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:37:00] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 11:37:00] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:37:00] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:37:00] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:37:00] [INFO] 直连请求成功，返回数据长度：5596
+[2026/3/21 11:37:00] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:37:00] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:37:00] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 11:37:00] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:37:00] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 11:37:00] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:38:24] [INFO] Electron应用启动
+[2026/3/21 11:38:24] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:38:25] [INFO] 读取本地播放列表
+[2026/3/21 11:38:25] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:38:25] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:38:25] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:38:25] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:38:25] [INFO] 读取关注歌手列表
+[2026/3/21 11:38:25] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:38:25] [INFO] 读取自定义歌单
+[2026/3/21 11:38:25] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:38:25] [INFO] 读取最近播放
+[2026/3/21 11:38:25] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:38:25] [INFO] 读取自建歌单
+[2026/3/21 11:38:25] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:38:25] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:38:25] [INFO] 读取本地歌曲
+[2026/3/21 11:38:25] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:38:31] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 11:38:31] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:38:31] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:38:31] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:38:32] [INFO] 直连请求成功，返回数据长度：5596
+[2026/3/21 11:38:32] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:38:32] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:38:32] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 11:38:32] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:38:32] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 11:38:32] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:38:34] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:38:34] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:38:34] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:38:34] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:38:35] [INFO] 直连请求成功，返回数据长度：5527
+[2026/3/21 11:38:35] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:38:35] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:38:35] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:38:35] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:38:35] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:38:35] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:46:41] [INFO] Electron应用启动
+[2026/3/21 11:46:41] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:46:42] [INFO] 读取本地播放列表
+[2026/3/21 11:46:42] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:46:42] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:46:42] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:46:42] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:46:42] [INFO] 读取关注歌手列表
+[2026/3/21 11:46:42] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:46:42] [INFO] 读取自定义歌单
+[2026/3/21 11:46:42] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:46:42] [INFO] 读取最近播放
+[2026/3/21 11:46:42] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:46:42] [INFO] 读取自建歌单
+[2026/3/21 11:46:42] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:46:42] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:46:42] [INFO] 读取本地歌曲
+[2026/3/21 11:46:42] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:46:52] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:46:52] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:46:52] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:46:52] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:46:53] [INFO] 直连请求成功，返回数据长度：5527
+[2026/3/21 11:46:53] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:46:53] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:46:53] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:46:53] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:46:53] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:46:53] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:54:52] [INFO] Electron应用启动
+[2026/3/21 11:54:52] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:54:52] [INFO] 读取本地播放列表
+[2026/3/21 11:54:52] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:54:53] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:54:53] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:54:53] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:54:53] [INFO] 读取关注歌手列表
+[2026/3/21 11:54:53] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:54:53] [INFO] 读取自定义歌单
+[2026/3/21 11:54:53] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:54:53] [INFO] 读取最近播放
+[2026/3/21 11:54:53] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:54:53] [INFO] 读取自建歌单
+[2026/3/21 11:54:53] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:54:53] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:54:53] [INFO] 读取本地歌曲
+[2026/3/21 11:54:53] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:54:58] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:54:58] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:54:58] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:54:58] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:54:59] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 11:54:59] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:54:59] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:54:59] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:54:59] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:54:59] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:55:11] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 11:55:11] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:55:11] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 11:55:11] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 11:55:11] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 11:55:11] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:55:11] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:55:11] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 11:55:11] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:55:11] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 11:57:11] [INFO] Electron应用启动
+[2026/3/21 11:57:11] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:57:12] [INFO] 读取本地播放列表
+[2026/3/21 11:57:12] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:57:12] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:57:12] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:57:12] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:57:12] [INFO] 读取关注歌手列表
+[2026/3/21 11:57:12] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:57:12] [INFO] 读取自定义歌单
+[2026/3/21 11:57:12] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:57:12] [INFO] 读取最近播放
+[2026/3/21 11:57:12] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:57:12] [INFO] 读取自建歌单
+[2026/3/21 11:57:12] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:57:12] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:57:12] [INFO] 读取本地歌曲
+[2026/3/21 11:57:12] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:57:18] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:57:18] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:57:18] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:57:18] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:57:19] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 11:57:19] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:57:19] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:57:19] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:57:19] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:57:19] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:57:19] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:59:44] [INFO] Electron应用启动
+[2026/3/21 11:59:44] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 11:59:44] [INFO] 读取本地播放列表
+[2026/3/21 11:59:44] [INFO] 读取到 5 首歌曲
+[2026/3/21 11:59:44] [INFO] 保存播放列表，数量：5首
+[2026/3/21 11:59:44] [INFO] 读取我喜欢的歌曲
+[2026/3/21 11:59:44] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 11:59:44] [INFO] 读取关注歌手列表
+[2026/3/21 11:59:44] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 11:59:44] [INFO] 读取自定义歌单
+[2026/3/21 11:59:44] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 11:59:44] [INFO] 读取最近播放
+[2026/3/21 11:59:44] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 11:59:44] [INFO] 读取自建歌单
+[2026/3/21 11:59:44] [INFO] 读取到 2 个自建歌单
+[2026/3/21 11:59:44] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 11:59:44] [INFO] 读取本地歌曲
+[2026/3/21 11:59:44] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 11:59:46] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 11:59:46] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:59:46] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:59:46] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 11:59:47] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 11:59:47] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:59:47] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:59:47] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 11:59:47] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:59:47] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 11:59:47] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 11:59:51] [INFO] 开始搜索，关键词：flower，偏移量：0
+[2026/3/21 11:59:51] [INFO] 使用Meting API进行搜索
+[2026/3/21 11:59:51] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:59:51] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower&limit=20&offset=0
+[2026/3/21 11:59:52] [INFO] 直连请求成功，返回数据长度：5596
+[2026/3/21 11:59:52] [INFO] Meting API返回数据类型: object
+[2026/3/21 11:59:52] [INFO] Meting API返回数组长度: 20
+[2026/3/21 11:59:52] [INFO] 第一个元素结构: {"name":"꽃(FLOWER)","artist":"JISOO","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=2035161156"}
+[2026/3/21 11:59:52] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 11:59:52] [INFO] 第一个解析结果: {"id":"2035161156","songId":"2035161156","name":"꽃(FLOWER)","artist":"JISOO","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168571399728","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=2035161156"}
+[2026/3/21 11:59:52] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:01:38] [INFO] Electron应用启动
+[2026/3/21 12:01:38] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:01:39] [INFO] 读取本地播放列表
+[2026/3/21 12:01:39] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:01:39] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:01:39] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:01:39] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:01:39] [INFO] 读取关注歌手列表
+[2026/3/21 12:01:39] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:01:39] [INFO] 读取自定义歌单
+[2026/3/21 12:01:39] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:01:39] [INFO] 读取最近播放
+[2026/3/21 12:01:39] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:01:39] [INFO] 读取自建歌单
+[2026/3/21 12:01:39] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:01:39] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 12:01:39] [INFO] 读取本地歌曲
+[2026/3/21 12:01:39] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:01:42] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:01:42] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:01:42] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:01:42] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:01:42] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:01:42] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:01:42] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:01:42] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:01:42] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:01:42] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:01:42] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:04:43] [INFO] Electron应用启动
+[2026/3/21 12:04:43] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:04:44] [INFO] 读取本地播放列表
+[2026/3/21 12:04:44] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:04:44] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:04:44] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:04:44] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:04:44] [INFO] 读取关注歌手列表
+[2026/3/21 12:04:44] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:04:44] [INFO] 读取自定义歌单
+[2026/3/21 12:04:44] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:04:44] [INFO] 读取最近播放
+[2026/3/21 12:04:44] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:04:44] [INFO] 读取自建歌单
+[2026/3/21 12:04:44] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:04:44] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 12:04:44] [INFO] 读取本地歌曲
+[2026/3/21 12:04:44] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:04:48] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:04:48] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:04:48] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:04:48] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:04:49] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:04:49] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:04:49] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:04:49] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:04:49] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:04:49] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:04:49] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:04:53] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 12:04:53] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:04:53] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:04:53] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:04:53] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 12:04:53] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:04:53] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:04:53] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:04:53] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:04:53] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:04:53] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:06:13] [INFO] Electron应用启动
+[2026/3/21 12:06:13] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:06:13] [INFO] 读取本地播放列表
+[2026/3/21 12:06:13] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:06:13] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:06:13] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:06:13] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:06:13] [INFO] 读取关注歌手列表
+[2026/3/21 12:06:13] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:06:13] [INFO] 读取自定义歌单
+[2026/3/21 12:06:13] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:06:13] [INFO] 读取最近播放
+[2026/3/21 12:06:13] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:06:13] [INFO] 读取自建歌单
+[2026/3/21 12:06:13] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:06:13] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 12:06:13] [INFO] 读取本地歌曲
+[2026/3/21 12:06:13] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:06:17] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:06:17] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:06:17] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:06:17] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:06:18] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:06:18] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:06:18] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:06:18] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:06:18] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:06:18] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:06:18] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:06:36] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:06:40] [INFO] 开始搜索，关键词：flower dance，偏移量：0
+[2026/3/21 12:06:40] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:06:40] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:06:40] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:06:40] [INFO] 直连请求成功，返回数据长度：5857
+[2026/3/21 12:06:40] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:06:40] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:06:40] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 12:06:40] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:06:40] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 12:06:40] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:25] [INFO] Electron应用启动
+[2026/3/21 12:09:26] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:09:26] [INFO] 读取本地播放列表
+[2026/3/21 12:09:26] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:09:26] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:09:26] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:09:26] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:09:26] [INFO] 读取关注歌手列表
+[2026/3/21 12:09:26] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:09:26] [INFO] 读取自定义歌单
+[2026/3/21 12:09:26] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:09:26] [INFO] 读取最近播放
+[2026/3/21 12:09:26] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:09:26] [INFO] 读取自建歌单
+[2026/3/21 12:09:26] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:09:26] [INFO] 搜索历史读取成功，共11条记录
+[2026/3/21 12:09:26] [INFO] 读取本地歌曲
+[2026/3/21 12:09:26] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:09:27] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:09:27] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:09:27] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:09:27] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:09:28] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:09:28] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:09:28] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:09:28] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:09:28] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:09:28] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:09:28] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:37] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 12:09:37] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:09:37] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:09:37] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:09:37] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 12:09:37] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:09:37] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:09:37] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:09:37] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:09:37] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:09:37] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:42] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 12:09:42] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:09:42] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:09:42] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:09:43] [INFO] 直连请求成功，返回数据长度：5417
+[2026/3/21 12:09:43] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:09:43] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:09:43] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 12:09:43] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:09:43] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 12:09:43] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:47] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:50] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:09:55] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:10:04] [INFO] 搜索历史保存成功，共11条记录
+[2026/3/21 12:12:24] [INFO] 开始搜索，关键词：あたらよ，偏移量：0
+[2026/3/21 12:12:24] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:12:24] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:12:24] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:12:25] [INFO] 直连请求成功，返回数据长度：5494
+[2026/3/21 12:12:25] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:12:25] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:12:25] [INFO] 第一个元素结构: {"name":"ツキノフネ","artist":"あたらよ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3358032993"}
+[2026/3/21 12:12:25] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:12:25] [INFO] 第一个解析结果: {"id":"3358032993","songId":"3358032993","name":"ツキノフネ","artist":"あたらよ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993"}
+[2026/3/21 12:12:25] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:12:28] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:12:32] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:12:36] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:13:14] [INFO] 开始搜索，关键词：flower dance，偏移量：0
+[2026/3/21 12:13:14] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:13:14] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:13:14] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:13:15] [INFO] 直连请求成功，返回数据长度：5857
+[2026/3/21 12:13:15] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:13:15] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:13:15] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 12:13:15] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:13:15] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 12:13:15] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:14:23] [INFO] Electron应用启动
+[2026/3/21 12:14:24] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:14:39] [INFO] Electron应用启动
+[2026/3/21 12:14:39] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:17:44] [INFO] Electron应用启动
+[2026/3/21 12:17:44] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:18:04] [INFO] Electron应用启动
+[2026/3/21 12:18:04] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:18:05] [INFO] 读取本地播放列表
+[2026/3/21 12:18:05] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:18:05] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:18:05] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:18:05] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:18:05] [INFO] 读取关注歌手列表
+[2026/3/21 12:18:05] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:18:05] [INFO] 读取自定义歌单
+[2026/3/21 12:18:05] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:18:05] [INFO] 读取最近播放
+[2026/3/21 12:18:05] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:18:05] [INFO] 读取自建歌单
+[2026/3/21 12:18:05] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:18:05] [INFO] 搜索历史读取成功，共12条记录
+[2026/3/21 12:18:05] [INFO] 读取本地歌曲
+[2026/3/21 12:18:05] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:18:07] [INFO] 开始搜索，关键词：flower dance，偏移量：0
+[2026/3/21 12:18:07] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:18:07] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:18:07] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:18:08] [INFO] 直连请求成功，返回数据长度：5857
+[2026/3/21 12:18:08] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:18:08] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:18:08] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 12:18:08] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:18:08] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 12:18:08] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:18:12] [INFO] 开始搜索，关键词：あたらよ，偏移量：0
+[2026/3/21 12:18:12] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:18:12] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:18:12] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:18:12] [INFO] 直连请求成功，返回数据长度：5494
+[2026/3/21 12:18:12] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:18:12] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:18:12] [INFO] 第一个元素结构: {"name":"ツキノフネ","artist":"あたらよ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3358032993"}
+[2026/3/21 12:18:12] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:18:12] [INFO] 第一个解析结果: {"id":"3358032993","songId":"3358032993","name":"ツキノフネ","artist":"あたらよ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993"}
+[2026/3/21 12:18:12] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:18:17] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 12:18:17] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:18:17] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:18:17] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:18:17] [INFO] 直连请求成功，返回数据长度：5415
+[2026/3/21 12:18:17] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:18:17] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:18:17] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 12:18:17] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:18:17] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 12:18:17] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:18:22] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:18:22] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:18:22] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:18:22] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:18:23] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:18:23] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:18:23] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:18:23] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:18:23] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:18:23] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:18:23] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:18:25] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:18:30] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:13] [INFO] Electron应用启动
+[2026/3/21 12:26:13] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:26:14] [INFO] 读取本地播放列表
+[2026/3/21 12:26:14] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:26:14] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:26:14] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:26:14] [INFO] 读取到 8 首喜欢的歌曲
+[2026/3/21 12:26:14] [INFO] 读取关注歌手列表
+[2026/3/21 12:26:14] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:26:14] [INFO] 读取自定义歌单
+[2026/3/21 12:26:14] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:26:14] [INFO] 读取最近播放
+[2026/3/21 12:26:14] [INFO] 读取到 10 首最近播放的歌曲
+[2026/3/21 12:26:14] [INFO] 读取自建歌单
+[2026/3/21 12:26:14] [INFO] 读取到 2 个自建歌单
+[2026/3/21 12:26:14] [INFO] 搜索历史读取成功，共12条记录
+[2026/3/21 12:26:14] [INFO] 读取本地歌曲
+[2026/3/21 12:26:14] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:26:15] [INFO] 开始搜索，关键词：yorushika，偏移量：0
+[2026/3/21 12:26:15] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:26:15] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:26:15] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yorushika&limit=20&offset=0
+[2026/3/21 12:26:16] [INFO] 直连请求成功，返回数据长度：5415
+[2026/3/21 12:26:16] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:26:16] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:26:16] [INFO] 第一个元素结构: {"name":"千鳥","artist":"ヨルシカ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3355479297"}
+[2026/3/21 12:26:16] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:26:16] [INFO] 第一个解析结果: {"id":"3355479297","songId":"3355479297","name":"千鳥","artist":"ヨルシカ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172835515141","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3355479297"}
+[2026/3/21 12:26:16] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:20] [INFO] 开始搜索，关键词：塞壬唱片，偏移量：0
+[2026/3/21 12:26:20] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:26:20] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:26:20] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E5%A1%9E%E5%A3%AC%E5%94%B1%E7%89%87&limit=20&offset=0
+[2026/3/21 12:26:21] [INFO] 直连请求成功，返回数据长度：5914
+[2026/3/21 12:26:21] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:26:21] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:26:21] [INFO] 第一个元素结构: {"name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1403774122"}
+[2026/3/21 12:26:21] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:26:21] [INFO] 第一个解析结果: {"id":"1403774122","songId":"1403774122","name":"Speed of Light","artist":"塞壬唱片-MSR/DJ Okawari/二宮愛","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164497982814","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1403774122"}
+[2026/3/21 12:26:21] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:23] [INFO] 开始搜索，关键词：あたらよ，偏移量：0
+[2026/3/21 12:26:23] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:26:23] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:26:23] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=%E3%81%82%E3%81%9F%E3%82%89%E3%82%88&limit=20&offset=0
+[2026/3/21 12:26:24] [INFO] 直连请求成功，返回数据长度：5485
+[2026/3/21 12:26:24] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:26:24] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:26:24] [INFO] 第一个元素结构: {"name":"ツキノフネ","artist":"あたらよ","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=3358032993"}
+[2026/3/21 12:26:24] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:26:24] [INFO] 第一个解析结果: {"id":"3358032993","songId":"3358032993","name":"ツキノフネ","artist":"あたらよ","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172868935582","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=3358032993"}
+[2026/3/21 12:26:24] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:27] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:30] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:34] [INFO] 开始搜索，关键词：flower dance，偏移量：0
+[2026/3/21 12:26:34] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:26:34] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:26:34] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=flower%20dance&limit=20&offset=0
+[2026/3/21 12:26:34] [INFO] 直连请求成功，返回数据长度：5857
+[2026/3/21 12:26:34] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:26:34] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:26:34] [INFO] 第一个元素结构: {"name":"Flower Dance","artist":"DJ Okawari","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=22676167"}
+[2026/3/21 12:26:35] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:26:35] [INFO] 第一个解析结果: {"id":"22676167","songId":"22676167","name":"Flower Dance","artist":"DJ Okawari","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951168761288516","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=22676167"}
+[2026/3/21 12:26:35] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:38] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:40] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:43] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:26:45] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 12:26:45] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:26:45] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:26:45] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:26:46] [INFO] 直连请求成功，返回数据长度：5518
+[2026/3/21 12:26:46] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:26:46] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:26:46] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:26:46] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:26:46] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:26:46] [INFO] 搜索历史保存成功，共12条记录
+[2026/3/21 12:29:13] [INFO] Electron应用启动
+[2026/3/21 12:29:13] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:29:14] [INFO] 读取本地播放列表
+[2026/3/21 12:29:14] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:29:14] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:29:14] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:29:14] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:29:14] [INFO] 读取关注歌手列表
+[2026/3/21 12:29:14] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:29:14] [INFO] 读取自定义歌单
+[2026/3/21 12:29:14] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:29:14] [INFO] 读取最近播放
+[2026/3/21 12:29:14] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:29:14] [INFO] 读取自建歌单
+[2026/3/21 12:29:14] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:29:14] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 12:29:14] [INFO] 读取本地歌曲
+[2026/3/21 12:29:14] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:32:51] [INFO] Electron应用启动
+[2026/3/21 12:32:51] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:32:52] [INFO] 读取本地播放列表
+[2026/3/21 12:32:52] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:32:52] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:32:52] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:32:52] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:32:52] [INFO] 读取关注歌手列表
+[2026/3/21 12:32:52] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:32:52] [INFO] 读取自定义歌单
+[2026/3/21 12:32:52] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:32:52] [INFO] 读取最近播放
+[2026/3/21 12:32:52] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:32:52] [INFO] 读取自建歌单
+[2026/3/21 12:32:52] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:32:52] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 12:32:52] [INFO] 读取本地歌曲
+[2026/3/21 12:32:52] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:38:19] [INFO] Electron应用启动
+[2026/3/21 12:38:19] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:38:20] [INFO] 读取本地播放列表
+[2026/3/21 12:38:20] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:38:20] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:38:20] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:38:20] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:38:20] [INFO] 读取关注歌手列表
+[2026/3/21 12:38:20] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:38:20] [INFO] 读取自定义歌单
+[2026/3/21 12:38:20] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:38:20] [INFO] 读取最近播放
+[2026/3/21 12:38:20] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:38:20] [INFO] 读取自建歌单
+[2026/3/21 12:38:20] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:38:20] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 12:38:20] [INFO] 读取本地歌曲
+[2026/3/21 12:38:20] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:44:26] [INFO] Electron应用启动
+[2026/3/21 12:44:27] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:44:27] [INFO] 读取本地播放列表
+[2026/3/21 12:44:27] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:44:27] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:44:27] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:44:27] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:44:27] [INFO] 读取关注歌手列表
+[2026/3/21 12:44:27] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:44:27] [INFO] 读取自定义歌单
+[2026/3/21 12:44:27] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:44:27] [INFO] 读取最近播放
+[2026/3/21 12:44:27] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:44:27] [INFO] 读取自建歌单
+[2026/3/21 12:44:27] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:44:27] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 12:44:27] [INFO] 读取本地歌曲
+[2026/3/21 12:44:27] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:46:35] [INFO] Electron应用启动
+[2026/3/21 12:46:35] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:46:36] [INFO] 读取本地播放列表
+[2026/3/21 12:46:36] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:46:36] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:46:36] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:46:36] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:46:36] [INFO] 读取关注歌手列表
+[2026/3/21 12:46:36] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:46:36] [INFO] 读取自定义歌单
+[2026/3/21 12:46:36] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:46:36] [INFO] 读取最近播放
+[2026/3/21 12:46:36] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:46:36] [INFO] 读取自建歌单
+[2026/3/21 12:46:36] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:46:36] [INFO] 搜索历史读取成功，共0条记录
+[2026/3/21 12:46:36] [INFO] 读取本地歌曲
+[2026/3/21 12:46:36] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:46:45] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 12:46:45] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:46:45] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:46:45] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:46:46] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 12:46:46] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:46:46] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:46:46] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:46:46] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:46:46] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:46:46] [INFO] 搜索历史保存成功，共1条记录
+[2026/3/21 12:47:10] [INFO] 开始搜索，关键词：yoasobi，偏移量：20
+[2026/3/21 12:47:10] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:47:10] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=20
+[2026/3/21 12:47:10] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=20
+[2026/3/21 12:47:11] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 12:47:11] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:47:11] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:47:11] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:47:11] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:47:11] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:51:30] [INFO] Electron应用启动
+[2026/3/21 12:51:30] [INFO] 窗口创建完成，预加载脚本已配置
+[2026/3/21 12:51:31] [INFO] 读取本地播放列表
+[2026/3/21 12:51:31] [INFO] 读取到 5 首歌曲
+[2026/3/21 12:51:31] [INFO] 保存播放列表，数量：5首
+[2026/3/21 12:51:31] [INFO] 读取我喜欢的歌曲
+[2026/3/21 12:51:31] [INFO] 读取到 0 首喜欢的歌曲
+[2026/3/21 12:51:31] [INFO] 读取关注歌手列表
+[2026/3/21 12:51:31] [INFO] 读取到 3 位关注的歌手
+[2026/3/21 12:51:31] [INFO] 读取自定义歌单
+[2026/3/21 12:51:31] [INFO] 读取到 5 个自定义歌单
+[2026/3/21 12:51:31] [INFO] 读取最近播放
+[2026/3/21 12:51:31] [INFO] 读取到 0 首最近播放的歌曲
+[2026/3/21 12:51:31] [INFO] 读取自建歌单
+[2026/3/21 12:51:31] [INFO] 读取到 0 个自建歌单
+[2026/3/21 12:51:31] [INFO] 搜索历史读取成功，共1条记录
+[2026/3/21 12:51:31] [INFO] 读取本地歌曲
+[2026/3/21 12:51:31] [INFO] 读取到 0 首本地歌曲
+[2026/3/21 12:51:34] [INFO] 开始搜索，关键词：yoasobi，偏移量：0
+[2026/3/21 12:51:34] [INFO] 使用Meting API进行搜索
+[2026/3/21 12:51:34] [INFO] 发起请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:51:34] [INFO] 尝试直连请求：https://api.qijieya.cn/meting/?server=netease&type=search&id=yoasobi&limit=20&offset=0
+[2026/3/21 12:51:35] [INFO] 直连请求成功，返回数据长度：5524
+[2026/3/21 12:51:35] [INFO] Meting API返回数据类型: object
+[2026/3/21 12:51:35] [INFO] Meting API返回数组长度: 20
+[2026/3/21 12:51:35] [INFO] 第一个元素结构: {"name":"たぶん","artist":"YOASOBI","url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252","pic":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","lrc":"https://api.qijieya.cn/meting/?server=netease&type=lrc&id=1459343252"}
+[2026/3/21 12:51:35] [INFO] 解析后得到 20 条有效结果
+[2026/3/21 12:51:35] [INFO] 第一个解析结果: {"id":"1459343252","songId":"1459343252","name":"たぶん","artist":"YOASOBI","album":"未知专辑","coverUrl":"https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165101444453","duration":0,"url":"https://api.qijieya.cn/meting/?server=netease&type=url&id=1459343252"}
+[2026/3/21 12:51:35] [INFO] 搜索历史保存成功，共1条记录
