@@ -1,0 +1,296 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 歌词展示样式优化 */
+.lyric-line {
+  @apply text-center text-2xl font-light leading-relaxed transition-all duration-300;
+  min-height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  color: #4b5563;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.lyric-line.active {
+  @apply text-3xl font-medium;
+  opacity: 1;
+  color: #1f2937;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .lyric-line {
+  color: #9ca3af;
+}
+
+.dark .lyric-line.active {
+  color: #f3f4f6;
+  text-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+/* 歌曲选中高亮样式 - 与"我喜欢"、"最近播放"保持一致 */
+.song-item.selected {
+  background-color: rgb(243 244 246) !important;
+  border-left: 4px solid rgb(156 163 175) !important;
+}
+
+.dark .song-item.selected {
+  background-color: rgb(55 65 81) !important;
+  border-left: 4px solid rgb(107 114 128) !important;
+}
+
+.song-item.selected:hover {
+  background-color: rgb(229 231 235) !important;
+}
+
+.dark .song-item.selected:hover {
+  background-color: rgb(75 85 99) !important;
+}
+
+.song-item.active {
+  background-color: rgba(29, 185, 84, 0.1);
+  /* 半透明绿色背景，根据主题调整 */
+  border-left: 3px solid #1DB954;
+}
+
+.dark .song-item.active {
+  background-color: rgba(29, 185, 84, 0.2);
+}
+
+/* 歌词滚动容器优化 - 隐藏滚动条并添加遮罩 */
+.lyrics-scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  /* 隐藏滚动条 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  /* 添加上下留白遮罩 */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}
+
+/* Webkit浏览器隐藏滚动条 */
+.lyrics-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.lyrics-area {
+  @apply flex flex-col justify-center;
+  height: 100%;
+  padding: 0 1rem;
+  /* 确保歌词区域有足够的内边距 */
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* 界面切换淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 歌词加载动画 */
+@keyframes lyricFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.6;
+    transform: translateY(0);
+  }
+}
+
+.lyric-line:not(.active) {
+  animation: lyricFadeIn 0.3s ease-out;
+}
+
+/* 歌词加载状态样式 */
+.lyrics-loading {
+  @apply text-center text-gray-500 text-xl font-light italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  animation: pulse 2s infinite;
+}
+
+.lyrics-error {
+  @apply text-center text-red-400 text-xl font-light italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* 空状态歌词样式 */
+.lyrics-empty {
+  @apply text-center text-gray-400 text-xl font-light italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.dark .lyrics-loading {
+  color: #9ca3af;
+}
+
+.dark .lyrics-error {
+  color: #f87171;
+}
+
+.dark .lyrics-empty {
+  color: #6b7280;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-white transition-colors duration-300;
+  }
+
+  .lyric-line {
+    @apply py-4 transition-all duration-300 text-center dark:text-white;
+    font-size: 1.5rem;
+    line-height: 1.8;
+    opacity: 0.6;
+    min-height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .lyric-line.active {
+    color: #1DB954 !important;
+    font-weight: bold !important;
+    font-size: 2rem !important;
+    opacity: 1 !important;
+    transform: scale(1.1);
+  }
+
+  .song-item {
+    @apply flex justify-between items-center cursor-pointer transition-colors duration-200 hover:bg-gray-200 dark:hover:bg-gray-800;
+  }
+
+  .add-to-playlist {
+    @apply w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 border-none text-sm text-gray-600 transition-all duration-200 hover:bg-primary hover:text-white dark:bg-gray-700 dark:text-gray-300;
+  }
+
+  .play-mode-group button.active {
+    @apply bg-green-500 text-white;
+    background-color: #1DB954 !important;
+    color: white !important;
+  }
+
+  .dark .play-mode-group button.active {
+    background-color: #1DB954 !important;
+    color: white !important;
+  }
+
+  /* 自定义滚动条 */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  /* 歌词界面样式 */
+  #lyricsInterface {
+    @apply bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 transition-colors duration-300;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  }
+
+  .dark #lyricsInterface {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  }
+
+  /* 淡入动画效果类 */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  /* 播放列表浮窗样式 */
+  #playlistFloat {
+    @apply bg-gray-200 border-l border-gray-300 shadow-lg z-40 transition-colors duration-300 dark:bg-gray-800 dark:border-gray-700;
+  }
+
+  /* 专辑封面悬停效果 */
+  #coverImg {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+
+  /* 侧边栏样式 */
+  #sidebar {
+    position: relative;
+  }
+
+  #sidebarResizer {
+    z-index: 10;
+  }
+}
+
+@layer utilities {
+  .line-height-7 {
+    line-height: 1.7;
+  }
+
+  .player-gradient {
+    background: linear-gradient(135deg, #1db954 0%, #191414 100%);
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600;
+  }
+
+  .input-primary {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white text-gray-800 transition-all duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white;
+  }
+}

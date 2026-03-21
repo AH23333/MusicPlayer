@@ -1,0 +1,47 @@
+{
+  "name": "music-player",
+  "productName": "MusicPlayer",
+  "version": "1.1.1",
+  "description": "A simple music player",
+  "author": "AH23333",
+  "homepage": "https://github.com/AH23333/MusicPlayer",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "autoprefixer": "^10.4.27",
+    "electron": "^28.2.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "name": "MusicPlayer",
+        "executableName": "MusicPlayer"
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "music_player",
+            "authors": "AH23333",
+            "description": "A simple music player",
+            "setupIcon": "",
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true
+          }
+        }
+      ]
+    }
+  }
+}
