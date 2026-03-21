@@ -31,3 +31,11 @@ ImportLocalSongs/
 
 # Log files
 log.txt
+
+# user data
+DIYSongList.json
+FollowedArtists.json
+Latest.json
+MyFavorite.json
+PlayList.json
+SearchHistory.json
