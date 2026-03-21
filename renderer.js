@@ -715,6 +715,8 @@ window.onload = async () => {
       li.className =
         "p-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200 dark:hover:bg-gray-700"
       li.textContent = item
+      // ========== 修改后的 renderSearchHistory 函数（位于搜索历史渲染部分） ==========
+      // 在渲染搜索历史的 li 点击事件中添加标题设置
       li.addEventListener("click", async () => {
         searchInput.value = item
         searchHistoryContainer.classList.add("hidden")
@@ -727,6 +729,12 @@ window.onload = async () => {
         // 自动搜索
         const keyword = item.trim()
         if (keyword) {
+          // 设置标题为“搜索结果”（立即执行）
+          const titleElement = document.querySelector("#searchResultsSection h2")
+          if (titleElement) {
+            titleElement.textContent = "搜索结果"
+          }
+
           searchOffset = 0
           searchResultList.innerHTML = ""
           // 先显示搜索结果区域
@@ -1097,6 +1105,7 @@ window.onload = async () => {
         searchResultList.appendChild(li)
 
         // 添加双击事件，自动搜索该歌手
+        // ========== 修改后的“关注歌手”列表双击事件（位于 showFollowedArtists 函数内） ==========
         li.addEventListener("dblclick", async () => {
           // 填充搜索栏
           const searchInput = document.getElementById("searchInput")
@@ -1107,27 +1116,8 @@ window.onload = async () => {
           } else {
             clearSearchBtn.classList.add("hidden")
           }
-
-          // 自动搜索
-          searchOffset = 0
-          searchResultList.innerHTML = ""
-          // 先显示搜索结果区域
-          searchResultsSection.classList.remove("hidden")
-          playlistDetailSection.classList.add("hidden")
-          // 隐藏返回按钮
-          backToSearchBtn.classList.add("hidden")
-          // 显示加载动画
-          searchResultList.innerHTML =
-            '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
-          // 加载搜索结果
-          await loadSearchResults(artistName, searchOffset)
-          // 更新搜索结果标题
-          document.querySelector("#searchResultsSection h2").textContent =
-            `搜索结果: ${artistName}`
-          // 添加淡入动画（只执行一次）
-          searchResultsSection.classList.remove("fade-in")
-          void searchResultsSection.offsetWidth
-          searchResultsSection.classList.add("fade-in")
+          // 调用 performSearch 函数进行搜索（不再传递第二个参数）
+          await performSearch(artistName)
         })
 
         // 添加取消关注按钮事件
@@ -1765,8 +1755,6 @@ window.onload = async () => {
     return {
       searchResults: [...searchResults],
       searchOffset: searchOffset,
-      searchTitle: document.querySelector("#searchResultsSection h2")
-        .textContent,
     }
   }
 
@@ -1775,8 +1763,6 @@ window.onload = async () => {
     if (!state) return
     searchResults = state.searchResults
     searchOffset = state.searchOffset
-    document.querySelector("#searchResultsSection h2").textContent =
-      state.searchTitle
 
     // 重新渲染搜索结果
     searchResultList.innerHTML = ""
@@ -1805,8 +1791,25 @@ window.onload = async () => {
     searchResultsSection.classList.remove("hidden")
     playlistDetailSection.classList.add("hidden")
 
-    // 恢复初始搜索状态
-    restoreSearchState(initialSearchState)
+    // 恢复搜索结果页面，但保留之前的搜索结果
+    if (searchResults.length > 0) {
+      // 如果有搜索结果，重新渲染
+      searchResultList.innerHTML = ""
+      renderSearchResults(searchResults, 0)
+      // 显示加载更多按钮（如果有更多结果）
+      if (searchResults.length >= PAGE_SIZE) {
+        document.getElementById("loadMoreBtn").style.display = "block"
+      } else {
+        document.getElementById("loadMoreBtn").style.display = "none"
+      }
+    } else {
+      // 如果没有搜索结果，显示空白状态
+      searchResultList.innerHTML = ""
+      document.getElementById("loadMoreBtn").style.display = "none"
+    }
+
+    // 确保标题是搜索结果
+    document.querySelector("#searchResultsSection h2").textContent = "搜索结果"
 
     // 添加淡入动画
     searchResultsSection.classList.remove("fade-in")
@@ -2081,8 +2084,9 @@ window.onload = async () => {
     const menu = document.createElement("div")
     menu.className =
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700"
-    menu.style.left = `${e.clientX}px`
-    menu.style.top = `${e.clientY}px`
+
+    // 先添加到文档，以便计算尺寸
+    document.body.appendChild(menu)
 
     // 添加到当前播放列表
     menu.innerHTML = `
@@ -2112,7 +2116,31 @@ window.onload = async () => {
         document.body.removeChild(menu)
       })
 
-    document.body.appendChild(menu)
+    // 计算菜单位置
+    const menuRect = menu.getBoundingClientRect()
+    const screenWidth = window.innerWidth
+    const screenHeight = window.innerHeight
+
+    let left = e.clientX
+    let top = e.clientY
+
+    // 调整水平位置
+    if (left + menuRect.width > screenWidth) {
+      left = screenWidth - menuRect.width - 10
+    }
+
+    // 调整垂直位置
+    if (top + menuRect.height > screenHeight) {
+      top = screenHeight - menuRect.height - 10
+    }
+
+    // 确保菜单在屏幕内
+    left = Math.max(10, left)
+    top = Math.max(10, top)
+
+    // 设置菜单位置
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
 
     // 点击其他地方关闭菜单
     setTimeout(() => {
@@ -2824,8 +2852,9 @@ window.onload = async () => {
   }
 
   // 执行搜索（重置偏移量并清空列表）
+  // ========== 修改后的 performSearch 函数 ==========
   async function performSearch(keyword) {
-    if (!keyword || isSearching) return // 防止重复搜索
+    if (!keyword || isSearching) return
 
     isSearching = true
     try {
@@ -2834,6 +2863,12 @@ window.onload = async () => {
       searchResultsSection.classList.remove("hidden")
       playlistDetailSection.classList.add("hidden")
       backToSearchBtn.classList.add("hidden")
+
+      // 设置搜索结果标题（立即执行）
+      const titleElement = document.querySelector("#searchResultsSection h2")
+      if (titleElement) {
+        titleElement.textContent = "搜索结果"
+      }
 
       // 加载搜索结果（内部会处理加载动画和渲染）
       await loadSearchResults(keyword, searchOffset)
