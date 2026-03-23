@@ -170,6 +170,7 @@ src/
 
 - [aura-music](https://github.com/dingyi222666/aura-music.git)
 - [Meting](https://github.com/metowolf/Meting.git)
+- [go-music-dl](https://github.com/guohuiyuan/go-music-dl.git)
 
 # 📝 更新日志
 
@@ -203,3 +204,7 @@ src/
 ## 2026.3.21
 
 - 修复了一些交互及显示问题
+
+## 2026.3.23
+
+- 通过go-music-dl项目增加了自定义源功能、清除搜索缓存功能，优化搜索历史管理

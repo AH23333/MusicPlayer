@@ -593,19 +593,33 @@ function initIpcHandlers() {
       logger.info(`音乐下载服务搜索请求：${JSON.stringify(requestData)}`)
       try {
         const baseUrl = musicDlService.getBaseUrl()
+        logger.info(`音乐下载服务基础 URL：${baseUrl}`)
         // 使用新的 API 路径 /api/search
+        const apiUrl = `${baseUrl}/api/search`
+        logger.info(`音乐下载服务 API URL：${apiUrl}`)
+        logger.info(
+          `音乐下载服务请求参数：q=${keyword}, sources=${sources}, page=${page}, limit=${limit}`
+        )
+
         let response
         try {
-          response = await axios.get(`${baseUrl}/api/search`, {
+          response = await axios.get(apiUrl, {
             params: {
               q: keyword,
               sources,
               page,
               limit,
             },
+            timeout: 30000, // 30秒超时
           })
+          logger.info(`音乐下载服务响应状态：${response.status}`)
         } catch (error) {
           logger.error("音乐下载服务搜索失败:", error)
+          logger.error(`错误详情：${error.message}`)
+          if (error.response) {
+            logger.error(`响应状态：${error.response.status}`)
+            logger.error(`响应数据：${JSON.stringify(error.response.data)}`)
+          }
           return { error: error.message }
         }
 
@@ -620,6 +634,7 @@ function initIpcHandlers() {
         return response.data
       } catch (error) {
         logger.error("音乐下载服务搜索失败:", error)
+        logger.error(`错误详情：${error.message}`)
         return { error: error.message }
       }
     }

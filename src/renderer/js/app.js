@@ -439,8 +439,38 @@
     searchHistory.forEach((item) => {
       const li = document.createElement("li")
       li.className =
-        "p-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200 dark:hover:bg-gray-700"
-      li.textContent = item
+        "p-3 hover:bg-gray-100 cursor-pointer transition-colors duration-200 dark:hover:bg-gray-700 flex items-center justify-between"
+
+      // 历史记录文本
+      const textSpan = document.createElement("span")
+      textSpan.textContent = item
+      li.appendChild(textSpan)
+
+      // 删除按钮
+      const deleteBtn = document.createElement("button")
+      deleteBtn.className =
+        "text-gray-400 hover:text-red-500 transition-colors duration-200"
+      deleteBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      `
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation() // 阻止事件冒泡，避免触发搜索
+        // 从搜索历史中删除该项
+        searchHistory = searchHistory.filter(
+          (historyItem) => historyItem !== item
+        )
+        // 保存到本地存储
+        localStorage.setItem("searchHistory", JSON.stringify(searchHistory))
+        // 保存到主进程存储
+        window.ElectronAPI.saveSearchHistory(searchHistory)
+        // 重新渲染搜索历史
+        renderSearchHistory()
+      })
+      li.appendChild(deleteBtn)
+
+      // 点击历史记录项进行搜索
       li.addEventListener("click", async () => {
         if (searchInput) searchInput.value = item
         if (searchHistoryContainer)
@@ -768,6 +798,29 @@
   }
 
   function playSelectedSong(song, listType) {
+    console.log("[播放] playSelectedSong 被调用，歌曲数据:", song)
+    console.log("[播放] 歌曲URL:", song.url)
+
+    // 检查歌曲URL是否有效
+    if (!song.url || song.url.trim() === "") {
+      console.error("[播放] 歌曲URL无效，无法播放:", song.url)
+      showToast("播放失败：歌曲链接无效")
+      return
+    }
+
+    // 如果playQueue中有URL为undefined的歌曲，先清空
+    const invalidSongs = playQueue.filter((s) => !s.url || s.url.trim() === "")
+    if (invalidSongs.length > 0) {
+      console.log(
+        "[播放] 发现",
+        invalidSongs.length,
+        "首URL无效的歌曲，清空播放队列"
+      )
+      playQueue = []
+      currentSongIndex = -1
+    }
+
+    console.log("[播放] playQueue长度(操作前):", playQueue.length)
     const isExist = playQueue.some((item) => item.id === song.id)
     if (!isExist) {
       if (currentSongIndex >= 0) {
@@ -775,9 +828,11 @@
       } else {
         playQueue.push(song)
       }
+      console.log("[播放] playQueue长度(添加后):", playQueue.length)
       renderPlaylist()
     }
     currentSongIndex = playQueue.findIndex((item) => item.id === song.id)
+    console.log("[播放] currentSongIndex:", currentSongIndex)
     playCurrentSong()
     selectedSongIndex = -1
     selectedSongList = null
@@ -792,9 +847,30 @@
         '<div class="lyrics-loading">🎵 歌词加载中...</div>'
     }
     try {
-      const lyrics = await window.ElectronAPI.fetchLyrics(song.songId)
+      let lyrics
+      // 检查歌曲是否来自自定义源
+      if (song.source && song.source !== "default") {
+        // 使用 music-dl-api 服务获取歌词
+        console.log(
+          `[歌词] 使用 music-dl-api 获取歌词，歌曲ID：${song.id}，源：${song.source}`
+        )
+        const response = await window.ElectronAPI.musicDlLyric(
+          song.id,
+          song.source
+        )
+        if (response && response.lyric) {
+          lyrics = { lrc: response.lyric, tlrc: "" }
+        }
+      }
+
+      // 如果没有获取到歌词，或者歌曲不是来自自定义源，使用默认方法
+      if (!lyrics) {
+        console.log(`[歌词] 使用默认方法获取歌词，歌曲ID：${song.songId}`)
+        lyrics = await window.ElectronAPI.fetchLyrics(song.songId)
+      }
+
       if (lyrics && (lyrics.lrc || lyrics.tlrc)) {
-        renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId)
+        renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId || song.id)
       } else {
         if (lyricsArea) {
           lyricsArea.innerHTML =
@@ -802,6 +878,7 @@
         }
       }
     } catch (err) {
+      console.error("[歌词] 获取歌词失败:", err)
       if (lyricsArea) {
         lyricsArea.innerHTML = '<div class="lyrics-error">😔 歌词加载失败</div>'
       }
@@ -1622,11 +1699,129 @@
   }
 
   async function playCurrentSong() {
-    if (currentSongIndex < 0 || currentSongIndex >= playQueue.length) return
+    console.log(
+      "[播放器] playCurrentSong 被调用，currentSongIndex:",
+      currentSongIndex
+    )
+    if (currentSongIndex < 0 || currentSongIndex >= playQueue.length) {
+      console.log("[播放器] currentSongIndex 无效，返回")
+      return
+    }
 
     const song = playQueue[currentSongIndex]
-    if (!audioPlayer) return
-    audioPlayer.src = song.url
+    console.log("[播放器] 当前歌曲:", song)
+    console.log("[播放器] 歌曲URL:", song.url)
+    if (!audioPlayer) {
+      console.log("[播放器] audioPlayer 不存在，返回")
+      return
+    }
+    // 检查URL是否有效
+    let audioUrl = song.url
+    if (!audioUrl || audioUrl.trim() === "") {
+      console.error("[播放器] 歌曲URL无效:", audioUrl)
+      showToast("播放失败：歌曲链接无效")
+      return
+    }
+
+    // 尝试对URL进行编码处理
+    try {
+      // 检查URL是否包含有效协议
+      if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
+        console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
+        showToast("播放失败：歌曲链接格式错误")
+        return
+      }
+      console.log("[播放器] 原始URL:", audioUrl)
+      console.log("[播放器] URL长度:", audioUrl.length)
+      console.log("[播放器] URL是否包含特殊字符:", /[+&=]/.test(audioUrl))
+      // 检查URL是否可以访问
+      fetch(audioUrl, { method: "HEAD" })
+        .then((response) => {
+          console.log("[播放器] URL检查响应状态:", response.status)
+          console.log(
+            "[播放器] URL Content-Type:",
+            response.headers.get("content-type")
+          )
+        })
+        .catch((err) => {
+          console.error("[播放器] URL检查失败:", err)
+        })
+    } catch (e) {
+      console.error("[播放器] URL处理错误:", e)
+    }
+
+    // 尝试对URL进行编码处理
+    let encodedUrl = audioUrl
+    try {
+      // 检查URL是否包含有效协议
+      if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
+        console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
+        showToast("播放失败：歌曲链接格式错误")
+        return
+      }
+
+      // 尝试对URL进行编码
+      encodedUrl = encodeURIComponent(audioUrl)
+      console.log("[播放器] 原始URL:", audioUrl)
+      console.log("[播放器] 编码后URL:", encodedUrl)
+      console.log("[播放器] URL长度:", audioUrl.length)
+
+      // 检查URL是否可以访问
+      fetch(audioUrl, { method: "HEAD" })
+        .then((response) => {
+          console.log("[播放器] URL检查响应状态:", response.status)
+          console.log(
+            "[播放器] URL Content-Type:",
+            response.headers.get("content-type")
+          )
+        })
+        .catch((err) => {
+          console.error("[播放器] URL检查失败:", err)
+        })
+    } catch (e) {
+      console.error("[播放器] URL处理错误:", e)
+    }
+
+    // 先尝试使用原始URL，如果失败再尝试编码后的URL
+    // 检查URL中是否有+字符，这些可能需要特殊处理
+    let processedUrl = audioUrl
+    if (processedUrl.includes("+")) {
+      console.log("[播放器] URL包含+字符，尝试替换")
+    }
+
+    // 使用新的方式加载音频：先创建新的Audio对象来测试
+    console.log("[播放器] 测试音频URL是否可访问...")
+    const testAudio = new Audio(processedUrl)
+    testAudio.preload = "metadata"
+
+    const canPlayPromise = new Promise((resolve, reject) => {
+      testAudio.addEventListener("canplay", () => {
+        console.log("[播放器] 测试音频可以播放")
+        resolve(true)
+      })
+      testAudio.addEventListener("error", (e) => {
+        console.error("[播放器] 测试音频加载失败:", e)
+        resolve(false)
+      })
+      // 超时处理
+      setTimeout(() => {
+        console.log("[播放器] 测试音频加载超时")
+        resolve(false)
+      }, 5000)
+    })
+
+    const canPlay = await canPlayPromise
+    console.log("[播放器] 测试结果:", canPlay)
+
+    // 设置audioPlayer的src
+    // 先重置audio元素
+    audioPlayer.pause()
+    audioPlayer.removeAttribute("src")
+    audioPlayer.load()
+    console.log("[播放器] audioPlayer已重置")
+
+    audioPlayer.src = processedUrl
+    console.log("[播放器] audioPlayer.src 已设置:", processedUrl)
     if (songTitle) songTitle.textContent = song.name
     if (songArtist) songArtist.textContent = song.artist
 
@@ -1646,6 +1841,29 @@
     await loadLyricsWithStatus(song)
 
     try {
+      console.log("[播放器] 等待音频加载完成...")
+      if (audioPlayer.readyState < 2) {
+        console.log("[播放器] 音频未准备好，等待loadedmetadata事件...")
+        await new Promise((resolve) => {
+          audioPlayer.addEventListener(
+            "loadedmetadata",
+            () => {
+              console.log("[播放器] loadedmetadata事件触发，音频已准备好")
+              resolve()
+            },
+            { once: true }
+          )
+          audioPlayer.addEventListener(
+            "error",
+            (e) => {
+              console.error("[播放器] 音频加载错误:", e)
+              resolve()
+            },
+            { once: true }
+          )
+        })
+      }
+      console.log("[播放器] 开始播放，readyState:", audioPlayer.readyState)
       await audioPlayer.play()
       renderPlaylist()
       await addToLatestPlayed(song)
@@ -1698,6 +1916,8 @@
     const globalIndex = parseInt(li?.dataset.index, 10)
     if (isNaN(globalIndex)) return
     const song = searchResults[globalIndex]
+    console.log("[搜索结果] globalIndex:", globalIndex, "song:", song)
+    console.log("[搜索结果] song.url:", song?.url)
     if (!song) return
 
     if (target.classList.contains("like-btn")) {
@@ -1830,24 +2050,37 @@
     let songs
 
     if (searchCache.has(cacheKey)) {
+      console.log(
+        `[搜索] 从缓存获取结果，关键词：${keyword}，偏移量：${offset}`
+      )
       songs = searchCache.get(cacheKey)
     } else {
       try {
         // 检查用户是否选择了搜索源
+        console.log(`[搜索] 开始搜索，关键词：${keyword}，偏移量：${offset}`)
         const savedSources = localStorage.getItem("selected-search-sources")
         let selectedSources = []
         if (savedSources) {
           try {
             selectedSources = JSON.parse(savedSources)
+            console.log(
+              `[搜索] 从本地存储读取的搜索源：${JSON.stringify(selectedSources)}`
+            )
+            console.log(`[搜索] 搜索源数量：${selectedSources.length}`)
           } catch (error) {
             console.error("解析搜索源失败:", error)
           }
+        } else {
+          console.log(`[搜索] 本地存储中没有保存的搜索源`)
         }
 
         if (selectedSources && selectedSources.length > 0) {
           // 使用 go-music-dl API 搜索
           const sourcesString = selectedSources.join(",")
           console.log(`[搜索] 使用 go-music-dl API 搜索，源：${sourcesString}`)
+          console.log(
+            `[搜索] 准备调用 musicDlSearch，关键词：${keyword}，源：${sourcesString}`
+          )
           try {
             const response = await window.ElectronAPI.musicDlSearch(
               keyword,
@@ -1856,47 +2089,41 @@
               10
             )
 
-            console.log(
-              `[搜索] go-music-dl API 响应：${JSON.stringify(response)}`
-            )
+            console.log(`[搜索] go-music-dl API 响应状态：成功`)
 
-            if (response && response.data && response.data.songs) {
-              // 转换数据格式以匹配默认 API 的格式
-              songs = response.data.songs.map((song) => ({
-                id: song.id,
-                name: song.name,
-                artist:
-                  song.artist ||
-                  (song.artists
-                    ? song.artists.map((artist) => artist.name).join("/")
-                    : ""),
-                album: song.album || (song.album ? song.album.name : ""),
-                cover: song.cover || (song.album ? song.album.picUrl : ""),
-                url: song.url || song.playUrl,
-                duration: song.duration || 0,
-                source: song.source,
-                coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
-              }))
+            if (response && response.songs) {
               console.log(
-                `[搜索] 转换后的数据：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+                `[搜索] 成功获取 go-music-dl API 结果，数量：${response.songs.length}`
               )
-            } else if (response && response.songs) {
+              console.log(`[搜索] 原始响应数据示例：`, response.songs[0])
               // 处理直接返回 songs 的情况
-              songs = response.songs.map((song) => ({
-                id: song.id,
-                name: song.name,
-                artist:
-                  song.artist ||
-                  (song.artists
-                    ? song.artists.map((artist) => artist.name).join("/")
-                    : ""),
-                album: song.album || (song.album ? song.album.name : ""),
-                cover: song.cover || (song.album ? song.album.picUrl : ""),
-                url: song.url || song.playUrl,
-                duration: song.duration || 0,
-                source: song.source,
-                coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
-              }))
+              songs = response.songs.map((song) => {
+                const mappedSong = {
+                  id: song.id,
+                  name: song.name,
+                  artist:
+                    song.artist ||
+                    (song.artists
+                      ? song.artists.map((artist) => artist.name).join("/")
+                      : ""),
+                  album: song.album || (song.album ? song.album.name : ""),
+                  cover: song.cover || (song.album ? song.album.picUrl : ""),
+                  url: song.url || song.playUrl,
+                  duration: song.duration || 0,
+                  source: song.source,
+                  coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
+                }
+                console.log(`[搜索] 解析后的歌曲URL：`, mappedSong.url)
+                return mappedSong
+              })
+              // 过滤掉没有URL的歌曲
+              const validSongs = songs.filter(
+                (s) => s.url && s.url.trim() !== ""
+              )
+              console.log(
+                `[搜索] 过滤后有效歌曲数量：${validSongs.length}/${songs.length}`
+              )
+              songs = validSongs
               console.log(
                 `[搜索] 转换后的数据：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
               )
@@ -1909,9 +2136,13 @@
                 `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
               )
             } else {
-              songs = []
-              console.log("[搜索] 未获取到搜索结果")
-              console.log("[搜索] 响应数据：", response)
+              console.log(`[搜索] go-music-dl API 未返回 songs 字段`)
+              console.log(`[搜索] 响应数据：`, response)
+              console.log(`[搜索] 回退到默认 API 搜索`)
+              songs = await window.ElectronAPI.searchMusic(keyword, offset)
+              console.log(
+                `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+              )
             }
           } catch (error) {
             // 发生异常，回退到默认 API
@@ -1924,7 +2155,9 @@
           }
         } else {
           // 使用默认 API 搜索
-          console.log(`[搜索] 使用默认 API 搜索：${keyword}, ${offset}`)
+          console.log(
+            `[搜索] 未选择搜索源，使用默认 API 搜索：${keyword}, ${offset}`
+          )
           songs = await window.ElectronAPI.searchMusic(keyword, offset)
           console.log(
             `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
@@ -2000,9 +2233,101 @@
     if (audioPlayer) {
       audioPlayer.removeEventListener("timeupdate", updateLyricHighlight)
       audioPlayer.removeEventListener("ended", playNextSong)
+      audioPlayer.removeEventListener("loadedmetadata", handleLoadedMetadata)
+      audioPlayer.removeEventListener("canplay", handleCanPlay)
+      audioPlayer.removeEventListener("canplaythrough", handleCanPlayThrough)
+      audioPlayer.removeEventListener("play", handlePlay)
+      audioPlayer.removeEventListener("pause", handlePause)
+      audioPlayer.removeEventListener("error", handleError)
       audioPlayer.addEventListener("timeupdate", updateLyricHighlight)
       audioPlayer.addEventListener("ended", playNextSong)
+      audioPlayer.addEventListener("loadedmetadata", handleLoadedMetadata)
+      audioPlayer.addEventListener("canplay", handleCanPlay)
+      audioPlayer.addEventListener("canplaythrough", handleCanPlayThrough)
+      audioPlayer.addEventListener("play", handlePlay)
+      audioPlayer.addEventListener("pause", handlePause)
+      audioPlayer.addEventListener("error", handleError)
+
+      // 监听src变化
+      let lastSrc = audioPlayer.src
+      setInterval(() => {
+        if (audioPlayer.src !== lastSrc) {
+          console.log(
+            "[播放器] audioPlayer.src 发生变化:",
+            lastSrc,
+            "->",
+            audioPlayer.src
+          )
+          lastSrc = audioPlayer.src
+        }
+      }, 100)
     }
+
+    // 处理音频元数据加载完成事件
+    function handleLoadedMetadata() {
+      console.log(
+        "[播放器] loadedmetadata事件触发，时长：",
+        audioPlayer.duration,
+        "readyState:",
+        audioPlayer.readyState
+      )
+      // 元数据加载完成后，音频应该可以播放了
+    }
+
+    // 处理音频可以播放事件
+    function handleCanPlay() {
+      console.log(
+        "[播放器] canplay事件触发，readyState:",
+        audioPlayer.readyState
+      )
+    }
+
+    // 处理音频可以连续播放事件
+    function handleCanPlayThrough() {
+      console.log(
+        "[播放器] canplaythrough事件触发，readyState:",
+        audioPlayer.readyState
+      )
+    }
+
+    // 处理播放事件
+    function handlePlay() {
+      console.log("[播放器] 开始播放")
+      // store未导入，暂不更新播放状态
+    }
+
+    // 处理暂停事件
+    function handlePause() {
+      console.log("[播放器] 暂停播放")
+      // store未导入，暂不更新播放状态
+    }
+
+    // 处理错误事件
+    function handleError(e) {
+      console.error("[播放器] 音频加载错误：", e)
+      console.error("[播放器] 错误详情：", audioPlayer.error)
+      if (audioPlayer.error) {
+        switch (audioPlayer.error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            console.error("[播放器] 音频加载被中止")
+            break
+          case MediaError.MEDIA_ERR_NETWORK:
+            console.error("[播放器] 网络错误导致音频加载失败")
+            break
+          case MediaError.MEDIA_ERR_DECODE:
+            console.error("[播放器] 音频解码失败")
+            break
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            console.error("[播放器] 音频格式不支持或URL无效")
+            break
+          default:
+            console.error("[播放器] 未知错误")
+        }
+      }
+    }
+
+    // 添加错误事件监听器
+    audioPlayer.addEventListener("error", handleError)
   }
 
   // ========== 侧边栏拉伸功能 ==========
@@ -2053,11 +2378,52 @@
 
     if (searchInput) {
       searchInput.addEventListener("click", (e) => {
-        e.stopPropagation()
+        // 关闭搜索源选择菜单
+        const sourceMenu = document.getElementById("searchSourceMenu")
+        if (sourceMenu) {
+          sourceMenu.classList.add("hidden")
+        }
+
         if (searchHistory.length > 0) {
           renderSearchHistory()
           if (searchHistoryContainer)
             searchHistoryContainer.classList.remove("hidden")
+          // 阻止事件冒泡，防止搜索历史记录被关闭
+          e.stopPropagation()
+        }
+      })
+    }
+
+    // 清除缓存并搜索按钮
+    const clearCacheBtn = document.getElementById("clearCacheBtn")
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener("click", async () => {
+        console.log("[搜索] 清除缓存并搜索")
+        // 清除搜索缓存
+        searchCache.clear()
+        console.log("[搜索] 搜索缓存已清除")
+
+        // 获取当前搜索框的值
+        const keyword = searchInput ? searchInput.value.trim() : ""
+        if (keyword) {
+          // 重新搜索
+          searchOffset = 0
+          if (searchResultList) searchResultList.innerHTML = ""
+          if (searchResultsSection)
+            searchResultsSection.classList.remove("hidden")
+          if (playlistDetailSection)
+            playlistDetailSection.classList.add("hidden")
+          if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
+          if (searchResultList)
+            searchResultList.innerHTML =
+              '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
+          await loadSearchResults(keyword, searchOffset)
+          await updateSearchHistory(keyword)
+          if (searchResultsSection) {
+            searchResultsSection.classList.remove("fade-in")
+            void searchResultsSection.offsetWidth
+            searchResultsSection.classList.add("fade-in")
+          }
         }
       })
     }

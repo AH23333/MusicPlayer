@@ -1,4 +1,4 @@
-const axios = require('axios')
+const axios = require("axios")
 
 class MusicDlApi {
   constructor(baseUrl) {
@@ -10,9 +10,9 @@ class MusicDlApi {
   }
 
   // 搜索歌曲
-  async search(keyword, sources = 'netease', page = 1, limit = 10) {
+  async search(keyword, sources = "netease", page = 1, limit = 10) {
     try {
-      const response = await this.client.get('/search', {
+      const response = await this.client.get("/search", {
         params: {
           q: keyword,
           sources,
@@ -22,7 +22,7 @@ class MusicDlApi {
       })
       return response.data
     } catch (error) {
-      console.error('搜索歌曲失败:', error)
+      console.error("搜索歌曲失败:", error)
       throw error
     }
   }
@@ -30,7 +30,7 @@ class MusicDlApi {
   // 获取歌词
   async getLyric(id, source) {
     try {
-      const response = await this.client.get('/lyric', {
+      const response = await this.client.get("/lyric", {
         params: {
           id,
           source,
@@ -38,7 +38,7 @@ class MusicDlApi {
       })
       return response.data
     } catch (error) {
-      console.error('获取歌词失败:', error)
+      console.error("获取歌词失败:", error)
       throw error
     }
   }
@@ -46,7 +46,7 @@ class MusicDlApi {
   // 切换歌曲源
   async switchSource(name, artist, currentSource, targetSource, duration) {
     try {
-      const response = await this.client.get('/switch_source', {
+      const response = await this.client.get("/switch_source", {
         params: {
           name,
           artist,
@@ -57,7 +57,7 @@ class MusicDlApi {
       })
       return response.data
     } catch (error) {
-      console.error('切换歌曲源失败:', error)
+      console.error("切换歌曲源失败:", error)
       throw error
     }
   }
@@ -65,7 +65,7 @@ class MusicDlApi {
   // 检查歌曲可播放性
   async inspect(id, source, duration, extra) {
     try {
-      const response = await this.client.get('/inspect', {
+      const response = await this.client.get("/inspect", {
         params: {
           id,
           source,
@@ -75,22 +75,22 @@ class MusicDlApi {
       })
       return response.data
     } catch (error) {
-      console.error('检查歌曲可播放性失败:', error)
+      console.error("检查歌曲可播放性失败:", error)
       throw error
     }
   }
 
   // 获取推荐歌单
-  async getRecommend(sources = ['netease', 'qq', 'kugou', 'kuwo']) {
+  async getRecommend(sources = ["netease", "qq", "kugou", "kuwo"]) {
     try {
-      const response = await this.client.get('/recommend', {
+      const response = await this.client.get("/recommend", {
         params: {
-          sources: sources.join(','),
+          sources: sources.join(","),
         },
       })
       return response.data
     } catch (error) {
-      console.error('获取推荐歌单失败:', error)
+      console.error("获取推荐歌单失败:", error)
       throw error
     }
   }
@@ -98,7 +98,7 @@ class MusicDlApi {
   // 获取歌单详情
   async getPlaylistDetail(id, source) {
     try {
-      const response = await this.client.get('/playlist', {
+      const response = await this.client.get("/playlist", {
         params: {
           id,
           source,
@@ -106,7 +106,7 @@ class MusicDlApi {
       })
       return response.data
     } catch (error) {
-      console.error('获取歌单详情失败:', error)
+      console.error("获取歌单详情失败:", error)
       throw error
     }
   }

@@ -55,7 +55,6 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   // 新增：音乐下载服务
   musicDlSearch: (keyword, sources, page, limit) =>
     ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),
-  musicDlLyric: (id, source) =>
-    ipcRenderer.invoke("musicDlLyric", id, source),
+  musicDlLyric: (id, source) => ipcRenderer.invoke("musicDlLyric", id, source),
   musicDlStatus: () => ipcRenderer.invoke("musicDlStatus"),
 })

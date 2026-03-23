@@ -167,6 +167,11 @@ const actions = {
   setShuffledPlayQueue(state, queue) {
     state.shuffledPlayQueue = queue
   },
+
+  // 设置播放状态
+  setIsPlaying(state, isPlaying) {
+    state.isPlaying = isPlaying
+  },
 }
 
 export default actions

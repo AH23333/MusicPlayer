@@ -1,10 +1,16 @@
-const { spawn } = require('child_process')
-const path = require('path')
-const logger = require('./logger')
+const { spawn } = require("child_process")
+const path = require("path")
+const logger = require("./logger")
 
 class MusicDlService {
   constructor() {
-    this.executablePath = path.join(__dirname, '..', '..', '..', 'music-dl-api.exe')
+    this.executablePath = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "music-dl-api.exe"
+    )
     this.port = 1989
     this.process = null
   }
@@ -15,18 +21,18 @@ class MusicDlService {
       try {
         // 启动服务
         this.process = spawn(this.executablePath, {
-          stdio: 'inherit',
-          detached: true
+          stdio: "inherit",
+          detached: true,
         })
 
         // 监听错误
-        this.process.on('error', (error) => {
-          logger.error('音乐下载服务启动失败:', error)
+        this.process.on("error", (error) => {
+          logger.error("音乐下载服务启动失败:", error)
           reject(error)
         })
 
         // 监听退出
-        this.process.on('exit', (code) => {
+        this.process.on("exit", (code) => {
           logger.info(`音乐下载服务退出，退出码: ${code}`)
           this.process = null
         })
@@ -35,9 +41,8 @@ class MusicDlService {
         setTimeout(() => {
           resolve()
         }, 3000)
-
       } catch (error) {
-        logger.error('启动音乐下载服务时出错:', error)
+        logger.error("启动音乐下载服务时出错:", error)
         reject(error)
       }
     })
@@ -50,11 +55,11 @@ class MusicDlService {
         if (this.process) {
           this.process.kill()
           this.process = null
-          logger.info('音乐下载服务已停止')
+          logger.info("音乐下载服务已停止")
         }
         resolve()
       } catch (error) {
-        logger.error('停止音乐下载服务时出错:', error)
+        logger.error("停止音乐下载服务时出错:", error)
         reject(error)
       }
     })

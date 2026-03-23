@@ -207,6 +207,17 @@
             </svg>
           </button>
         </div>
+        <!-- 清除缓存并搜索按钮 -->
+        <button id="clearCacheBtn"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-full transition-all duration-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6" />
+          </svg>
+          清除缓存
+        </button>
+
         <!-- 搜索源选择按钮 -->
         <div class="relative">
           <button id="searchSourceBtn"
@@ -220,70 +231,82 @@
           </button>
           <!-- 搜索源选择下拉菜单 -->
           <div id="searchSourceMenu"
-            class="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-50 hidden dark:bg-gray-800 dark:border-gray-700">
+            class="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-300 rounded-lg shadow-lg z-50 hidden dark:bg-gray-800 dark:border-gray-700">
             <div class="p-4">
-              <h4 class="font-medium mb-3 dark:text-white">选择搜索源</h4>
-              <div class="space-y-2 max-h-60 overflow-y-auto">
-                <div class="flex items-center gap-2">
+              <h4 class="font-medium mb-4 text-lg dark:text-white">选择搜索源</h4>
+              <div class="space-y-3 max-h-80 overflow-y-auto">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-netease"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-netease" class="text-sm dark:text-white">网易云音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-netease" class="text-base dark:text-white cursor-pointer">网易云音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-qq"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-qq" class="text-sm dark:text-white">QQ音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-qq" class="text-base dark:text-white cursor-pointer">QQ音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-kugou"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-kugou" class="text-sm dark:text-white">酷狗音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-kugou" class="text-base dark:text-white cursor-pointer">酷狗音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-kuwo"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-kuwo" class="text-sm dark:text-white">酷我音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-kuwo" class="text-base dark:text-white cursor-pointer">酷我音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-migu"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-migu" class="text-sm dark:text-white">咪咕音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-migu" class="text-base dark:text-white cursor-pointer">咪咕音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-qianqian"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-qianqian" class="text-sm dark:text-white">千千音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-qianqian" class="text-base dark:text-white cursor-pointer">千千音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-soda"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-soda" class="text-sm dark:text-white">汽水音乐</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-soda" class="text-base dark:text-white cursor-pointer">汽水音乐</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-fivesing"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-fivesing" class="text-sm dark:text-white">5sing</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-fivesing" class="text-base dark:text-white cursor-pointer">5sing</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-jamendo"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-jamendo" class="text-sm dark:text-white">Jamendo</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-jamendo" class="text-base dark:text-white cursor-pointer">Jamendo</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-joox"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-joox" class="text-sm dark:text-white">JOOX</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-joox" class="text-base dark:text-white cursor-pointer">JOOX</label>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                   <input type="checkbox" id="source-bilibili"
-                    class="rounded text-primary focus:ring-primary dark:bg-gray-700">
-                  <label for="source-bilibili" class="text-sm dark:text-white">Bilibili</label>
+                    class="rounded text-primary focus:ring-primary dark:bg-gray-700 w-5 h-5">
+                  <label for="source-bilibili" class="text-base dark:text-white cursor-pointer">Bilibili</label>
                 </div>
               </div>
-              <div class="mt-4 flex justify-end gap-2">
+              <div class="mt-4 flex justify-end gap-3">
+                <button id="sourceSelectAllBtn"
+                  class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">全选</button>
                 <button id="sourceResetBtn"
-                  class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">重置</button>
-                <button id="sourceSaveBtn" class="text-sm text-primary hover:text-primary/80">保存</button>
+                  class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">重置</button>
               </div>
             </div>
           </div>
@@ -445,7 +468,7 @@
     class="fixed bottom-0 left-0 right-0 bg-gray-200 border-t border-gray-300 shadow-lg z-50 dark:bg-gray-800 dark:border-gray-700">
     <div class="container mx-auto px-4 py-2">
       <!-- 音频播放控件 -->
-      <audio id="audioPlayer" controls class="w-full mb-2" preload="metadata">
+      <audio id="audioPlayer" controls class="w-full mb-2" preload="metadata" crossorigin="anonymous">
         您的浏览器不支持音频播放
       </audio>
 
@@ -694,7 +717,7 @@
       // 获取元素
       const sourceBtn = document.getElementById('searchSourceBtn');
       const sourceMenu = document.getElementById('searchSourceMenu');
-      const sourceSaveBtn = document.getElementById('sourceSaveBtn');
+      const sourceSelectAllBtn = document.getElementById('sourceSelectAllBtn');
       const sourceResetBtn = document.getElementById('sourceResetBtn');
       const sourceCheckboxes = document.querySelectorAll('#searchSourceMenu input[type="checkbox"]');
 
@@ -706,9 +729,27 @@
 
       // 点击外部关闭下拉菜单
       document.addEventListener('click', (e) => {
+        // 当点击搜索框、搜索按钮或其他区域时，关闭搜索源菜单
         if (!sourceBtn.contains(e.target) && !sourceMenu.contains(e.target)) {
           sourceMenu.classList.add('hidden');
         }
+      });
+
+      // 全选按钮
+      sourceSelectAllBtn.addEventListener('click', () => {
+        sourceCheckboxes.forEach(checkbox => {
+          checkbox.checked = true;
+        });
+        // 手动触发保存操作
+        const selectedSources = [];
+        sourceCheckboxes.forEach(cb => {
+          if (cb.checked) {
+            selectedSources.push(cb.id.replace('source-', ''));
+          }
+        });
+        // 保存到本地存储
+        localStorage.setItem('selected-search-sources', JSON.stringify(selectedSources));
+        console.log(`[搜索源] 全选后保存：${JSON.stringify(selectedSources)}`);
       });
 
       // 重置按钮
@@ -720,18 +761,22 @@
         localStorage.setItem('selected-search-sources', JSON.stringify([]));
       });
 
-      // 保存按钮
-      sourceSaveBtn.addEventListener('click', () => {
-        const selectedSources = [];
-        sourceCheckboxes.forEach(checkbox => {
-          if (checkbox.checked) {
-            selectedSources.push(checkbox.id.replace('source-', ''));
-          }
+      // 自动保存搜索源
+      sourceCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          const selectedSources = [];
+          sourceCheckboxes.forEach(cb => {
+            if (cb.checked) {
+              selectedSources.push(cb.id.replace('source-', ''));
+            }
+          });
+          // 保存到本地存储
+          localStorage.setItem('selected-search-sources', JSON.stringify(selectedSources));
+          console.log(`[搜索源] 自动保存选择：${JSON.stringify(selectedSources)}`);
         });
-        // 保存到本地存储
-        localStorage.setItem('selected-search-sources', JSON.stringify(selectedSources));
-        sourceMenu.classList.add('hidden');
       });
+
+
 
       // 初始化搜索源选择
       function initSearchSources() {

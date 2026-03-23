@@ -15,6 +15,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
       preload: path.join(__dirname, "preload.js"),
+      webSecurity: false, // 禁用web安全策略，允许加载外部资源
     },
   })
 
