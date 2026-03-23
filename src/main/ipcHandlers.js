@@ -2,7 +2,9 @@ const { ipcMain, dialog } = require("electron")
 const logger = require("./services/logger")
 const storage = require("./services/storage")
 const update = require("./services/update")
+const musicDlService = require("./services/musicDlService")
 const { fetchViaProxy, fetchLyricsById, API_CONFIGS } = require("../../utils")
+const axios = require("axios")
 
 // 同时在 ipcHandlers.js 顶部定义 PAGE_SIZE
 const PAGE_SIZE = 20
@@ -338,7 +340,10 @@ function initIpcHandlers() {
 
           // 保存关注歌手
           if (Array.isArray(userData.followedArtists)) {
-            await storage.writeJSON("FollowedArtists.json", userData.followedArtists)
+            await storage.writeJSON(
+              "FollowedArtists.json",
+              userData.followedArtists
+            )
           }
 
           // 保存自定义歌单
@@ -348,7 +353,10 @@ function initIpcHandlers() {
 
           // 保存搜索历史
           if (Array.isArray(userData.searchHistory)) {
-            await storage.writeJSON("SearchHistory.json", userData.searchHistory)
+            await storage.writeJSON(
+              "SearchHistory.json",
+              userData.searchHistory
+            )
           }
 
           // 保存最近播放
@@ -577,9 +585,73 @@ function initIpcHandlers() {
     return await update.openDownloadPage(url)
   })
 
+  // 音乐下载服务相关
+  ipcMain.handle(
+    "musicDlSearch",
+    async (event, keyword, sources = "netease", page = 1, limit = 10) => {
+      const requestData = { keyword, sources, page, limit }
+      logger.info(`音乐下载服务搜索请求：${JSON.stringify(requestData)}`)
+      try {
+        const baseUrl = musicDlService.getBaseUrl()
+        // 使用新的 API 路径 /api/search
+        let response
+        try {
+          response = await axios.get(`${baseUrl}/api/search`, {
+            params: {
+              q: keyword,
+              sources,
+              page,
+              limit,
+            },
+          })
+        } catch (error) {
+          logger.error("音乐下载服务搜索失败:", error)
+          return { error: error.message }
+        }
+
+        const firstResult =
+          response.data && response.data.songs ? response.data.songs[0] : null
+        logger.info(
+          `音乐下载服务搜索返回：第一条结果 - ${JSON.stringify(firstResult)}`
+        )
+        logger.info(
+          `音乐下载服务搜索返回：总结果数 - ${response.data && response.data.songs ? response.data.songs.length : 0}`
+        )
+        return response.data
+      } catch (error) {
+        logger.error("音乐下载服务搜索失败:", error)
+        return { error: error.message }
+      }
+    }
+  )
+
+  ipcMain.handle("musicDlLyric", async (event, id, source) => {
+    logger.info(`获取音乐下载服务歌词：${id}，源：${source}`)
+    try {
+      const baseUrl = musicDlService.getBaseUrl()
+      const response = await axios.get(`${baseUrl}/api/lyric`, {
+        params: {
+          id,
+          source,
+        },
+      })
+      return response.data
+    } catch (error) {
+      logger.error("获取音乐下载服务歌词失败:", error)
+      return { error: error.message }
+    }
+  })
+
+  ipcMain.handle("musicDlStatus", async () => {
+    return {
+      running: musicDlService.isRunning(),
+      baseUrl: musicDlService.getBaseUrl(),
+    }
+  })
+
   logger.info("IPC 处理器初始化完成")
 }
 
 module.exports = {
-  initIpcHandlers
+  initIpcHandlers,
 }

@@ -52,4 +52,10 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   openDownloadPage: (url) => ipcRenderer.invoke("open-download-page", url),
   onUpdateAvailable: (callback) =>
     ipcRenderer.on("update-available", (event, info) => callback(info)),
+  // 新增：音乐下载服务
+  musicDlSearch: (keyword, sources, page, limit) =>
+    ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),
+  musicDlLyric: (id, source) =>
+    ipcRenderer.invoke("musicDlLyric", id, source),
+  musicDlStatus: () => ipcRenderer.invoke("musicDlStatus"),
 })

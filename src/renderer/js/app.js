@@ -1833,7 +1833,104 @@
       songs = searchCache.get(cacheKey)
     } else {
       try {
-        songs = await window.ElectronAPI.searchMusic(keyword, offset)
+        // 检查用户是否选择了搜索源
+        const savedSources = localStorage.getItem("selected-search-sources")
+        let selectedSources = []
+        if (savedSources) {
+          try {
+            selectedSources = JSON.parse(savedSources)
+          } catch (error) {
+            console.error("解析搜索源失败:", error)
+          }
+        }
+
+        if (selectedSources && selectedSources.length > 0) {
+          // 使用 go-music-dl API 搜索
+          const sourcesString = selectedSources.join(",")
+          console.log(`[搜索] 使用 go-music-dl API 搜索，源：${sourcesString}`)
+          try {
+            const response = await window.ElectronAPI.musicDlSearch(
+              keyword,
+              sourcesString,
+              Math.floor(offset / 10) + 1,
+              10
+            )
+
+            console.log(
+              `[搜索] go-music-dl API 响应：${JSON.stringify(response)}`
+            )
+
+            if (response && response.data && response.data.songs) {
+              // 转换数据格式以匹配默认 API 的格式
+              songs = response.data.songs.map((song) => ({
+                id: song.id,
+                name: song.name,
+                artist:
+                  song.artist ||
+                  (song.artists
+                    ? song.artists.map((artist) => artist.name).join("/")
+                    : ""),
+                album: song.album || (song.album ? song.album.name : ""),
+                cover: song.cover || (song.album ? song.album.picUrl : ""),
+                url: song.url || song.playUrl,
+                duration: song.duration || 0,
+                source: song.source,
+                coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
+              }))
+              console.log(
+                `[搜索] 转换后的数据：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+              )
+            } else if (response && response.songs) {
+              // 处理直接返回 songs 的情况
+              songs = response.songs.map((song) => ({
+                id: song.id,
+                name: song.name,
+                artist:
+                  song.artist ||
+                  (song.artists
+                    ? song.artists.map((artist) => artist.name).join("/")
+                    : ""),
+                album: song.album || (song.album ? song.album.name : ""),
+                cover: song.cover || (song.album ? song.album.picUrl : ""),
+                url: song.url || song.playUrl,
+                duration: song.duration || 0,
+                source: song.source,
+                coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
+              }))
+              console.log(
+                `[搜索] 转换后的数据：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+              )
+            } else if (response && response.error) {
+              // API 调用失败，回退到默认 API
+              console.log(`[搜索] go-music-dl API 调用失败：${response.error}`)
+              console.log(`[搜索] 回退到默认 API 搜索：${keyword}, ${offset}`)
+              songs = await window.ElectronAPI.searchMusic(keyword, offset)
+              console.log(
+                `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+              )
+            } else {
+              songs = []
+              console.log("[搜索] 未获取到搜索结果")
+              console.log("[搜索] 响应数据：", response)
+            }
+          } catch (error) {
+            // 发生异常，回退到默认 API
+            console.error(`[搜索] go-music-dl API 调用异常：${error.message}`)
+            console.log(`[搜索] 回退到默认 API 搜索：${keyword}, ${offset}`)
+            songs = await window.ElectronAPI.searchMusic(keyword, offset)
+            console.log(
+              `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+            )
+          }
+        } else {
+          // 使用默认 API 搜索
+          console.log(`[搜索] 使用默认 API 搜索：${keyword}, ${offset}`)
+          songs = await window.ElectronAPI.searchMusic(keyword, offset)
+          console.log(
+            `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
+          )
+        }
+
         if (songs && songs.length > 0) {
           searchCache.set(cacheKey, songs)
         }
