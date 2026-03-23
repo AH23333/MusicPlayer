@@ -44,6 +44,7 @@
 - **Tailwind CSS**：实用优先的CSS框架
 - **JavaScript**：应用逻辑实现
 - **axios**：网络请求库（用于搜索音乐、获取歌词）
+- **Go**：用于 go-music-dl API 服务
 
 ## 🚀 快速开始
 
@@ -62,7 +63,14 @@ cd MusicPlayer
 npm install
 ```
 
-### 3. 运行和构建
+### 3. go-music-dl API 服务
+
+项目集成了 go-music-dl API 服务，用于音乐搜索和获取。已包含预编译的可执行文件 `music-dl-api.exe`（Windows 平台）。
+
+- **Windows**：直接使用项目根目录中的 `music-dl-api.exe`
+- **其他平台**：需要从 [go-music-dl](https://github.com/guohuiyuan/go-music-dl) 项目编译对应平台的可执行文件
+
+### 4. 运行和构建
 
 ```bash
 # 启动开发模式
@@ -86,7 +94,8 @@ src/
 │   └── services/                   # 主进程服务
 │       ├── storage.js              # 文件读写服务
 │       ├── update.js               # 更新检查与处理
-│       └── logger.js               # 日志服务
+│       ├── logger.js               # 日志服务
+│       └── musicDlService.js       # go-music-dl API 服务管理
 │
 ├── renderer/                       # 渲染进程（前端）
 │   ├── index.html                  # 主界面 HTML
@@ -119,6 +128,7 @@ src/
 │   │   │   └── toast.js            # 全局提示
 │   │   ├── services/               # 前端服务
 │   │   │   ├── api.js              # API 调用
+│   │   │   ├── musicDlApi.js       # go-music-dl API 调用
 │   │   │   └── storage.js          # 数据持久化
 │   │   └── utils/                  # 工具函数
 │   │       ├── helpers.js          # 通用工具
@@ -131,7 +141,8 @@ src/
 │   └── postcss.config.js           # PostCSS 配置
 │
 ├── package.json                    # 项目配置
-└── README.md                       # 项目说明
+├── README.md                       # 项目说明
+└── music-dl-api.exe                # go-music-dl API 服务可执行文件（Windows）
 ```
 
 ## 💾 本地数据管理
