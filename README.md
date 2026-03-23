@@ -2,6 +2,9 @@
 
 个人项目，AI生成，仅供学习娱乐，不可商用
 
+## 下载
+[点击此处跳转下载](https://github.com/AH23333/MusicPlayer/releases)
+
 ## 📋 项目功能
 
 ### 核心功能
