@@ -3,6 +3,7 @@
 个人项目，AI生成，仅供学习娱乐，不可商用
 
 ## 下载
+
 [点击此处跳转下载](https://github.com/AH23333/MusicPlayer/releases)
 
 ## 📋 项目功能
@@ -89,64 +90,79 @@ npm run make
 ## 📁 项目结构
 
 ```
-src/
-├── main/                           # Electron 主进程
-│   ├── main.js                     # 窗口创建、生命周期管理
-│   ├── ipcHandlers.js              # IPC 通信处理器
-│   ├── preload.js                  # 预加载脚本，安全暴露 API
-│   └── services/                   # 主进程服务
-│       ├── storage.js              # 文件读写服务
-│       ├── update.js               # 更新检查与处理
-│       ├── logger.js               # 日志服务
-│       └── musicDlService.js       # go-music-dl API 服务管理
-│
-├── renderer/                       # 渲染进程（前端）
-│   ├── index.html                  # 主界面 HTML
-│   ├── styles/                     # 样式文件
-│   │   └── style.css               # 全局样式
-│   ├── js/                         # 前端逻辑
-│   │   ├── app.js                  # 应用入口
-│   │   ├── store/                  # 状态管理
-│   │   │   ├── index.js            # 状态存储
-│   │   │   ├── state.js            # 初始状态
-│   │   │   └── actions.js          # 状态变更函数
-│   │   ├── modules/                # 功能模块
-│   │   │   ├── player.js           # 音频播放核心
-│   │   │   ├── playlist.js         # 播放列表管理
-│   │   │   ├── search.js           # 搜索功能
-│   │   │   ├── liked.js            # 我喜欢管理
-│   │   │   ├── recent.js           # 最近播放管理
-│   │   │   ├── local.js            # 本地歌曲管理
-│   │   │   ├── followed.js         # 关注歌手管理
-│   │   │   ├── diyPlaylists.js     # 自建歌单管理
-│   │   │   └── lyrics.js           # 歌词管理
-│   │   ├── ui/                     # UI 组件
-│   │   │   ├── sidebar.js          # 侧边栏
-│   │   │   ├── playlistDetail.js   # 歌单详情
-│   │   │   ├── searchResults.js    # 搜索结果
-│   │   │   ├── playerControls.js   # 播放控件
-│   │   │   ├── lyricsInterface.js  # 歌词界面
-│   │   │   ├── playlistFloat.js    # 播放列表浮窗
-│   │   │   ├── modals.js           # 模态框
-│   │   │   └── toast.js            # 全局提示
-│   │   ├── services/               # 前端服务
-│   │   │   ├── api.js              # API 调用
-│   │   │   ├── musicDlApi.js       # go-music-dl API 调用
-│   │   │   └── storage.js          # 数据持久化
-│   │   └── utils/                  # 工具函数
-│   │       ├── helpers.js          # 通用工具
-│   │       └── dom.js              # DOM 操作
-│   └── assets/                     # 静态资源
-│
-├── config/                         # 配置文件
-│   ├── forge.config.js             # Electron Forge 配置
-│   ├── tailwind.config.js          # Tailwind 配置
-│   └── postcss.config.js           # PostCSS 配置
-│
-├── package.json                    # 项目配置
-├── README.md                       # 项目说明
-└── music-dl-api.exe                # go-music-dl API 服务可执行文件（Windows）
+MusicPlayer/
+├── src/                            # 源代码目录
+│   ├── main/                       # Electron 主进程
+│   │   ├── main.js                 # 窗口创建、生命周期管理
+│   │   ├── ipcHandlers.js          # IPC 通信处理器
+│   │   ├── preload.js              # 预加载脚本，安全暴露 API
+│   │   └── services/               # 主进程服务
+│   │       ├── storage.js          # 文件读写服务
+│   │       ├── update.js           # 更新检查与处理
+│   │       ├── logger.js           # 日志服务
+│   │       └── musicDlService.js   # go-music-dl API 服务管理
+│   ├── renderer/                    # 渲染进程（前端）
+│   │   ├── index.html              # 主界面 HTML
+│   │   ├── styles/                  # 样式文件
+│   │   │   └── style.css           # 全局样式
+│   │   ├── js/                     # 前端逻辑
+│   │   │   ├── app.js              # 应用入口
+│   │   │   ├── store/              # 状态管理
+│   │   │   │   ├── index.js        # 状态存储
+│   │   │   │   ├── state.js        # 初始状态
+│   │   │   │   └── actions.js      # 状态变更函数
+│   │   │   ├── modules/            # 功能模块
+│   │   │   │   ├── player.js       # 音频播放核心
+│   │   │   │   ├── playlist.js     # 播放列表管理
+│   │   │   │   ├── search.js       # 搜索功能
+│   │   │   │   ├── liked.js        # 我喜欢管理
+│   │   │   │   ├── recent.js       # 最近播放管理
+│   │   │   │   ├── local.js        # 本地歌曲管理
+│   │   │   │   ├── followed.js     # 关注歌手管理
+│   │   │   │   ├── diyPlaylists.js # 自建歌单管理
+│   │   │   │   └── lyrics.js       # 歌词管理
+│   │   │   ├── ui/                 # UI 组件
+│   │   │   │   ├── sidebar.js      # 侧边栏
+│   │   │   │   ├── playlistDetail.js # 歌单详情
+│   │   │   │   ├── searchResults.js # 搜索结果
+│   │   │   │   ├── playerControls.js # 播放控件
+│   │   │   │   ├── lyricsInterface.js # 歌词界面
+│   │   │   │   ├── playlistFloat.js # 播放列表浮窗
+│   │   │   │   ├── modals.js       # 模态框
+│   │   │   │   └── toast.js        # 全局提示
+│   │   │   ├── services/           # 前端服务
+│   │   │   │   ├── api.js          # API 调用
+│   │   │   │   ├── musicDlApi.js   # go-music-dl API 调用
+│   │   │   │   └── storage.js      # 数据持久化
+│   │   │   └── utils/              # 工具函数
+│   │   │       ├── helpers.js      # 通用工具
+│   │   │       └── dom.js          # DOM 操作
+│   └── config/                     # 配置文件
+│       ├── forge.config.js         # Electron Forge 配置
+│       ├── tailwind.config.js      # Tailwind 配置
+│       └── postcss.config.js       # PostCSS 配置
+├── snapshot/                       # 项目截图（用于README）
+├── .gitignore                      # Git 忽略文件配置
+├── package.json                    # 项目配置和依赖
+├── package-lock.json               # 依赖锁定文件
+├── music-dl-api.exe                # go-music-dl API 服务可执行文件（Windows）
+├── DIYSongList.json                # 自建歌单数据
+├── FollowedArtists.json            # 关注歌手数据
+├── Latest.json                     # 最新播放数据
+├── MyFavorite.json                 # 我喜欢数据
+├── PlayList.json                   # 播放列表数据
+├── SearchHistory.json              # 搜索历史数据
+└── README.md                       # 项目说明文档
 ```
+
+## 📂 构建输出
+
+项目构建后会生成以下目录和文件（通常不包含在版本控制中）：
+
+- `out/` - 打包后的应用文件
+- `node_modules/` - 项目依赖（通过 `npm install` 安装）
+
+
 
 ## 💾 本地数据管理
 
@@ -186,7 +202,7 @@ src/
 - [Meting](https://github.com/metowolf/Meting.git)
 - [go-music-dl](https://github.com/guohuiyuan/go-music-dl.git)
 
-# 📝 更新日志
+## 📝 更新日志
 
 ## 2026.3.14
 
