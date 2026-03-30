@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   deleteLocalSong: (songUrl) =>
     ipcRenderer.invoke("delete-local-song", songUrl),
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
+  selectDownloadDirectory: () =>
+    ipcRenderer.invoke("select-download-directory"),
   // 新增：检查更新（手动模式）
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   openDownloadPage: (url) => ipcRenderer.invoke("open-download-page", url),
@@ -57,4 +59,16 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),
   musicDlLyric: (id, source) => ipcRenderer.invoke("musicDlLyric", id, source),
   musicDlStatus: () => ipcRenderer.invoke("musicDlStatus"),
+  fetchWebPlaylist: (urlOrId, platform) =>
+    ipcRenderer.invoke("fetch-web-playlist", urlOrId, platform || "auto"),
+  fetchNeteasePlaylist: (urlOrId) =>
+    ipcRenderer.invoke("fetch-web-playlist", urlOrId, "netease"),
+  downloadAudioFiles: (payload) =>
+    ipcRenderer.invoke("download-audio-files", payload),
+  onDownloadProgress: (callback) => {
+    const handler = (_e, data) => callback(data)
+    ipcRenderer.on("download-progress", handler)
+    return () =>
+      ipcRenderer.removeListener("download-progress", handler)
+  },
 })

@@ -3,7 +3,14 @@ const logger = require("./services/logger")
 const storage = require("./services/storage")
 const update = require("./services/update")
 const musicDlService = require("./services/musicDlService")
-const { fetchViaProxy, fetchLyricsById, API_CONFIGS } = require("../../utils")
+const {
+  fetchViaProxy,
+  fetchLyricsById,
+  API_CONFIGS,
+  parseWebPlaylistUrl,
+  WEB_PLAYLIST_PLATFORM_LABELS,
+  buildDownloadUrlForSong,
+} = require("../../utils")
 const axios = require("axios")
 
 // 同时在 ipcHandlers.js 顶部定义 PAGE_SIZE
@@ -15,6 +22,168 @@ function initIpcHandlers() {
   ipcMain.handle("test-func", async (event, keyword) => {
     logger.info(`testFunc被调用，关键词：${keyword || "空"}`)
     return { code: 200, msg: "主进程通信正常", keyword }
+  })
+
+  function mapMetingPlaylistItemToSong(item, metingServer = "netease") {
+    let songId = item.id || item.songid || item.songId || item.hash || ""
+    if (!songId && item.url) {
+      const idMatch = String(item.url).match(/id=([^&]+)/)
+      if (idMatch) songId = idMatch[1]
+    }
+    if (!songId) return null
+    const sid = String(songId)
+    const pic = item.pic || item.cover || item.al?.picUrl || ""
+    return {
+      id: sid,
+      songId: sid,
+      name: item.name || item.title || "",
+      artist: item.artist || item.singer || item.ar?.map((a) => a.name).join("/") || "未知歌手",
+      album:
+        typeof item.album === "string"
+          ? item.album
+          : item.al?.name || item.album?.name || "未知专辑",
+      coverUrl: String(pic).replace(/^http:/, "https:"),
+      duration: item.duration || item.dt || 0,
+      url:
+        item.url ||
+        `${API_CONFIGS.neteaseAudioUrl.url}?server=${encodeURIComponent(metingServer)}&type=url&id=${encodeURIComponent(sid)}`,
+      source: metingServer === "tencent" ? "tencent" : "netease",
+    }
+  }
+
+  /**
+   * 当前随应用打包的 music-dl-api 实测仅有 /api/search，/api/playlist 等为 404。
+   * 保留探测以便日后升级 exe 后自动可用。
+   */
+  async function fetchPlaylistFromMusicDl(metingServer, playlistId) {
+    const sourceMap = {
+      netease: "netease",
+      tencent: "qq",
+    }
+    const dlSource = sourceMap[metingServer] || metingServer
+    const baseUrl = musicDlService.getBaseUrl()
+    const endpoints = [`${baseUrl}/api/playlist`, `${baseUrl}/playlist`]
+    for (const ep of endpoints) {
+      try {
+        const response = await axios.get(ep, {
+          params: { id: playlistId, source: dlSource },
+          timeout: 8000,
+        })
+        const d = response.data
+        if (!d) continue
+        let songs = []
+        let name = null
+        if (Array.isArray(d.songs)) {
+          songs = d.songs
+          name = d.name || d.title || d.playlist?.name
+        } else if (d.playlist && Array.isArray(d.playlist.tracks)) {
+          songs = d.playlist.tracks
+          name = d.playlist.name
+        } else if (Array.isArray(d)) {
+          songs = d
+        }
+        if (songs.length > 0) {
+          logger.info(`music-dl 歌单成功 ${ep}，共 ${songs.length} 首`)
+          return { songs, name }
+        }
+      } catch (e) {
+        logger.warn(`music-dl 歌单 ${ep} 不可用: ${e.message}`)
+      }
+    }
+    return null
+  }
+
+  // 从网易云 / QQ 音乐网页链接拉取歌单（Meting API）
+  ipcMain.handle("fetch-web-playlist", async (event, urlOrId, platform = "auto") => {
+    const parsed = parseWebPlaylistUrl(urlOrId, platform)
+    if (!parsed) {
+      return {
+        success: false,
+        error:
+          "无法解析歌单。请粘贴浏览器地址栏完整链接；若只填数字 ID，请先选择对应平台。",
+      }
+    }
+    const { server: metingServer, id: playlistId } = parsed
+    logger.info(`拉取网页歌单 server=${metingServer} id=${playlistId}`)
+    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=${encodeURIComponent(metingServer)}&type=playlist&id=${encodeURIComponent(playlistId)}`
+    const data = await fetchViaProxy(metingUrl)
+
+    if (data === null) {
+      return {
+        success: false,
+        error: "无法连接歌单接口（网络异常或请求失败），请检查网络后重试",
+      }
+    }
+
+    let metingErrMsg = null
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      data.error
+    ) {
+      metingErrMsg = String(data.error)
+      logger.warn(`Meting 歌单返回错误: ${metingErrMsg}`)
+    }
+
+    let rawList = []
+    let playlistName = null
+
+    if (!metingErrMsg) {
+      if (Array.isArray(data)) {
+        rawList = data
+      } else if (data && Array.isArray(data.songs)) {
+        rawList = data.songs
+        playlistName = data.name || data.title
+      } else if (data && Array.isArray(data.data)) {
+        rawList = data.data
+      } else if (data && data.playlist) {
+        const pl = data.playlist
+        playlistName = pl.name
+        if (Array.isArray(pl.tracks)) rawList = pl.tracks
+        else if (Array.isArray(pl.trackIds)) {
+          logger.warn("歌单仅返回 trackIds，需完整曲目接口，Meting 可能未返回曲目列表")
+        }
+      }
+    }
+
+    if (rawList.length === 0) {
+      logger.info("Meting 未返回曲目，尝试 music-dl-api 歌单接口（若 exe 未实现该路由则会失败）")
+      const dl = await fetchPlaylistFromMusicDl(metingServer, playlistId)
+      if (dl) {
+        rawList = dl.songs
+        playlistName = dl.name || playlistName
+      }
+    }
+
+    const songs = rawList
+      .map((item) => mapMetingPlaylistItemToSong(item, metingServer))
+      .filter(Boolean)
+
+    if (songs.length === 0) {
+      logger.warn(`网页歌单 ${metingServer}/${playlistId} 最终无可用曲目`)
+      let errMsg
+      if (metingErrMsg) {
+        errMsg = `歌单接口返回：${metingErrMsg}。请确认歌单公开、链接未失效，或稍后重试。`
+      } else {
+        errMsg =
+          "未获取到曲目。请确认链接正确、歌单为公开，或稍后重试。"
+      }
+      return {
+        success: false,
+        error: errMsg,
+      }
+    }
+
+    const platLabel = WEB_PLAYLIST_PLATFORM_LABELS[metingServer] || metingServer
+    return {
+      success: true,
+      playlistId,
+      platform: metingServer,
+      platformLabel: platLabel,
+      name: playlistName || `${platLabel}歌单 ${playlistId}`,
+      songs,
+    }
   })
 
   // 搜索歌曲
@@ -56,9 +225,10 @@ function initIpcHandlers() {
             album: item.album || "未知专辑",
             coverUrl: item.pic || item.cover || "",
             duration: item.duration || 0,
+            source: "netease",
             url:
               item.url ||
-              `${API_CONFIGS.neteaseAudioUrl.url}?type=url&id=${songId}`,
+              `${API_CONFIGS.neteaseAudioUrl.url}?server=netease&type=url&id=${songId}`,
           }
         })
         .filter((item) => item.id)
@@ -550,6 +720,563 @@ function initIpcHandlers() {
     } catch (err) {
       logger.error(`删除本地歌曲失败：${err.message}`)
       return { success: false, error: err.message }
+    }
+  })
+
+  function sanitizeDownloadFilename(name) {
+    return (
+      String(name || "untitled")
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+        .replace(/\.+$/, "")
+        .trim()
+        .slice(0, 180) || "untitled"
+    )
+  }
+
+  function isNestedMetingUrl(u) {
+    const s = String(u || "")
+    return (
+      s.includes("type=url") &&
+      (s.includes("qijieya.cn") || s.includes("/meting"))
+    )
+  }
+
+  function extractUrlFromMetingPayload(data, depth = 0) {
+    if (depth > 10) return null
+    if (data == null) return null
+    if (typeof data === "string") {
+      const t = data.trim()
+      if (/^https?:\/\//i.test(t)) {
+        const first = t.split(/\s/)[0].replace(/^["']|["']$/g, "")
+        if (first) return first
+      }
+      try {
+        return extractUrlFromMetingPayload(JSON.parse(t), depth + 1)
+      } catch (e) {
+        return null
+      }
+    }
+    if (typeof data === "object") {
+      const keyCandidates = [
+        "url",
+        "playUrl",
+        "play_url",
+        "link",
+        "src",
+        "music_url",
+        "audio",
+      ]
+      for (const k of keyCandidates) {
+        const v = data[k]
+        if (typeof v === "string" && /^https?:\/\//i.test(v)) {
+          const u = v.split(/\s/)[0]
+          if (u) return u
+        }
+      }
+      if (typeof data.data === "string" && /^https?:\/\//i.test(data.data)) {
+        const u = data.data.trim().split(/\s/)[0]
+        if (u) return u
+      }
+      if (data.data != null) {
+        const u = extractUrlFromMetingPayload(data.data, depth + 1)
+        if (u) return u
+      }
+      if (Array.isArray(data) && data.length) {
+        const u = extractUrlFromMetingPayload(data[0], depth + 1)
+        if (u) return u
+      }
+      if (typeof data.url === "string" && /^https?:\/\//i.test(data.url)) {
+        return String(data.url).split(/\s/)[0]
+      }
+    }
+    return null
+  }
+
+  /** 从整段文本中用正则兜底提取直链（非 Meting 网关） */
+  function extractAudioUrlFromRawText(text) {
+    if (!text || typeof text !== "string") return null
+    const s = text.trim()
+    const patterns = [
+      /"url"\s*:\s*"([^"]+)"/i,
+      /'url'\s*:\s*'([^']+)'/i,
+      /https?:\/\/[^\s"'<>]+\.(?:mp3|m4a|flac|aac|ogg|wav)(?:\?[^\s"'<>]*)?/i,
+      /https?:\/\/[^\s"'<>]+music\.126\.net[^\s"'<>]*/i,
+      /https?:\/\/[^\s"'<>]+qq\.com[^\s"'<>]*/i,
+    ]
+    for (const re of patterns) {
+      const m = s.match(re)
+      if (!m) continue
+      const cand = (m[1] || m[0]).replace(/\\\//g, "/")
+      if (/^https?:\/\//i.test(cand) && !isNestedMetingUrl(cand)) return cand
+    }
+    return null
+  }
+
+  function getRefererForMediaUrl(url) {
+    const u = String(url || "")
+    if (/qq\.com|y\.qq|tencent/i.test(u)) return "https://y.qq.com/"
+    if (/kugou|kuwo/i.test(u)) return "https://www.kugou.com/"
+    return "https://music.163.com/"
+  }
+
+  function getRefererForMetingApiRequest(apiUrl) {
+    try {
+      const u = new URL(apiUrl)
+      const server = (u.searchParams.get("server") || "").toLowerCase()
+      if (server === "tencent" || server === "qq") {
+        return "https://y.qq.com/"
+      }
+      if (server === "kugou" || server === "kuwo") {
+        return "https://www.kugou.com/"
+      }
+    } catch (e) {}
+    return "https://music.163.com/"
+  }
+
+  /** 根据文件头判断是否为常见音频容器/编码（Meting 可能直接返回二进制流而非 JSON） */
+  function bufferLooksLikeAudioMagic(buf) {
+    if (!buf || buf.length < 4) return false
+    const b0 = buf[0]
+    const b1 = buf[1]
+    const b2 = buf[2]
+    const b3 = buf[3]
+    if (b0 === 0x49 && b1 === 0x44 && b2 === 0x33) return true
+    if (b0 === 0xff && (b1 & 0xe0) === 0xe0) return true
+    if (b0 === 0x66 && b1 === 0x4c && b2 === 0x61 && b3 === 0x43) return true
+    if (b0 === 0x4f && b1 === 0x67 && b2 === 0x67 && b3 === 0x53) return true
+    if (b0 === 0x1a && b1 === 0x45 && b2 === 0xdf && b3 === 0xa3) return true
+    if (
+      buf.length >= 8 &&
+      buf[4] === 0x66 &&
+      buf[5] === 0x74 &&
+      buf[6] === 0x79 &&
+      buf[7] === 0x70
+    ) {
+      return true
+    }
+    return false
+  }
+
+  /**
+   * 探测 Meting type=url 是否直接输出音频流（仅读前几 KB，避免整包进内存）。
+   */
+  async function probeMetingUrlReturnsDirectAudio(apiUrl) {
+    const headers = {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      Referer: getRefererForMetingApiRequest(apiUrl),
+      Accept: "*/*",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
+    try {
+      const res = await axios({
+        method: "get",
+        url: apiUrl,
+        responseType: "stream",
+        timeout: 20000,
+        maxRedirects: 5,
+        headers,
+        validateStatus: (s) => s >= 200 && s < 400,
+      })
+      const stream = res.data
+      const ct = String(res.headers["content-type"] || "").toLowerCase()
+      const chunks = []
+      let total = 0
+      const cap = 32768
+      return await new Promise((resolve) => {
+        let settled = false
+        const done = (hit) => {
+          if (settled) return
+          settled = true
+          try {
+            stream.destroy()
+          } catch (e) {}
+          resolve(hit)
+        }
+        stream.on("data", (c) => {
+          chunks.push(c)
+          total += c.length
+          const buf = Buffer.concat(chunks)
+          if (buf.length >= 4) {
+            if (bufferLooksLikeAudioMagic(buf)) done(true)
+            else if (buf[0] === 0x7b || buf[0] === 0x5b) done(false)
+          }
+          if (total >= cap) done(false)
+        })
+        stream.on("end", () => {
+          const buf = Buffer.concat(chunks)
+          if (!settled) {
+            if (bufferLooksLikeAudioMagic(buf)) done(true)
+            else if (
+              (ct.includes("audio/") || ct.includes("octet-stream")) &&
+              buf.length >= 4
+            ) {
+              done(true)
+            } else done(false)
+          }
+        })
+        stream.on("error", () => done(false))
+      })
+    } catch (e) {
+      return false
+    }
+  }
+
+  /**
+   * 解析 Meting type=url 接口为真实 CDN 地址。
+   * @returns {{ url: string, reason: null, detail: string } | { url: null, reason: string, detail: string }}
+   */
+  async function resolveMetingMediaUrl(apiUrl, depth = 0) {
+    const ok = (url) => ({ url, reason: null, detail: "" })
+    const fail = (reason, detail = "") => ({
+      url: null,
+      reason,
+      detail: String(detail || "").slice(0, 500),
+    })
+
+    if (!apiUrl) return fail("下载地址为空", "")
+    if (
+      !apiUrl.includes("type=url") ||
+      (!apiUrl.includes("qijieya.cn") && !apiUrl.includes("/meting"))
+    ) {
+      return ok(apiUrl)
+    }
+    if (depth > 4) {
+      return fail("Meting 嵌套解析超过层数限制", "请检查接口是否返回循环跳转")
+    }
+
+    try {
+      const directAudio = await probeMetingUrlReturnsDirectAudio(apiUrl)
+      if (directAudio) {
+        logger.info(
+          `Meting type=url 直接返回音频流，将用同一 URL 发起下载: ${String(apiUrl).slice(0, 96)}`
+        )
+        return ok(apiUrl)
+      }
+
+      const res = await axios.get(apiUrl, {
+        timeout: 25000,
+        maxRedirects: 5,
+        responseType: "text",
+        transformResponse: [(data) => data],
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          Referer: getRefererForMetingApiRequest(apiUrl),
+          Accept: "application/json, text/plain, */*",
+          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        },
+        validateStatus: (s) => s >= 200 && s < 400,
+      })
+      const text = String(res.data || "").trim()
+      let parsed = extractUrlFromMetingPayload(text)
+      if (!parsed) {
+        try {
+          const j = JSON.parse(text)
+          parsed = extractUrlFromMetingPayload(j)
+          if (!parsed) {
+            const code = j.code
+            const bizMsg = j.msg || j.message || j.error
+            const codeBad =
+              code !== undefined &&
+              code !== null &&
+              code !== 200 &&
+              code !== 0 &&
+              code !== "200"
+            if (codeBad && bizMsg) {
+              return fail("Meting 接口返回错误", String(bizMsg).slice(0, 300))
+            }
+          }
+        } catch (e) {}
+      }
+      if (!parsed) {
+        parsed = extractAudioUrlFromRawText(text)
+      }
+      if (parsed) {
+        if (isNestedMetingUrl(parsed)) {
+          return await resolveMetingMediaUrl(parsed, depth + 1)
+        }
+        return ok(parsed)
+      }
+      // 不再用语义模糊的正则去猜「业务失败」，避免把正常文案误判为错误（乱报错）
+      logger.warn(`Meting 未解析出直链，片段: ${text.slice(0, 400)}`)
+      return fail(
+        "接口响应中未找到音频直链",
+        text.length ? `响应片段: ${text.slice(0, 280)}` : "空响应"
+      )
+    } catch (e) {
+      const st = e.response && e.response.status
+      const raw = e.response && e.response.data
+      let detail = e.message || String(e)
+      if (st) {
+        const body =
+          typeof raw === "string"
+            ? raw.slice(0, 220)
+            : raw
+              ? JSON.stringify(raw).slice(0, 220)
+              : ""
+        detail = `HTTP ${st}${body ? ` — ${body}` : ""}`
+      }
+      logger.warn(`Meting 请求异常: ${detail}`)
+      return fail(
+        st ? `请求解析接口失败（HTTP ${st}）` : "请求 Meting 解析接口失败",
+        detail
+      )
+    }
+  }
+
+  async function downloadBinaryToFile(streamUrl, destPath, onProgress) {
+    const fsSync = require("fs")
+    const referer = getRefererForMediaUrl(streamUrl)
+
+    const response = await axios({
+      method: "get",
+      url: streamUrl,
+      responseType: "stream",
+      timeout: 120000,
+      maxRedirects: 5,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        Referer: referer,
+        Accept: "*/*",
+      },
+      validateStatus: (s) => s >= 200 && s < 400,
+    })
+
+    const ct = String(response.headers["content-type"] || "").toLowerCase()
+    if (
+      ct.includes("application/json") ||
+      ct.includes("text/json") ||
+      (ct.includes("text/plain") && !ct.includes("audio"))
+    ) {
+      const chunks = []
+      await new Promise((resolve, reject) => {
+        response.data.on("data", (c) => chunks.push(c))
+        response.data.on("end", resolve)
+        response.data.on("error", reject)
+      })
+      const body = Buffer.concat(chunks).toString("utf8").trim()
+      const inner = extractUrlFromMetingPayload(body)
+      if (inner && /^https?:\/\//i.test(inner)) {
+        return downloadBinaryToFile(inner, destPath, onProgress)
+      }
+      try {
+        const j = JSON.parse(body)
+        const inner2 = extractUrlFromMetingPayload(j)
+        if (inner2 && /^https?:\/\//i.test(inner2)) {
+          return downloadBinaryToFile(inner2, destPath, onProgress)
+        }
+        if (j && j.message) {
+          throw new Error(String(j.message))
+        }
+      } catch (e) {
+        if (e.message && !e.message.startsWith("Unexpected")) throw e
+      }
+      throw new Error("服务器返回非音频数据，请换音质或稍后重试")
+    }
+
+    const total = parseInt(response.headers["content-length"], 10) || 0
+    let received = 0
+    const writer = fsSync.createWriteStream(destPath)
+    await new Promise((resolve, reject) => {
+      response.data.on("data", (chunk) => {
+        received += chunk.length
+        if (typeof onProgress === "function") {
+          onProgress(received, total)
+        }
+      })
+      response.data.pipe(writer)
+      writer.on("finish", resolve)
+      writer.on("error", reject)
+      response.data.on("error", reject)
+    })
+  }
+
+  // 批量下载在线歌曲到 ImportLocalSongs
+  ipcMain.handle("download-audio-files", async (event, payload) => {
+    const fs = require("fs").promises
+    const fsSync = require("fs")
+    const path = require("path")
+    const songs = Array.isArray(payload?.songs) ? payload.songs : []
+    const quality = payload?.quality || "high"
+    const customDir =
+      payload?.targetDir && String(payload.targetDir).trim()
+        ? path.resolve(String(payload.targetDir).trim())
+        : null
+    const localDir =
+      customDir || path.join(storage.ROOT_DIR, "ImportLocalSongs")
+    await fs.mkdir(localDir, { recursive: true })
+
+    const results = {
+      success: true,
+      ok: 0,
+      fail: 0,
+      skipped: 0,
+      errors: [],
+    }
+
+    function uniqueDestPath(base, ext) {
+      let candidate = path.join(localDir, `${base}${ext}`)
+      let n = 1
+      while (fsSync.existsSync(candidate)) {
+        candidate = path.join(localDir, `${base} (${n})${ext}`)
+        n++
+      }
+      return candidate
+    }
+
+    const safeSend = (payload) => {
+      try {
+        if (event.sender && !event.sender.isDestroyed()) {
+          event.sender.send("download-progress", payload)
+        }
+      } catch (e) {}
+    }
+
+    safeSend({
+      phase: "start",
+      total: songs.length,
+    })
+
+    try {
+    for (let i = 0; i < songs.length; i++) {
+      const song = songs[i]
+      let built = null
+      try {
+        built = buildDownloadUrlForSong(song, quality)
+      } catch (e) {
+        built = null
+      }
+      if (!built) {
+        results.skipped++
+        results.errors.push({
+          name: song?.name,
+          reason: "无法解析下载地址",
+        })
+        safeSend({
+          phase: "song",
+          index: i + 1,
+          total: songs.length,
+          songName: song?.name || "",
+          status: "skipped",
+          overallPercent: Math.round(((i + 1) / songs.length) * 100),
+        })
+        continue
+      }
+
+      const resolved = await resolveMetingMediaUrl(built)
+      let streamUrl = resolved.url
+      if (!streamUrl) {
+        if (
+          built.includes("type=url") &&
+          (built.includes("qijieya.cn") || built.includes("/meting"))
+        ) {
+          results.fail++
+          results.errors.push({
+            name: song?.name,
+            reason: resolved.reason || "无法解析 Meting 音频地址",
+            detail: resolved.detail || "",
+          })
+          safeSend({
+            phase: "song",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            status: "fail",
+            overallPercent: Math.round(((i + 1) / songs.length) * 100),
+          })
+          continue
+        }
+        streamUrl = built
+      }
+
+      let ext = ".mp3"
+      if (/\.flac(\?|$)/i.test(streamUrl)) ext = ".flac"
+      else if (/\.m4a(\?|$)/i.test(streamUrl)) ext = ".m4a"
+
+      const base = sanitizeDownloadFilename(
+        `${song.artist || "未知"} - ${song.name || "unknown"}`
+      )
+
+      const sendFileProgress = (received, totalBytes) => {
+        const filePct = totalBytes > 0 ? received / totalBytes : 0
+        const overall = (i + filePct) / songs.length
+        safeSend({
+          phase: "progress",
+          index: i + 1,
+          total: songs.length,
+          songName: song?.name || "",
+          overallPercent: Math.min(100, Math.round(overall * 100)),
+          filePercent:
+            totalBytes > 0 ? Math.round(filePct * 100) : null,
+        })
+      }
+
+      try {
+        const destPath = uniqueDestPath(base, ext)
+        safeSend({
+          phase: "song",
+          index: i + 1,
+          total: songs.length,
+          songName: song?.name || "",
+          status: "downloading",
+          overallPercent: Math.round((i / songs.length) * 100),
+        })
+        await downloadBinaryToFile(streamUrl, destPath, sendFileProgress)
+        results.ok++
+        logger.info(`下载完成: ${path.basename(destPath)}`)
+        safeSend({
+          phase: "song",
+          index: i + 1,
+          total: songs.length,
+          songName: song?.name || "",
+          status: "ok",
+          overallPercent: Math.round(((i + 1) / songs.length) * 100),
+        })
+      } catch (err) {
+        results.fail++
+        results.errors.push({
+          name: song?.name,
+          reason: err.message || String(err),
+        })
+        logger.error(`下载失败 ${song?.name}: ${err.message}`)
+        safeSend({
+          phase: "song",
+          index: i + 1,
+          total: songs.length,
+          songName: song?.name || "",
+          status: "fail",
+          overallPercent: Math.round(((i + 1) / songs.length) * 100),
+        })
+      }
+    }
+    } finally {
+      safeSend({
+        phase: "complete",
+        ok: results.ok,
+        fail: results.fail,
+        skipped: results.skipped,
+        errors: results.errors.slice(0, 5),
+      })
+    }
+
+    return results
+  })
+
+  ipcMain.handle("select-download-directory", async (event) => {
+    logger.info("选择下载保存目录")
+    const window = event.sender.getOwnerBrowserWindow()
+    try {
+      const result = await dialog.showOpenDialog(window, {
+        properties: ["openDirectory", "createDirectory"],
+        title: "选择下载保存文件夹",
+      })
+      if (result.canceled || !result.filePaths?.length) return null
+      return result.filePaths[0]
+    } catch (err) {
+      logger.error(`选择目录失败：${err.message}`)
+      return null
     }
   })
 

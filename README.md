@@ -18,7 +18,7 @@
   - 支持多种音频格式：mp3、wav、flac、m4a
   - 自动提取歌曲信息
   - 支持删除本地歌曲
-- 🎵 **自建歌单**：创建和管理个人歌单
+- 🎵 **自建歌单**：创建和管理个人歌单、导入网易云/QQ音乐歌单
 - 🎛️ **多种播放模式**：顺序、倒序、单曲循环、列表循环、随机
 - 📝 **歌词显示**：实时歌词同步显示
 - 🌙 **深色/浅色模式**：根据系统或手动切换
@@ -31,7 +31,7 @@
 - **离线播放**：支持离线状态下播放本地歌曲
 - **跨平台**：支持 Windows、macOS、Linux
 
-## 📷 项目截图
+## 📷 项目截图（非最新项目截图）
 
 ![主界面黑](./snapshot/Snipaste_2026-03-21_22-11-12.png)
 ![主界面白](./snapshot/Snipaste_2026-03-21_22-12-03.png)
@@ -152,6 +152,12 @@ MusicPlayer/
 ├── MyFavorite.json                 # 我喜欢数据
 ├── PlayList.json                   # 播放列表数据
 ├── SearchHistory.json              # 搜索历史数据
+├── .gitattributes                  # Git 换行符配置
+├── scripts/                        # 构建和部署脚本
+│   └── sync-to-packaged.ps1       # 同步文件到打包应用
+├── .cursor/                        # Cursor IDE 配置
+│   └── rules/                      # 自定义规则
+│       └── sync-packaged-app.mdc  # 同步规则配置
 └── README.md                       # 项目说明文档
 ```
 
@@ -161,7 +167,6 @@ MusicPlayer/
 
 - `out/` - 打包后的应用文件
 - `node_modules/` - 项目依赖（通过 `npm install` 安装）
-
 
 
 ## 💾 本地数据管理
@@ -202,7 +207,7 @@ MusicPlayer/
 - [Meting](https://github.com/metowolf/Meting.git)
 - [go-music-dl](https://github.com/guohuiyuan/go-music-dl.git)
 
-## 📝 更新日志
+# 📝 更新日志
 
 ## 2026.3.14
 
@@ -238,3 +243,7 @@ MusicPlayer/
 ## 2026.3.23
 
 - 通过go-music-dl项目增加了自定义源功能、清除搜索缓存功能，优化搜索历史管理
+
+## 2026.3.30
+
+- 感谢[qjl357](https://github.com/qjl357)增加的网易云/QQ音乐使用链接导入歌单功能、多选下载功能

@@ -1,0 +1,30 @@
+---
+description: 将源码同步到已安装应用且不覆盖用户数据
+alwaysApply: true
+---
+
+# 打包应用同步（MusicPlayer-win32-x64）
+
+在 **MusicPlayer-main** 内完成代码或资源修改并收尾后，应执行同步，使 `MusicPlayer-win32-x64\resources\app` 与开发目录一致。
+
+## 命令（在 `MusicPlayer-main` 目录下）
+
+```bash
+npm run sync-app
+```
+
+等价于运行 `scripts/sync-to-packaged.ps1`。
+
+## 不覆盖的数据
+
+同步使用 robocopy，**不会**用源码覆盖目标里已有的：
+
+- 用户 JSON：`MyFavorite.json`、`Latest.json`、`FollowedArtists.json`、`DIYSongList.json`、`PlayList.json`、`SearchHistory.json`、`log.txt`
+- 目录：`DIYSongListPage`、`ImportLocalSongs`
+- 并排除 `node_modules`、`.git`
+
+脚本还会把 `music-dl-api.exe` 复制到 `resources` 与 `resources\app` 同级目录（若源码根目录存在该文件）。
+
+## 代理行为
+
+在本仓库中完成与播放器相关的编辑任务后，除非用户明确只要改仓库不部署，否则在任务结束前 **运行一次** `npm run sync-app`（若环境无 npm，则直接执行上述 PowerShell 脚本）。

@@ -56,6 +56,16 @@
   const MAX_SEARCH_HISTORY = 50
   const PAGE_SIZE = 20
   const MAX_LATEST_PLAYED = 50
+  const DOWNLOAD_QUALITY_KEY = "downloadMusicQuality"
+  let selectedSearchIds = new Set()
+  let selectedPlaylistDetailIds = new Set()
+  let selectedQueueIds = new Set()
+  let downloadModalPendingSongs = []
+  let downloadModalTargetDir = null
+  let listDragState = null
+  let downloadActive = false
+  let lastDownloadUi = { overallPercent: 0, text: "" }
+  let teardownDownloadProgress = null
 
   // ========== 辅助函数 ==========
   let likedSavesQueue = []
@@ -101,6 +111,489 @@
     })
   }
 
+  function isSongLocalPath(song) {
+    if (!song || song.local) return true
+    const u = song.url || ""
+    return /^[a-zA-Z]:\\/.test(u) || u.startsWith("file:")
+  }
+
+  /** 与主进程 utils.metingServerFromSource 一致，供搜索 go-music-dl 结果补全 Meting 播放/下载地址 */
+  const METING_AUDIO_API_BASE = "https://api.qijieya.cn/meting/"
+  function metingServerFromSourceForSearch(src) {
+    const s = String(src ?? "netease").toLowerCase().trim()
+    if (s === "qq" || s === "tencent" || s === "tx") return "tencent"
+    if (s === "kugou" || s === "kg") return "kugou"
+    if (s === "kuwo" || s === "kw") return "kuwo"
+    if (s === "migu" || s === "mg") return "migu"
+    if (s === "bilibili" || s === "bili") return "bilibili"
+    return "netease"
+  }
+  function enrichMusicDlSearchSong(song) {
+    if (!song) return null
+    const rawId = song.id ?? song.songId ?? song.hash
+    if (rawId == null || rawId === "") return null
+    const id = String(rawId)
+    const source = metingServerFromSourceForSearch(
+      song.source || song.from || "netease"
+    )
+    let url = (song.url || song.playUrl || song.play_url || "").trim()
+    if (!url || !/^https?:\/\//i.test(url)) {
+      url = `${METING_AUDIO_API_BASE}?server=${source}&type=url&id=${encodeURIComponent(id)}`
+    }
+    const cover =
+      song.coverUrl ||
+      song.cover ||
+      (song.album && song.album.picUrl) ||
+      ""
+    return {
+      ...song,
+      id,
+      songId: id,
+      source,
+      url,
+      coverUrl: cover,
+      name: song.name || "未知歌曲",
+      artist:
+        song.artist ||
+        (song.artists
+          ? song.artists.map((artist) => artist.name).join("/")
+          : "") ||
+        "未知歌手",
+      album:
+        typeof song.album === "string"
+          ? song.album
+          : song.album?.name || "未知专辑",
+      duration: song.duration || 0,
+    }
+  }
+
+  function getDownloadQuality() {
+    try {
+      const v = localStorage.getItem(DOWNLOAD_QUALITY_KEY)
+      if (v === "standard" || v === "high" || v === "lossless") return v
+    } catch (e) {}
+    return "high"
+  }
+
+  function setDownloadQualityStorage(q) {
+    try {
+      localStorage.setItem(DOWNLOAD_QUALITY_KEY, q)
+    } catch (e) {}
+  }
+
+  function syncDownloadQualitySelects() {
+    const q = getDownloadQuality()
+    document.querySelectorAll(".download-quality-select").forEach((sel) => {
+      sel.value = q
+    })
+  }
+
+  function syncSearchSelectAllCheckbox() {
+    const cb = document.getElementById("searchSelectAllCheckbox")
+    if (!cb || !searchResults.length) return
+    const allSelected = searchResults.every(
+      (s) => s.id && selectedSearchIds.has(s.id)
+    )
+    const someSelected = searchResults.some(
+      (s) => s.id && selectedSearchIds.has(s.id)
+    )
+    cb.checked = allSelected && searchResults.length > 0
+    cb.indeterminate = !allSelected && someSelected
+  }
+
+  function syncPlaylistDetailSelectAllCheckbox() {
+    if (!currentPlaylist) return
+    const online = currentPlaylist.songs.filter((s) => !isSongLocalPath(s))
+    let allSelected = false
+    let someSelected = false
+    if (!online.length) {
+      allSelected = false
+      someSelected = false
+    } else {
+      allSelected = online.every(
+        (s) => s.id && selectedPlaylistDetailIds.has(s.id)
+      )
+      someSelected = online.some(
+        (s) => s.id && selectedPlaylistDetailIds.has(s.id)
+      )
+    }
+    ;["playlistDetailSelectAllCheckbox", "playlistDetailSelectAllCheckboxStandalone"].forEach(
+      (id) => {
+        const cb = document.getElementById(id)
+        if (!cb) return
+        cb.checked = allSelected && online.length > 0
+        cb.indeterminate = !allSelected && someSelected
+      }
+    )
+  }
+
+  function syncPlaylistQueueSelectAllCheckbox() {
+    const cb = document.getElementById("playlistQueueSelectAllCheckbox")
+    if (!cb) return
+    const online = playQueue.filter((s) => !isSongLocalPath(s))
+    if (!online.length) {
+      cb.checked = false
+      cb.indeterminate = false
+      return
+    }
+    const allSelected = online.every(
+      (s) => s.id && selectedQueueIds.has(s.id)
+    )
+    const someSelected = online.some(
+      (s) => s.id && selectedQueueIds.has(s.id)
+    )
+    cb.checked = allSelected
+    cb.indeterminate = !allSelected && someSelected
+  }
+
+  function updatePlaylistDetailDownloadActionsVisibility() {
+    const p = currentPlaylist
+    const standalone = document.getElementById("playlistDetailStandaloneActions")
+    const dlGroup = document.getElementById("playlistDetailDownloadGroup")
+    if (!p) return
+    const hideDl = p.id === "local" || p.id === "followed"
+    const isLikedOrRecent = p.id === "liked" || p.id === "recent"
+    if (standalone) {
+      standalone.classList.toggle("hidden", hideDl || !isLikedOrRecent)
+    }
+    if (dlGroup) {
+      dlGroup.classList.toggle("hidden", hideDl || isLikedOrRecent)
+    }
+  }
+
+  function pruneQueueSelection() {
+    const ids = new Set(playQueue.map((s) => s.id).filter(Boolean))
+    selectedQueueIds.forEach((id) => {
+      if (!ids.has(id)) selectedQueueIds.delete(id)
+    })
+  }
+
+  function getPlaylistDetailDownloadSongs() {
+    if (!currentPlaylist) return []
+    const online = currentPlaylist.songs.filter((s) => !isSongLocalPath(s))
+    const picked = online.filter((s) => selectedPlaylistDetailIds.has(s.id))
+    if (picked.length) return picked
+    return online
+  }
+
+  function getSearchDownloadSongs() {
+    const online = searchResults.filter((s) => s && !isSongLocalPath(s))
+    const picked = online.filter((s) => selectedSearchIds.has(s.id))
+    if (picked.length) return picked
+    return online
+  }
+
+  function getPlayQueueDownloadSongs() {
+    const online = playQueue.filter((s) => !isSongLocalPath(s))
+    const picked = online.filter((s) => selectedQueueIds.has(s.id))
+    if (picked.length) return picked
+    return online
+  }
+
+  function getDownloadSongsForContext(song, listType) {
+    const ok = (s) => s && !isSongLocalPath(s)
+    if (!listType) return [song].filter(ok)
+    if (listType === "search") {
+      const sel = searchResults.filter(
+        (s) => ok(s) && selectedSearchIds.has(s.id)
+      )
+      if (sel.length && song && selectedSearchIds.has(song.id)) return sel
+      return [song].filter(ok)
+    }
+    if (listType === "playlist-detail" && currentPlaylist) {
+      const sel = currentPlaylist.songs.filter(
+        (s) => ok(s) && selectedPlaylistDetailIds.has(s.id)
+      )
+      if (sel.length && song && selectedPlaylistDetailIds.has(song.id))
+        return sel
+      return [song].filter(ok)
+    }
+    if (listType === "playlist") {
+      const sel = playQueue.filter(
+        (s) => ok(s) && selectedQueueIds.has(s.id)
+      )
+      if (sel.length && song && selectedQueueIds.has(song.id)) return sel
+      return [song].filter(ok)
+    }
+    return [song].filter(ok)
+  }
+
+  function updateDownloadModalPathDisplay() {
+    const el = document.getElementById("downloadModalPathDisplay")
+    if (!el) return
+    if (downloadModalTargetDir) {
+      el.textContent = downloadModalTargetDir
+    } else {
+      el.textContent = "默认：应用数据目录下的 ImportLocalSongs 文件夹"
+    }
+  }
+
+  function openDownloadModal(songs) {
+    const list = (songs || []).filter((s) => s && !isSongLocalPath(s))
+    if (!list.length) {
+      showToastError("没有可下载的在线歌曲（需为在线曲目）")
+      return
+    }
+    downloadModalPendingSongs = list
+    downloadModalTargetDir = null
+    const modal = document.getElementById("downloadSongModal")
+    const qSel = document.getElementById("downloadModalQuality")
+    if (qSel) {
+      qSel.value = getDownloadQuality()
+    }
+    updateDownloadModalPathDisplay()
+    if (modal) {
+      modal.classList.remove("hidden")
+      modal.classList.add("flex")
+    }
+  }
+
+  function closeDownloadModal() {
+    const modal = document.getElementById("downloadSongModal")
+    if (modal) {
+      modal.classList.add("hidden")
+      modal.classList.remove("flex")
+    }
+    downloadModalPendingSongs = []
+    downloadModalTargetDir = null
+  }
+
+  function applyLocalDownloadProgressUI() {
+    const wrap = document.getElementById("localDownloadProgressWrap")
+    const fill = document.getElementById("localDownloadProgressFill")
+    const txt = document.getElementById("localDownloadProgressText")
+    if (!wrap || !fill || !txt) return
+    const show =
+      downloadActive &&
+      currentPlaylist &&
+      currentPlaylist.id === "local" &&
+      playlistDetailSection &&
+      !playlistDetailSection.classList.contains("hidden")
+    if (!show) {
+      wrap.classList.add("hidden")
+      return
+    }
+    wrap.classList.remove("hidden")
+    fill.style.width = `${Math.min(100, lastDownloadUi.overallPercent)}%`
+    txt.textContent = lastDownloadUi.text
+  }
+
+  function setupDownloadProgressListener() {
+    if (teardownDownloadProgress) {
+      teardownDownloadProgress()
+      teardownDownloadProgress = null
+    }
+    if (!window.ElectronAPI.onDownloadProgress) return
+    teardownDownloadProgress = window.ElectronAPI.onDownloadProgress(
+      (data) => {
+        if (!data) return
+        if (data.phase === "start") {
+          downloadActive = true
+          lastDownloadUi = {
+            overallPercent: 0,
+            text: `准备下载 ${data.total} 首…`,
+          }
+          applyLocalDownloadProgressUI()
+        } else if (data.phase === "progress") {
+          lastDownloadUi.overallPercent = data.overallPercent ?? 0
+          const fp =
+            data.filePercent != null ? ` · 当前文件 ${data.filePercent}%` : ""
+          lastDownloadUi.text = `正在下载 ${data.index}/${data.total}：${data.songName || ""}${fp}`
+          applyLocalDownloadProgressUI()
+        } else if (data.phase === "song") {
+          lastDownloadUi.overallPercent = data.overallPercent ?? 0
+          if (data.status === "downloading") {
+            lastDownloadUi.text = `正在下载 ${data.index}/${data.total}：${data.songName || ""}`
+          } else if (data.status === "ok") {
+            lastDownloadUi.text = `已完成 ${data.index}/${data.total}：${data.songName || ""}`
+          } else if (data.status === "fail") {
+            lastDownloadUi.text = `失败 ${data.index}/${data.total}：${data.songName || ""}`
+          } else if (data.status === "skipped") {
+            lastDownloadUi.text = `跳过 ${data.index}/${data.total}：${data.songName || ""}`
+          }
+          applyLocalDownloadProgressUI()
+        } else if (data.phase === "complete") {
+          lastDownloadUi.overallPercent = 100
+          lastDownloadUi.text = `结束：成功 ${data.ok}，失败 ${data.fail}，跳过 ${data.skipped}`
+          applyLocalDownloadProgressUI()
+          ;(async () => {
+            try {
+              if (currentPlaylist && currentPlaylist.id === "local") {
+                localSongs = await window.ElectronAPI.readLocalSongs()
+                currentPlaylist.songs = localSongs
+                renderPlaylistDetail(currentPlaylist)
+                const localCountEl = document.getElementById("localCount")
+                if (localCountEl) localCountEl.textContent = localSongs.length
+              }
+            } catch (e) {}
+          })()
+          setTimeout(() => {
+            downloadActive = false
+            const wrap = document.getElementById("localDownloadProgressWrap")
+            if (wrap) wrap.classList.add("hidden")
+            applyLocalDownloadProgressUI()
+          }, 4500)
+        }
+      }
+    )
+  }
+
+  async function runDownloadBatch(songs, quality, targetDir) {
+    const list = (songs || []).filter((s) => s && !isSongLocalPath(s))
+    if (!list.length) {
+      showToastError("没有可下载的在线歌曲")
+      return
+    }
+    const q = quality || getDownloadQuality()
+    showToast(`开始下载 ${list.length} 首…`, "info")
+    try {
+      const payload = {
+        songs: list,
+        quality: q,
+      }
+      if (targetDir && String(targetDir).trim()) {
+        payload.targetDir = String(targetDir).trim()
+      }
+      const res = await window.ElectronAPI.downloadAudioFiles(payload)
+      if (res) {
+        const errHint =
+          Array.isArray(res.errors) && res.errors.length
+            ? ` 示例：${res.errors
+                .slice(0, 2)
+                .map((e) => {
+                  const d = e.detail ? String(e.detail).slice(0, 140) : ""
+                  return `${e.name || "?"}（${e.reason || ""}${d ? " — " + d : ""}）`
+                })
+                .join("；")}`
+            : ""
+        if (res.fail > 0 || res.skipped > 0) {
+          if (res.ok === 0 && res.fail > 0) {
+            showToastError(
+              `下载失败：${res.fail} 首失败，${res.skipped} 首跳过。${errHint}`
+            )
+          } else if (res.ok === 0 && res.skipped > 0 && res.fail === 0) {
+            showToastError(
+              `下载未成功：${res.skipped} 首无法解析地址或已跳过。${errHint}`
+            )
+          } else if (res.fail > 0) {
+            showToastWarning(
+              `部分失败：成功 ${res.ok}，失败 ${res.fail}，跳过 ${res.skipped}。${errHint}`
+            )
+          } else {
+            showToastWarning(
+              `下载结束：成功 ${res.ok}，跳过 ${res.skipped}。${errHint}`
+            )
+          }
+        } else {
+          showToast(`下载完成：成功 ${res.ok} 首`, "success")
+        }
+        try {
+          localSongs = await window.ElectronAPI.readLocalSongs()
+          const localCountEl = document.getElementById("localCount")
+          if (localCountEl) localCountEl.textContent = localSongs.length
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.error(err)
+      showToastError("下载失败：" + (err.message || String(err)))
+    }
+  }
+
+  function bindDownloadModalEvents() {
+    const browse = document.getElementById("downloadModalBrowseBtn")
+    const cancel = document.getElementById("downloadModalCancelBtn")
+    const confirm = document.getElementById("downloadModalConfirmBtn")
+    if (browse) {
+      browse.addEventListener("click", async () => {
+        const p = await window.ElectronAPI.selectDownloadDirectory()
+        if (p) {
+          downloadModalTargetDir = p
+          updateDownloadModalPathDisplay()
+        }
+      })
+    }
+    if (cancel) cancel.addEventListener("click", () => closeDownloadModal())
+    if (confirm) {
+      confirm.addEventListener("click", async () => {
+        const q =
+          document.getElementById("downloadModalQuality")?.value ||
+          getDownloadQuality()
+        setDownloadQualityStorage(q)
+        const songs = downloadModalPendingSongs.slice()
+        const dir = downloadModalTargetDir
+        closeDownloadModal()
+        await runDownloadBatch(songs, q, dir)
+      })
+    }
+  }
+
+  function setupListDragMultiSelect(container, listKind) {
+    if (!container) return
+    const getIndicesInRange = (a, b) => {
+      const lo = Math.min(a, b)
+      const hi = Math.max(a, b)
+      const out = []
+      for (let i = lo; i <= hi; i++) out.push(i)
+      return out
+    }
+    const applyRange = (i0, i1) => {
+      const indices = getIndicesInRange(i0, i1)
+      if (listKind === "search") {
+        indices.forEach((idx) => {
+          const s = searchResults[idx]
+          if (s && s.id && !isSongLocalPath(s)) selectedSearchIds.add(s.id)
+        })
+        container.querySelectorAll(".download-song-cb").forEach((box) => {
+          const sid = box.dataset.songId
+          if (sid && selectedSearchIds.has(sid)) box.checked = true
+        })
+        syncSearchSelectAllCheckbox()
+      } else if (listKind === "playlist-detail" && currentPlaylist) {
+        indices.forEach((idx) => {
+          const s = currentPlaylist.songs[idx]
+          if (s && s.id && !isSongLocalPath(s))
+            selectedPlaylistDetailIds.add(s.id)
+        })
+        container.querySelectorAll(".download-song-cb").forEach((box) => {
+          const sid = box.dataset.songId
+          if (sid && selectedPlaylistDetailIds.has(sid)) box.checked = true
+        })
+        syncPlaylistDetailSelectAllCheckbox()
+      } else if (listKind === "playlist") {
+        indices.forEach((idx) => {
+          const s = playQueue[idx]
+          if (s && s.id && !isSongLocalPath(s)) selectedQueueIds.add(s.id)
+        })
+        container.querySelectorAll(".download-song-cb").forEach((box) => {
+          const sid = box.dataset.songId
+          if (sid && selectedQueueIds.has(sid)) box.checked = true
+        })
+        syncPlaylistQueueSelectAllCheckbox()
+      }
+    }
+    container.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return
+      if (e.target.closest("button") || e.target.closest(".download-song-cb"))
+        return
+      const li = e.target.closest("li.song-item")
+      if (!li || li.closest("ul") !== container) return
+      const idx = parseInt(li.dataset.index, 10)
+      if (Number.isNaN(idx)) return
+      listDragState = { listKind, anchor: idx, container }
+    })
+    container.addEventListener("mousemove", (e) => {
+      if (!listDragState || listDragState.container !== container) return
+      if (!listDragState.listKind || listDragState.anchor < 0) return
+      if ((e.buttons & 1) === 0) return
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      const li = el && el.closest && el.closest("li.song-item")
+      if (!li || li.closest("ul") !== container) return
+      const idx = parseInt(li.dataset.index, 10)
+      if (Number.isNaN(idx)) return
+      applyRange(listDragState.anchor, idx)
+    })
+  }
+
   // ========== DOM元素获取 ==========
   let searchInput, searchBtn, clearSearchBtn, searchResultList, loadMoreBtn
   let playlistList,
@@ -129,6 +622,12 @@
   let mainInterface
   let playlistEditModal, playlistEditForm, playlistName, playlistDescription
   let coverUpload, coverPreview, cancelPlaylistBtn, savePlaylistBtn
+  let importWebPlaylistBtn,
+    webPlaylistImportModal,
+    webPlaylistUrlInput,
+    webPlaylistPlatformSelect,
+    cancelWebPlaylistImportBtn,
+    confirmWebPlaylistImportBtn
   let importUserBtn, exportUserBtn, checkUpdateBtn
   let searchHistoryContainer, searchHistoryList
   let searchCache = new Map()
@@ -188,6 +687,18 @@
     checkUpdateBtn = document.getElementById("checkUpdateBtn")
     searchHistoryContainer = document.getElementById("searchHistoryContainer")
     searchHistoryList = document.getElementById("searchHistoryList")
+    importWebPlaylistBtn = document.getElementById("importWebPlaylistBtn")
+    webPlaylistImportModal = document.getElementById("webPlaylistImportModal")
+    webPlaylistUrlInput = document.getElementById("webPlaylistUrlInput")
+    webPlaylistPlatformSelect = document.getElementById(
+      "webPlaylistPlatformSelect"
+    )
+    cancelWebPlaylistImportBtn = document.getElementById(
+      "cancelWebPlaylistImportBtn"
+    )
+    confirmWebPlaylistImportBtn = document.getElementById(
+      "confirmWebPlaylistImportBtn"
+    )
   }
 
   // ========== 导出用户信息 ==========
@@ -198,7 +709,7 @@
         if (result.success) {
           showToast(`用户信息导出成功：${result.filePath}`)
         } else {
-          showToast(`导出失败：${result.error}`)
+          showToastError(`导出失败：${result.error}`)
         }
       })
     }
@@ -212,7 +723,7 @@
             window.location.reload()
           }, 1500)
         } else {
-          showToast(`导入失败：${result.error}`)
+          showToastError(`导入失败：${result.error}`)
         }
       })
     }
@@ -228,7 +739,7 @@
             showToast("当前已是最新版本")
           }
         } else {
-          showToast(result?.message || "检查更新失败")
+          showToastError(result?.message || "检查更新失败")
         }
       })
     }
@@ -319,14 +830,21 @@
   // ========== 核心函数定义 ==========
   function renderPlaylist() {
     if (!playlistList) return
+    pruneQueueSelection()
     playlistList.innerHTML = ""
     playQueue.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
+      const canDl = !isSongLocalPath(song)
       const li = document.createElement("li")
       li.className = `song-item p-4 ${index === currentSongIndex ? "active" : ""} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200`
       li.innerHTML = `
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
+          ${
+            canDl
+              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${song.id}" ${selectedQueueIds.has(song.id) ? "checked" : ""} />`
+              : `<span class="w-4 flex-shrink-0"></span>`
+          }
           <div class="flex-1 min-w-0">
             <div class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</div>
             <div class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)}</div>
@@ -355,6 +873,7 @@
       li.dataset.list = "playlist"
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
+        if (e.target.closest(".download-song-cb")) return
         const now = Date.now()
         if (now - lastClickTime < 300) {
           currentSongIndex = index
@@ -367,10 +886,20 @@
       })
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
-        showSongContextMenu(e, song)
+        showSongContextMenu(e, song, "playlist")
       })
+      const qCb = li.querySelector(".download-song-cb")
+      if (qCb) {
+        qCb.addEventListener("click", (e) => e.stopPropagation())
+        qCb.addEventListener("change", () => {
+          if (qCb.checked) selectedQueueIds.add(song.id)
+          else selectedQueueIds.delete(song.id)
+          syncPlaylistQueueSelectAllCheckbox()
+        })
+      }
       playlistList.appendChild(li)
     })
+    syncPlaylistQueueSelectAllCheckbox()
     window.ElectronAPI.savePlaylist(playQueue)
   }
 
@@ -755,24 +1284,45 @@
   }
 
   // ========== Toast 功能 ==========
+  // type: success=绿色主色，error=红色，warning=琥珀色，info=灰蓝（中性）
   let toastQueue = []
-  function showToast(message) {
+  function showToast(message, type = "success") {
     const toast = document.createElement("div")
-    toast.className =
-      "fixed right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100"
+    const base =
+      "fixed right-4 px-4 py-3 rounded-lg shadow-lg z-[100] transition-all duration-300 transform translate-y-0 opacity-100 max-w-[min(92vw,24rem)] text-sm leading-snug break-words"
+    const typeClass =
+      {
+        success: "bg-primary text-white",
+        error:
+          "bg-red-600 text-white ring-2 ring-red-800/40 dark:bg-red-700 dark:ring-red-900/50",
+        warning:
+          "bg-amber-500 text-white ring-2 ring-amber-700/30 dark:bg-amber-600",
+        info: "bg-slate-600 text-white dark:bg-slate-500",
+      }[type] || "bg-primary text-white"
+    toast.className = `${base} ${typeClass}`
+    toast.setAttribute("role", type === "error" ? "alert" : "status")
     toast.textContent = message
     document.body.appendChild(toast)
     toastQueue.push(toast)
     updateToastPositions()
+    const ms = type === "error" ? 6500 : type === "warning" ? 5000 : 3200
     setTimeout(() => {
       toast.classList.add("opacity-0", "translate-y-4")
       setTimeout(() => {
-        document.body.removeChild(toast)
+        if (toast.parentNode) document.body.removeChild(toast)
         const index = toastQueue.indexOf(toast)
         if (index > -1) toastQueue.splice(index, 1)
         updateToastPositions()
       }, 300)
-    }, 3000)
+    }, ms)
+  }
+
+  function showToastError(message) {
+    showToast(message, "error")
+  }
+
+  function showToastWarning(message) {
+    showToast(message, "warning")
   }
 
   function updateToastPositions() {
@@ -804,7 +1354,7 @@
     // 检查歌曲URL是否有效
     if (!song.url || song.url.trim() === "") {
       console.error("[播放] 歌曲URL无效，无法播放:", song.url)
-      showToast("播放失败：歌曲链接无效")
+      showToastError("播放失败：歌曲链接无效")
       return
     }
 
@@ -887,6 +1437,7 @@
 
   function showPlaylistDetail(playlist) {
     currentPlaylist = playlist
+    selectedPlaylistDetailIds.clear()
     if (backToSearchBtn) backToSearchBtn.classList.remove("hidden")
 
     if (
@@ -929,7 +1480,7 @@
           if (result.success) {
             showToast(`歌单导出成功：${result.filePath}`)
           } else {
-            showToast(`导出失败：${result.error}`)
+            showToastError(`导出失败：${result.error}`)
           }
         }
       }
@@ -1002,12 +1553,17 @@
     }
 
     renderPlaylistDetail(playlist)
+    updatePlaylistDetailDownloadActionsVisibility()
+    syncDownloadQualitySelects()
     if (searchResultsSection) searchResultsSection.classList.add("hidden")
     if (playlistDetailSection) playlistDetailSection.classList.remove("hidden")
     if (playlistDetailSection) {
       playlistDetailSection.classList.remove("fade-in")
       void playlistDetailSection.offsetWidth
       playlistDetailSection.classList.add("fade-in")
+    }
+    if (playlist.id === "local") {
+      applyLocalDownloadProgressUI()
     }
   }
 
@@ -1017,10 +1573,16 @@
     playlist.songs.forEach((song, index) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
+      const canDl = !isSongLocalPath(song)
       const li = document.createElement("li")
       li.className = "song-item p-4"
       li.innerHTML = `
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
+          ${
+            canDl
+              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${song.id}" ${selectedPlaylistDetailIds.has(song.id) ? "checked" : ""} />`
+              : `<span class="w-4 flex-shrink-0"></span>`
+          }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
             <p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
@@ -1043,6 +1605,7 @@
       li.dataset.list = "playlist-detail"
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
+        if (e.target.closest(".download-song-cb")) return
         const now = Date.now()
         if (now - lastClickTime < 300) {
           playSelectedSong(song, "playlist-detail")
@@ -1054,10 +1617,20 @@
       })
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
-        showSongContextMenu(e, song)
+        showSongContextMenu(e, song, "playlist-detail")
       })
+      const detailCb = li.querySelector(".download-song-cb")
+      if (detailCb) {
+        detailCb.addEventListener("click", (e) => e.stopPropagation())
+        detailCb.addEventListener("change", () => {
+          if (detailCb.checked) selectedPlaylistDetailIds.add(song.id)
+          else selectedPlaylistDetailIds.delete(song.id)
+          syncPlaylistDetailSelectAllCheckbox()
+        })
+      }
       playlistDetailList.appendChild(li)
     })
+    syncPlaylistDetailSelectAllCheckbox()
   }
 
   function removeFromCustomPlaylist(playlist, index) {
@@ -1138,9 +1711,10 @@
 
   function playPlaylist(selectedPlaylist) {
     if (selectedPlaylist.songs.length === 0) {
-      showToast("歌单为空，无法播放")
+      showToastWarning("歌单为空，无法播放")
       return
     }
+    selectedQueueIds.clear()
     playQueue = selectedPlaylist.songs.slice()
     renderPlaylist()
     currentSongIndex = 0
@@ -1278,7 +1852,7 @@
 
   async function toggleFollowArtist(artistName) {
     if (!artistName) {
-      showToast("歌手名称无效，无法添加到关注列表")
+      showToastError("歌手名称无效，无法添加到关注列表")
       return
     }
     if (!followedArtists) followedArtists = []
@@ -1299,7 +1873,7 @@
         followCountElement.textContent = followedArtists.length
     } catch (err) {
       console.error("保存关注歌手列表失败:", err)
-      showToast("保存关注歌手列表失败，请检查日志")
+      showToastError("保存关注歌手列表失败，请检查日志")
     }
   }
 
@@ -1374,10 +1948,16 @@
     songs.forEach((song, idx) => {
       if (!song.id) return
       const isLiked = likedSongs.some((item) => item.id === song.id)
+      const canDl = !isSongLocalPath(song)
       const li = document.createElement("li")
       li.className = "song-item p-4 transition-colors duration-200"
       li.innerHTML = `
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
+          ${
+            canDl
+              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${song.id}" ${selectedSearchIds.has(song.id) ? "checked" : ""} />`
+              : `<span class="w-4 flex-shrink-0"></span>`
+          }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
             <p class="text-sm text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
@@ -1398,6 +1978,7 @@
       li.dataset.list = "search"
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
+        if (e.target.closest(".download-song-cb")) return
         const now = Date.now()
         if (now - lastClickTime < 300) {
           playSelectedSong(song, "search")
@@ -1409,10 +1990,21 @@
       })
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault()
-        showSongContextMenu(e, song)
+        showSongContextMenu(e, song, "search")
       })
+      const searchCb = li.querySelector(".download-song-cb")
+      if (searchCb) {
+        searchCb.addEventListener("click", (e) => e.stopPropagation())
+        searchCb.addEventListener("change", () => {
+          if (searchCb.checked) selectedSearchIds.add(song.id)
+          else selectedSearchIds.delete(song.id)
+          syncSearchSelectAllCheckbox()
+        })
+      }
       searchResultList.appendChild(li)
     })
+
+    syncSearchSelectAllCheckbox()
 
     if (loadMoreBtn) {
       loadMoreBtn.style.display = songs.length >= PAGE_SIZE ? "block" : "none"
@@ -1452,7 +2044,7 @@
         showToast(`已从最近播放中移除《${song.name}》`)
       } catch (err) {
         console.error("保存最近播放失败:", err)
-        showToast("移除失败")
+        showToastError("移除失败")
       }
     }
   }
@@ -1542,7 +2134,7 @@
     }, 0)
   }
 
-  function showSongContextMenu(e, song) {
+  function showSongContextMenu(e, song, listType = "") {
     const existingMenus = document.querySelectorAll(
       ".absolute.bg-white.border.border-gray-300.rounded.shadow-lg.z-50.py-2, .absolute.bg-gray-800.border.border-gray-700.rounded.shadow-lg.z-50.py-2, .artist-selection-menu"
     )
@@ -1556,11 +2148,17 @@
 
     const isLiked = likedSongs.some((item) => item.id === song.id)
     const isFollowed = followedArtists.includes(song.artist)
+    const dlSongs = getDownloadSongsForContext(song, listType)
+    const dlLabel =
+      dlSongs.length > 1
+        ? `下载选中（${dlSongs.length} 首）`
+        : "下载到本地"
 
     menu.innerHTML = `
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToLikedBtn">${isLiked ? "移除我喜欢" : "添加到我喜欢"}</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToFollowedBtn">${isFollowed ? "取消关注歌手" : "关注歌手"}</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToCurrentPlaylistBtn">添加到当前播放列表</button>
+      ${!isSongLocalPath(song) && dlSongs.length ? `<button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="downloadSongMenuBtn">${dlLabel}</button>` : ""}
       <div class="border-t border-gray-300 my-1 dark:border-gray-700"></div>
       <div class="px-4 py-1 text-xs text-gray-400 dark:text-gray-500">添加到自定义歌单</div>
     `
@@ -1628,7 +2226,13 @@
       })
     }
 
-    document.body.appendChild(menu)
+    const downloadSongMenuBtn = menu.querySelector("#downloadSongMenuBtn")
+    if (downloadSongMenuBtn) {
+      downloadSongMenuBtn.addEventListener("click", async () => {
+        if (document.body.contains(menu)) document.body.removeChild(menu)
+        openDownloadModal(dlSongs)
+      })
+    }
 
     setTimeout(() => {
       document.addEventListener("click", function closeMenu(e) {
@@ -1719,7 +2323,7 @@
     let audioUrl = song.url
     if (!audioUrl || audioUrl.trim() === "") {
       console.error("[播放器] 歌曲URL无效:", audioUrl)
-      showToast("播放失败：歌曲链接无效")
+      showToastError("播放失败：歌曲链接无效")
       return
     }
 
@@ -1728,7 +2332,7 @@
       // 检查URL是否包含有效协议
       if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
         console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-        showToast("播放失败：歌曲链接格式错误")
+        showToastError("播放失败：歌曲链接格式错误")
         return
       }
       console.log("[播放器] 原始URL:", audioUrl)
@@ -1756,7 +2360,7 @@
       // 检查URL是否包含有效协议
       if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
         console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-        showToast("播放失败：歌曲链接格式错误")
+        showToastError("播放失败：歌曲链接格式错误")
         return
       }
 
@@ -1873,7 +2477,7 @@
         err.name === "NetworkError" ||
         err.name === "DecodeError"
       ) {
-        showToast("播放失败：歌曲链接可能失效")
+        showToastError("播放失败：歌曲链接可能失效")
       }
     }
     preloadNextSong()
@@ -1881,6 +2485,7 @@
 
   // ========== 事件委托处理函数 ==========
   function handlePlaylistClick(e) {
+    if (e.target.closest(".download-song-cb")) return
     const target = e.target.closest("button")
     if (!target) return
     const li = target.closest("li")
@@ -1910,6 +2515,7 @@
   }
 
   function handleSearchResultClick(e) {
+    if (e.target.closest(".download-song-cb")) return
     const target = e.target.closest("button")
     if (!target) return
     const li = target.closest("li")
@@ -1938,6 +2544,7 @@
   }
 
   function handlePlaylistDetailClick(e) {
+    if (e.target.closest(".download-song-cb")) return
     const target = e.target.closest("button")
     if (!target) return
     const li = target.closest("li")
@@ -1974,7 +2581,7 @@
             showLocalSongs()
             showToast(`已删除本地歌曲：${song.name}`)
           } else {
-            showToast(`删除失败：${result.error}`)
+            showToastError(`删除失败：${result.error}`)
           }
         })
       } else if (currentPlaylist.id === "followed") {
@@ -2096,37 +2703,17 @@
                 `[搜索] 成功获取 go-music-dl API 结果，数量：${response.songs.length}`
               )
               console.log(`[搜索] 原始响应数据示例：`, response.songs[0])
-              // 处理直接返回 songs 的情况
-              songs = response.songs.map((song) => {
-                const mappedSong = {
-                  id: song.id,
-                  name: song.name,
-                  artist:
-                    song.artist ||
-                    (song.artists
-                      ? song.artists.map((artist) => artist.name).join("/")
-                      : ""),
-                  album: song.album || (song.album ? song.album.name : ""),
-                  cover: song.cover || (song.album ? song.album.picUrl : ""),
-                  url: song.url || song.playUrl,
-                  duration: song.duration || 0,
-                  source: song.source,
-                  coverUrl: song.cover || (song.album ? song.album.picUrl : ""),
-                }
-                console.log(`[搜索] 解析后的歌曲URL：`, mappedSong.url)
-                return mappedSong
-              })
-              // 过滤掉没有URL的歌曲
-              const validSongs = songs.filter(
-                (s) => s.url && s.url.trim() !== ""
-              )
+              songs = response.songs
+                .map((song) => enrichMusicDlSearchSong(song))
+                .filter(Boolean)
               console.log(
-                `[搜索] 过滤后有效歌曲数量：${validSongs.length}/${songs.length}`
+                `[搜索] 补全 id/Meting 地址后有效条目：${songs.length}/${response.songs.length}`
               )
-              songs = validSongs
-              console.log(
-                `[搜索] 转换后的数据：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
-              )
+              if (songs[0]) {
+                console.log(
+                  `[搜索] 转换后示例：${JSON.stringify(songs[0])}`
+                )
+              }
             } else if (response && response.error) {
               // API 调用失败，回退到默认 API
               console.log(`[搜索] go-music-dl API 调用失败：${response.error}`)
@@ -2169,7 +2756,7 @@
         }
       } catch (err) {
         console.error("[搜索] API请求失败：", err)
-        showToast("搜索失败，请查看日志")
+        showToastError("搜索失败，请查看日志或检查网络")
         if (offset === 0 && searchResultList) {
           searchResultList.innerHTML =
             '<div class="p-10 text-center text-red-500 dark:text-red-400">搜索失败，请稍后重试</div>'
@@ -2204,6 +2791,7 @@
     if (!keyword || isSearching) return
     isSearching = true
     try {
+      selectedSearchIds.clear()
       searchOffset = 0
       if (searchResultsSection) searchResultsSection.classList.remove("hidden")
       if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
@@ -2441,6 +3029,73 @@
     // 默认选中顺序播放
     setActiveModeBtn(orderBtn)
 
+    // 从网页导入歌单（网易云 / QQ音乐）
+    if (importWebPlaylistBtn && webPlaylistImportModal) {
+      importWebPlaylistBtn.addEventListener("click", () => {
+        if (webPlaylistUrlInput) webPlaylistUrlInput.value = ""
+        if (webPlaylistPlatformSelect) webPlaylistPlatformSelect.value = "auto"
+        webPlaylistImportModal.classList.remove("hidden")
+        if (webPlaylistUrlInput) webPlaylistUrlInput.focus()
+      })
+    }
+    if (cancelWebPlaylistImportBtn && webPlaylistImportModal) {
+      cancelWebPlaylistImportBtn.addEventListener("click", () => {
+        webPlaylistImportModal.classList.add("hidden")
+      })
+    }
+    if (confirmWebPlaylistImportBtn && webPlaylistImportModal) {
+      confirmWebPlaylistImportBtn.addEventListener("click", async () => {
+        const raw = webPlaylistUrlInput ? webPlaylistUrlInput.value.trim() : ""
+        if (!raw) {
+          showToastWarning("请粘贴歌单链接或 ID")
+          return
+        }
+        const platform = webPlaylistPlatformSelect
+          ? webPlaylistPlatformSelect.value
+          : "auto"
+        const btn = confirmWebPlaylistImportBtn
+        const prevText = btn.textContent
+        btn.disabled = true
+        btn.textContent = "导入中…"
+        try {
+          const result = await window.ElectronAPI.fetchWebPlaylist(raw, platform)
+          if (!result.success) {
+            showToastError(result.error || "导入失败")
+            return
+          }
+          const playlistId = `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          const srcLabel = result.platformLabel || "网页歌单"
+          const newPlaylist = {
+            id: playlistId,
+            name: result.name || `${srcLabel}歌单`,
+            description: `来源：${srcLabel}，歌单 ID ${result.playlistId}`,
+            coverPath: "",
+            songs: result.songs || [],
+            createdAt: new Date().toISOString(),
+          }
+          diyPlaylists.push(newPlaylist)
+          const saveResult = await window.ElectronAPI.saveDIYPlaylists(
+            diyPlaylists
+          )
+          if (!saveResult) {
+            diyPlaylists.pop()
+            showToastError("保存失败，请检查日志")
+            return
+          }
+          renderPlaylistSidebar()
+          webPlaylistImportModal.classList.add("hidden")
+          showPlaylistDetail(newPlaylist)
+          showToast(`已导入 ${newPlaylist.songs.length} 首歌曲`)
+        } catch (err) {
+          console.error("导入网页歌单失败:", err)
+          showToastError("导入失败，请稍后重试")
+        } finally {
+          btn.disabled = false
+          btn.textContent = prevText
+        }
+      })
+    }
+
     // 创建歌单
     if (createPlaylistBtn) {
       createPlaylistBtn.addEventListener("click", () => {
@@ -2473,7 +3128,7 @@
           if (playlistEditModal) playlistEditModal.classList.add("hidden")
           showToast("歌单导入成功")
         } else {
-          showToast(`导入失败：${result.error}`)
+          showToastError(`导入失败：${result.error}`)
         }
       })
     }
@@ -2521,7 +3176,7 @@
             (p) => p.id === currentEditingPlaylistId
           )
           if (targetIndex === -1) {
-            showToast("歌单不存在")
+            showToastError("歌单不存在")
             return
           }
           const targetPlaylist = diyPlaylists[targetIndex]
@@ -2535,7 +3190,7 @@
             if (result.success) {
               coverPath = result.coverPath
             } else {
-              showToast("封面保存失败")
+              showToastError("封面保存失败")
             }
           }
 
@@ -2547,7 +3202,7 @@
             const saveResult =
               await window.ElectronAPI.saveDIYPlaylists(diyPlaylists)
             if (!saveResult) {
-              showToast("保存失败，请检查日志")
+              showToastError("保存失败，请检查日志")
               return
             }
             renderPlaylistSidebar()
@@ -2559,7 +3214,7 @@
             currentEditingPlaylistId = null
           } catch (err) {
             console.error("保存自建歌单失败:", err)
-            showToast("歌单修改失败")
+            showToastError("歌单修改失败")
           }
         } else {
           const playlistId = Date.now().toString()
@@ -2573,7 +3228,7 @@
             if (result.success) {
               coverPath = result.coverPath
             } else {
-              showToast("封面保存失败")
+              showToastError("封面保存失败")
             }
           }
 
@@ -2591,7 +3246,7 @@
             const saveResult =
               await window.ElectronAPI.saveDIYPlaylists(diyPlaylists)
             if (!saveResult) {
-              showToast("保存失败，请检查日志")
+              showToastError("保存失败，请检查日志")
               return
             }
             renderPlaylistSidebar()
@@ -2599,7 +3254,7 @@
             if (playlistEditModal) playlistEditModal.classList.add("hidden")
           } catch (err) {
             console.error("保存自建歌单失败:", err)
-            showToast("歌单创建失败")
+            showToastError("歌单创建失败")
           }
         }
       })
@@ -2630,7 +3285,7 @@
             showLocalSongs()
             showToast(`成功导入 ${result.songs.length} 首本地歌曲`)
           } else {
-            showToast(`导入失败：${result.error}`)
+            showToastError(`导入失败：${result.error}`)
           }
         }
       })
@@ -2767,6 +3422,138 @@
       })
     }
 
+    bindDownloadModalEvents()
+
+    document.addEventListener("mouseup", () => {
+      listDragState = null
+    })
+
+    setupListDragMultiSelect(searchResultList, "search")
+    setupListDragMultiSelect(playlistDetailList, "playlist-detail")
+    setupListDragMultiSelect(playlistList, "playlist")
+
+    document.querySelectorAll(".download-quality-select").forEach((sel) => {
+      sel.addEventListener("change", () => {
+        setDownloadQualityStorage(sel.value)
+        syncDownloadQualitySelects()
+      })
+    })
+
+    const searchSelectAllCheckbox = document.getElementById(
+      "searchSelectAllCheckbox"
+    )
+    if (searchSelectAllCheckbox) {
+      searchSelectAllCheckbox.addEventListener("change", () => {
+        const on = searchSelectAllCheckbox.checked
+        searchResults.forEach((s) => {
+          if (s.id && !isSongLocalPath(s)) {
+            if (on) selectedSearchIds.add(s.id)
+            else selectedSearchIds.delete(s.id)
+          }
+        })
+        if (searchResultList) {
+          searchResultList.querySelectorAll(".download-song-cb").forEach((box) => {
+            box.checked = on
+          })
+        }
+        syncSearchSelectAllCheckbox()
+      })
+    }
+
+    const downloadSearchToolbarBtn = document.getElementById(
+      "downloadSearchToolbarBtn"
+    )
+    if (downloadSearchToolbarBtn) {
+      downloadSearchToolbarBtn.addEventListener("click", () => {
+        openDownloadModal(getSearchDownloadSongs())
+      })
+    }
+
+    function wirePlaylistDetailSelectAll(on) {
+      if (!currentPlaylist) return
+      currentPlaylist.songs.forEach((s) => {
+        if (s.id && !isSongLocalPath(s)) {
+          if (on) selectedPlaylistDetailIds.add(s.id)
+          else selectedPlaylistDetailIds.delete(s.id)
+        }
+      })
+      if (playlistDetailList) {
+        playlistDetailList.querySelectorAll(".download-song-cb").forEach((box) => {
+          box.checked = on
+        })
+      }
+      syncPlaylistDetailSelectAllCheckbox()
+    }
+
+    const playlistDetailSelectAllCheckbox = document.getElementById(
+      "playlistDetailSelectAllCheckbox"
+    )
+    if (playlistDetailSelectAllCheckbox) {
+      playlistDetailSelectAllCheckbox.addEventListener("change", () => {
+        wirePlaylistDetailSelectAll(playlistDetailSelectAllCheckbox.checked)
+      })
+    }
+
+    const playlistDetailSelectAllCheckboxStandalone = document.getElementById(
+      "playlistDetailSelectAllCheckboxStandalone"
+    )
+    if (playlistDetailSelectAllCheckboxStandalone) {
+      playlistDetailSelectAllCheckboxStandalone.addEventListener(
+        "change",
+        () => {
+          wirePlaylistDetailSelectAll(
+            playlistDetailSelectAllCheckboxStandalone.checked
+          )
+        }
+      )
+    }
+
+    const downloadPlaylistDetailBtn = document.getElementById(
+      "downloadPlaylistDetailBtn"
+    )
+    if (downloadPlaylistDetailBtn) {
+      downloadPlaylistDetailBtn.addEventListener("click", () => {
+        openDownloadModal(getPlaylistDetailDownloadSongs())
+      })
+    }
+
+    const downloadPlaylistDetailBtnStandalone = document.getElementById(
+      "downloadPlaylistDetailBtnStandalone"
+    )
+    if (downloadPlaylistDetailBtnStandalone) {
+      downloadPlaylistDetailBtnStandalone.addEventListener("click", () => {
+        openDownloadModal(getPlaylistDetailDownloadSongs())
+      })
+    }
+
+    const playlistQueueSelectAllCheckbox = document.getElementById(
+      "playlistQueueSelectAllCheckbox"
+    )
+    if (playlistQueueSelectAllCheckbox) {
+      playlistQueueSelectAllCheckbox.addEventListener("change", () => {
+        const on = playlistQueueSelectAllCheckbox.checked
+        playQueue.forEach((s) => {
+          if (s.id && !isSongLocalPath(s)) {
+            if (on) selectedQueueIds.add(s.id)
+            else selectedQueueIds.delete(s.id)
+          }
+        })
+        if (playlistList) {
+          playlistList.querySelectorAll(".download-song-cb").forEach((box) => {
+            box.checked = on
+          })
+        }
+        syncPlaylistQueueSelectAllCheckbox()
+      })
+    }
+
+    const downloadPlayQueueBtn = document.getElementById("downloadPlayQueueBtn")
+    if (downloadPlayQueueBtn) {
+      downloadPlayQueueBtn.addEventListener("click", () => {
+        openDownloadModal(getPlayQueueDownloadSongs())
+      })
+    }
+
     // 事件委托
     if (playlistList)
       playlistList.addEventListener("click", handlePlaylistClick)
@@ -2780,6 +3567,7 @@
   async function initApp() {
     initDOMElements()
     bindAllEvents()
+    setupDownloadProgressListener()
     setupAudioListeners()
     setupSidebarResize()
 
@@ -2866,6 +3654,8 @@
     if (searchInput && searchInput.value.trim() !== "") {
       if (clearSearchBtn) clearSearchBtn.classList.remove("hidden")
     }
+
+    syncDownloadQualitySelects()
   }
 
   // 启动应用

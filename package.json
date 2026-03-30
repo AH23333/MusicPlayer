@@ -1,7 +1,7 @@
 {
   "name": "music-player",
   "productName": "MusicPlayer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A simple music player",
   "author": "AH23333",
   "homepage": "https://github.com/AH23333/MusicPlayer",
@@ -9,7 +9,8 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "sync-app": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-to-packaged.ps1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.4.0",
@@ -27,7 +28,10 @@
     "forge": {
       "packagerConfig": {
         "name": "MusicPlayer",
-        "executableName": "MusicPlayer"
+        "executableName": "MusicPlayer",
+        "extraResource": [
+          "music-dl-api.exe"
+        ]
       },
       "makers": [
         {

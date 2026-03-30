@@ -130,6 +130,10 @@ class ApiService {
     return await window.ElectronAPI.openFileDialog()
   }
 
+  async selectDownloadDirectory() {
+    return await window.ElectronAPI.selectDownloadDirectory()
+  }
+
   // 检查更新
   async checkForUpdates() {
     return await window.ElectronAPI.checkForUpdates()
@@ -138,6 +142,11 @@ class ApiService {
   // 打开下载页面
   async openDownloadPage(url) {
     return await window.ElectronAPI.openDownloadPage(url)
+  }
+
+  /** 批量下载在线歌曲到本地「ImportLocalSongs」目录 */
+  async downloadAudioFiles(payload) {
+    return await window.ElectronAPI.downloadAudioFiles(payload)
   }
 }
 
