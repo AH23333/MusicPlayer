@@ -2,6 +2,9 @@
 
 个人项目，AI生成，仅供学习娱乐，不可商用
 
+## ⚠️注意！
+main/master分支非项目最新进度，最新更新的项目代码请查看restruct分支！
+
 ## 下载
 [点击此处跳转下载](https://github.com/AH23333/MusicPlayer/releases)
 
