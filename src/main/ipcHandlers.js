@@ -37,7 +37,11 @@ function initIpcHandlers() {
       id: sid,
       songId: sid,
       name: item.name || item.title || "",
-      artist: item.artist || item.singer || item.ar?.map((a) => a.name).join("/") || "未知歌手",
+      artist:
+        item.artist ||
+        item.singer ||
+        item.ar?.map((a) => a.name).join("/") ||
+        "未知歌手",
       album:
         typeof item.album === "string"
           ? item.album
@@ -94,97 +98,104 @@ function initIpcHandlers() {
   }
 
   // 从网易云 / QQ 音乐网页链接拉取歌单（Meting API）
-  ipcMain.handle("fetch-web-playlist", async (event, urlOrId, platform = "auto") => {
-    const parsed = parseWebPlaylistUrl(urlOrId, platform)
-    if (!parsed) {
-      return {
-        success: false,
-        error:
-          "无法解析歌单。请粘贴浏览器地址栏完整链接；若只填数字 ID，请先选择对应平台。",
-      }
-    }
-    const { server: metingServer, id: playlistId } = parsed
-    logger.info(`拉取网页歌单 server=${metingServer} id=${playlistId}`)
-    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=${encodeURIComponent(metingServer)}&type=playlist&id=${encodeURIComponent(playlistId)}`
-    const data = await fetchViaProxy(metingUrl)
-
-    if (data === null) {
-      return {
-        success: false,
-        error: "无法连接歌单接口（网络异常或请求失败），请检查网络后重试",
-      }
-    }
-
-    let metingErrMsg = null
-    if (
-      data &&
-      typeof data === "object" &&
-      !Array.isArray(data) &&
-      data.error
-    ) {
-      metingErrMsg = String(data.error)
-      logger.warn(`Meting 歌单返回错误: ${metingErrMsg}`)
-    }
-
-    let rawList = []
-    let playlistName = null
-
-    if (!metingErrMsg) {
-      if (Array.isArray(data)) {
-        rawList = data
-      } else if (data && Array.isArray(data.songs)) {
-        rawList = data.songs
-        playlistName = data.name || data.title
-      } else if (data && Array.isArray(data.data)) {
-        rawList = data.data
-      } else if (data && data.playlist) {
-        const pl = data.playlist
-        playlistName = pl.name
-        if (Array.isArray(pl.tracks)) rawList = pl.tracks
-        else if (Array.isArray(pl.trackIds)) {
-          logger.warn("歌单仅返回 trackIds，需完整曲目接口，Meting 可能未返回曲目列表")
+  ipcMain.handle(
+    "fetch-web-playlist",
+    async (event, urlOrId, platform = "auto") => {
+      const parsed = parseWebPlaylistUrl(urlOrId, platform)
+      if (!parsed) {
+        return {
+          success: false,
+          error:
+            "无法解析歌单。请粘贴浏览器地址栏完整链接；若只填数字 ID，请先选择对应平台。",
         }
       }
-    }
+      const { server: metingServer, id: playlistId } = parsed
+      logger.info(`拉取网页歌单 server=${metingServer} id=${playlistId}`)
+      const metingUrl = `${API_CONFIGS.metingFallback.url}?server=${encodeURIComponent(metingServer)}&type=playlist&id=${encodeURIComponent(playlistId)}`
+      const data = await fetchViaProxy(metingUrl)
 
-    if (rawList.length === 0) {
-      logger.info("Meting 未返回曲目，尝试 music-dl-api 歌单接口（若 exe 未实现该路由则会失败）")
-      const dl = await fetchPlaylistFromMusicDl(metingServer, playlistId)
-      if (dl) {
-        rawList = dl.songs
-        playlistName = dl.name || playlistName
+      if (data === null) {
+        return {
+          success: false,
+          error: "无法连接歌单接口（网络异常或请求失败），请检查网络后重试",
+        }
       }
-    }
 
-    const songs = rawList
-      .map((item) => mapMetingPlaylistItemToSong(item, metingServer))
-      .filter(Boolean)
-
-    if (songs.length === 0) {
-      logger.warn(`网页歌单 ${metingServer}/${playlistId} 最终无可用曲目`)
-      let errMsg
-      if (metingErrMsg) {
-        errMsg = `歌单接口返回：${metingErrMsg}。请确认歌单公开、链接未失效，或稍后重试。`
-      } else {
-        errMsg =
-          "未获取到曲目。请确认链接正确、歌单为公开，或稍后重试。"
+      let metingErrMsg = null
+      if (
+        data &&
+        typeof data === "object" &&
+        !Array.isArray(data) &&
+        data.error
+      ) {
+        metingErrMsg = String(data.error)
+        logger.warn(`Meting 歌单返回错误: ${metingErrMsg}`)
       }
+
+      let rawList = []
+      let playlistName = null
+
+      if (!metingErrMsg) {
+        if (Array.isArray(data)) {
+          rawList = data
+        } else if (data && Array.isArray(data.songs)) {
+          rawList = data.songs
+          playlistName = data.name || data.title
+        } else if (data && Array.isArray(data.data)) {
+          rawList = data.data
+        } else if (data && data.playlist) {
+          const pl = data.playlist
+          playlistName = pl.name
+          if (Array.isArray(pl.tracks)) rawList = pl.tracks
+          else if (Array.isArray(pl.trackIds)) {
+            logger.warn(
+              "歌单仅返回 trackIds，需完整曲目接口，Meting 可能未返回曲目列表"
+            )
+          }
+        }
+      }
+
+      if (rawList.length === 0) {
+        logger.info(
+          "Meting 未返回曲目，尝试 music-dl-api 歌单接口（若 exe 未实现该路由则会失败）"
+        )
+        const dl = await fetchPlaylistFromMusicDl(metingServer, playlistId)
+        if (dl) {
+          rawList = dl.songs
+          playlistName = dl.name || playlistName
+        }
+      }
+
+      const songs = rawList
+        .map((item) => mapMetingPlaylistItemToSong(item, metingServer))
+        .filter(Boolean)
+
+      if (songs.length === 0) {
+        logger.warn(`网页歌单 ${metingServer}/${playlistId} 最终无可用曲目`)
+        let errMsg
+        if (metingErrMsg) {
+          errMsg = `歌单接口返回：${metingErrMsg}。请确认歌单公开、链接未失效，或稍后重试。`
+        } else {
+          errMsg = "未获取到曲目。请确认链接正确、歌单为公开，或稍后重试。"
+        }
+        return {
+          success: false,
+          error: errMsg,
+        }
+      }
+
+      const platLabel =
+        WEB_PLAYLIST_PLATFORM_LABELS[metingServer] || metingServer
       return {
-        success: false,
-        error: errMsg,
+        success: true,
+        playlistId,
+        platform: metingServer,
+        platformLabel: platLabel,
+        name: playlistName || `${platLabel}歌单 ${playlistId}`,
+        songs,
       }
     }
-
-    const platLabel = WEB_PLAYLIST_PLATFORM_LABELS[metingServer] || metingServer
-    return {
-      success: true,
-      playlistId,
-      platform: metingServer,
-      platformLabel: platLabel,
-      name: playlistName || `${platLabel}歌单 ${playlistId}`,
-      songs,
-    }
-  })
+  )
 
   // 搜索歌曲
   ipcMain.handle("search-music", async (event, keyword, offset = 0) => {
@@ -368,8 +379,12 @@ function initIpcHandlers() {
       })
 
       if (!result.canceled && result.filePath) {
-        // 保存文件
-        await storage.writeJSON(result.filePath, exportData)
+        const fs = require("fs").promises
+        await fs.writeFile(
+          result.filePath,
+          JSON.stringify(exportData, null, 2),
+          "utf8"
+        )
         logger.info(`歌单导出成功：${result.filePath}`)
         return { success: true, filePath: result.filePath }
       } else {
@@ -469,8 +484,12 @@ function initIpcHandlers() {
       })
 
       if (!result.canceled && result.filePath) {
-        // 保存文件
-        await storage.writeJSON(result.filePath, userData)
+        const fs = require("fs").promises
+        await fs.writeFile(
+          result.filePath,
+          JSON.stringify(userData, null, 2),
+          "utf8"
+        )
         logger.info(`用户信息导出成功：${result.filePath}`)
         return { success: true, filePath: result.filePath }
       } else {
@@ -1140,44 +1159,106 @@ function initIpcHandlers() {
     })
 
     try {
-    for (let i = 0; i < songs.length; i++) {
-      const song = songs[i]
-      let built = null
-      try {
-        built = buildDownloadUrlForSong(song, quality)
-      } catch (e) {
-        built = null
-      }
-      if (!built) {
-        results.skipped++
-        results.errors.push({
-          name: song?.name,
-          reason: "无法解析下载地址",
-        })
-        safeSend({
-          phase: "song",
-          index: i + 1,
-          total: songs.length,
-          songName: song?.name || "",
-          status: "skipped",
-          overallPercent: Math.round(((i + 1) / songs.length) * 100),
-        })
-        continue
-      }
+      for (let i = 0; i < songs.length; i++) {
+        const song = songs[i]
+        let built = null
+        try {
+          built = buildDownloadUrlForSong(song, quality)
+        } catch (e) {
+          built = null
+        }
+        if (!built) {
+          results.skipped++
+          results.errors.push({
+            name: song?.name,
+            reason: "无法解析下载地址",
+          })
+          safeSend({
+            phase: "song",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            status: "skipped",
+            overallPercent: Math.round(((i + 1) / songs.length) * 100),
+          })
+          continue
+        }
 
-      const resolved = await resolveMetingMediaUrl(built)
-      let streamUrl = resolved.url
-      if (!streamUrl) {
-        if (
-          built.includes("type=url") &&
-          (built.includes("qijieya.cn") || built.includes("/meting"))
-        ) {
+        const resolved = await resolveMetingMediaUrl(built)
+        let streamUrl = resolved.url
+        if (!streamUrl) {
+          if (
+            built.includes("type=url") &&
+            (built.includes("qijieya.cn") || built.includes("/meting"))
+          ) {
+            results.fail++
+            results.errors.push({
+              name: song?.name,
+              reason: resolved.reason || "无法解析 Meting 音频地址",
+              detail: resolved.detail || "",
+            })
+            safeSend({
+              phase: "song",
+              index: i + 1,
+              total: songs.length,
+              songName: song?.name || "",
+              status: "fail",
+              overallPercent: Math.round(((i + 1) / songs.length) * 100),
+            })
+            continue
+          }
+          streamUrl = built
+        }
+
+        let ext = ".mp3"
+        if (/\.flac(\?|$)/i.test(streamUrl)) ext = ".flac"
+        else if (/\.m4a(\?|$)/i.test(streamUrl)) ext = ".m4a"
+
+        const base = sanitizeDownloadFilename(
+          `${song.artist || "未知"} - ${song.name || "unknown"}`
+        )
+
+        const sendFileProgress = (received, totalBytes) => {
+          const filePct = totalBytes > 0 ? received / totalBytes : 0
+          const overall = (i + filePct) / songs.length
+          safeSend({
+            phase: "progress",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            overallPercent: Math.min(100, Math.round(overall * 100)),
+            filePercent: totalBytes > 0 ? Math.round(filePct * 100) : null,
+          })
+        }
+
+        try {
+          const destPath = uniqueDestPath(base, ext)
+          safeSend({
+            phase: "song",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            status: "downloading",
+            overallPercent: Math.round((i / songs.length) * 100),
+          })
+          await downloadBinaryToFile(streamUrl, destPath, sendFileProgress)
+          results.ok++
+          logger.info(`下载完成: ${path.basename(destPath)}`)
+          safeSend({
+            phase: "song",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            status: "ok",
+            overallPercent: Math.round(((i + 1) / songs.length) * 100),
+          })
+        } catch (err) {
           results.fail++
           results.errors.push({
             name: song?.name,
-            reason: resolved.reason || "无法解析 Meting 音频地址",
-            detail: resolved.detail || "",
+            reason: err.message || String(err),
           })
+          logger.error(`下载失败 ${song?.name}: ${err.message}`)
           safeSend({
             phase: "song",
             index: i + 1,
@@ -1186,71 +1267,8 @@ function initIpcHandlers() {
             status: "fail",
             overallPercent: Math.round(((i + 1) / songs.length) * 100),
           })
-          continue
         }
-        streamUrl = built
       }
-
-      let ext = ".mp3"
-      if (/\.flac(\?|$)/i.test(streamUrl)) ext = ".flac"
-      else if (/\.m4a(\?|$)/i.test(streamUrl)) ext = ".m4a"
-
-      const base = sanitizeDownloadFilename(
-        `${song.artist || "未知"} - ${song.name || "unknown"}`
-      )
-
-      const sendFileProgress = (received, totalBytes) => {
-        const filePct = totalBytes > 0 ? received / totalBytes : 0
-        const overall = (i + filePct) / songs.length
-        safeSend({
-          phase: "progress",
-          index: i + 1,
-          total: songs.length,
-          songName: song?.name || "",
-          overallPercent: Math.min(100, Math.round(overall * 100)),
-          filePercent:
-            totalBytes > 0 ? Math.round(filePct * 100) : null,
-        })
-      }
-
-      try {
-        const destPath = uniqueDestPath(base, ext)
-        safeSend({
-          phase: "song",
-          index: i + 1,
-          total: songs.length,
-          songName: song?.name || "",
-          status: "downloading",
-          overallPercent: Math.round((i / songs.length) * 100),
-        })
-        await downloadBinaryToFile(streamUrl, destPath, sendFileProgress)
-        results.ok++
-        logger.info(`下载完成: ${path.basename(destPath)}`)
-        safeSend({
-          phase: "song",
-          index: i + 1,
-          total: songs.length,
-          songName: song?.name || "",
-          status: "ok",
-          overallPercent: Math.round(((i + 1) / songs.length) * 100),
-        })
-      } catch (err) {
-        results.fail++
-        results.errors.push({
-          name: song?.name,
-          reason: err.message || String(err),
-        })
-        logger.error(`下载失败 ${song?.name}: ${err.message}`)
-        safeSend({
-          phase: "song",
-          index: i + 1,
-          total: songs.length,
-          songName: song?.name || "",
-          status: "fail",
-          overallPercent: Math.round(((i + 1) / songs.length) * 100),
-        })
-      }
-    }
     } finally {
       safeSend({
         phase: "complete",
