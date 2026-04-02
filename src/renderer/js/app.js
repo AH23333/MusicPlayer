@@ -2327,63 +2327,72 @@
       return
     }
 
-    // 尝试对URL进行编码处理
-    try {
-      // 检查URL是否包含有效协议
-      if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
-        console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-        showToastError("播放失败：歌曲链接格式错误")
-        return
+    // 检查是否是本地文件
+    const isLocal = isSongLocalPath(song)
+    console.log("[播放器] 是否本地文件:", isLocal)
+
+    // 如果不是本地文件，进行URL验证
+    if (!isLocal) {
+      // 尝试对URL进行编码处理
+      try {
+        // 检查URL是否包含有效协议
+        if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
+          console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
+          showToastError("播放失败：歌曲链接格式错误")
+          return
+        }
+        console.log("[播放器] 原始URL:", audioUrl)
+        console.log("[播放器] URL长度:", audioUrl.length)
+        console.log("[播放器] URL是否包含特殊字符:", /[+&=]/.test(audioUrl))
+        // 检查URL是否可以访问
+        fetch(audioUrl, { method: "HEAD" })
+          .then((response) => {
+            console.log("[播放器] URL检查响应状态:", response.status)
+            console.log(
+              "[播放器] URL Content-Type:",
+              response.headers.get("content-type")
+            )
+          })
+          .catch((err) => {
+            console.error("[播放器] URL检查失败:", err)
+          })
+      } catch (e) {
+        console.error("[播放器] URL处理错误:", e)
       }
-      console.log("[播放器] 原始URL:", audioUrl)
-      console.log("[播放器] URL长度:", audioUrl.length)
-      console.log("[播放器] URL是否包含特殊字符:", /[+&=]/.test(audioUrl))
-      // 检查URL是否可以访问
-      fetch(audioUrl, { method: "HEAD" })
-        .then((response) => {
-          console.log("[播放器] URL检查响应状态:", response.status)
-          console.log(
-            "[播放器] URL Content-Type:",
-            response.headers.get("content-type")
-          )
-        })
-        .catch((err) => {
-          console.error("[播放器] URL检查失败:", err)
-        })
-    } catch (e) {
-      console.error("[播放器] URL处理错误:", e)
     }
 
     // 尝试对URL进行编码处理
     let encodedUrl = audioUrl
-    try {
-      // 检查URL是否包含有效协议
-      if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
-        console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-        showToastError("播放失败：歌曲链接格式错误")
-        return
+    if (!isLocal) {
+      try {
+        // 检查URL是否包含有效协议
+        if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
+          console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
+          showToastError("播放失败：歌曲链接格式错误")
+          return
+        }
+
+        // 尝试对URL进行编码
+        encodedUrl = encodeURIComponent(audioUrl)
+        console.log("[播放器] 原始URL:", audioUrl)
+        console.log("[播放器] 编码后URL:", encodedUrl)
+        console.log("[播放器] URL长度:", audioUrl.length)
+
+        // 检查URL是否可以访问
+        fetch(audioUrl, { method: "HEAD" })
+          .then((response) => {
+            console.log("[播放器] URL检查响应状态:", response.status)
+            console.log(
+              "[播放器] URL Content-Type:",
+              response.headers.get("content-type")
+            )
+          })
+          .catch((err) => {
+            console.error("[播放器] URL检查失败:", err)
+          })
+      } catch (e) {
+        console.error("[播放器] URL处理错误:", e)
       }
-
-      // 尝试对URL进行编码
-      encodedUrl = encodeURIComponent(audioUrl)
-      console.log("[播放器] 原始URL:", audioUrl)
-      console.log("[播放器] 编码后URL:", encodedUrl)
-      console.log("[播放器] URL长度:", audioUrl.length)
-
-      // 检查URL是否可以访问
-      fetch(audioUrl, { method: "HEAD" })
-        .then((response) => {
-          console.log("[播放器] URL检查响应状态:", response.status)
-          console.log(
-            "[播放器] URL Content-Type:",
-            response.headers.get("content-type")
-          )
-        })
-        .catch((err) => {
-          console.error("[播放器] URL检查失败:", err)
-        })
-    } catch (e) {
-      console.error("[播放器] URL处理错误:", e)
     }
 
     // 先尝试使用原始URL，如果失败再尝试编码后的URL

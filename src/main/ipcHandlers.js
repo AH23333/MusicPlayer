@@ -628,14 +628,15 @@ function initIpcHandlers() {
       await fs.access(localDir)
       const files = await fs.readdir(localDir)
       const songs = []
+      
+      // 支持的音频格式
+      const supportedFormats = ["mp3", "wav", "flac", "m4a", "ogg", "wma"]
 
       for (const file of files) {
-        if (
-          file.endsWith(".mp3") ||
-          file.endsWith(".wav") ||
-          file.endsWith(".flac") ||
-          file.endsWith(".m4a")
-        ) {
+        const ext = path.extname(file).toLowerCase()
+        const extWithoutDot = ext.substring(1).toLowerCase()
+        
+        if (supportedFormats.includes(extWithoutDot)) {
           const filePath = path.join(localDir, file)
           const stats = await fs.stat(filePath)
 
