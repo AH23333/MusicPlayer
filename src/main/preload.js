@@ -34,7 +34,7 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   exportPlaylist: (playlist) => ipcRenderer.invoke("export-playlist", playlist),
   importPlaylist: () => ipcRenderer.invoke("import-playlist"),
   // 新增：导入导出用户信息
-  exportUserInfo: () => ipcRenderer.invoke("export-user-info"),
+  exportUserInfo: (localData) => ipcRenderer.invoke("export-user-info", localData),
   importUserInfo: () => ipcRenderer.invoke("import-user-info"),
   // 新增：搜索历史
   readSearchHistory: () => ipcRenderer.invoke("read-search-history"),
@@ -59,6 +59,8 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),
   musicDlLyric: (id, source) => ipcRenderer.invoke("musicDlLyric", id, source),
   musicDlStatus: () => ipcRenderer.invoke("musicDlStatus"),
+  musicSongDetail: (server, id) =>
+    ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>
     ipcRenderer.invoke("fetch-web-playlist", urlOrId, platform || "auto"),
   fetchNeteasePlaylist: (urlOrId) =>
@@ -70,5 +72,33 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.on("download-progress", handler)
     return () =>
       ipcRenderer.removeListener("download-progress", handler)
+  },
+  // 窗口控制（无边框自定义标题栏）
+  windowMinimize: () => ipcRenderer.send("window-minimize"),
+  windowMaximize: () => ipcRenderer.send("window-maximize"),
+  windowClose: () => ipcRenderer.send("window-close"),
+
+  // ===== 新功能：媒体键 / 托盘 / 迷你 / 桌面歌词 / 通知 =====
+  onMediaControl: (cb) => {
+    const h = (_e, action) => cb(action)
+    ipcRenderer.on("media-control", h)
+  },
+  setMiniMode: (enter) => ipcRenderer.send("set-mini-mode", !!enter),
+  toggleDesktopLyrics: (force) =>
+    ipcRenderer.send("desktop-lyrics-toggle", typeof force === "boolean" ? force : undefined),
+  desktopLyricsLine: (data) => ipcRenderer.send("desktop-lyrics-line", data),
+  setDesktopLyricsOpacity: (v) => ipcRenderer.send("desktop-lyrics-opacity", v),
+  onDesktopLyricsLine: (cb) =>
+    ipcRenderer.on("desktop-lyrics-line", (_e, data) => cb(data)),
+  onDesktopLyricsState: (cb) =>
+    ipcRenderer.on("desktop-lyrics-state", (_e, open) => cb(open)),
+  desktopLyricsClose: () => ipcRenderer.send("desktop-lyrics-toggle", false),
+  notifySong: (info) => ipcRenderer.send("notify-song", info),
+
+  // 跨域音频经同源代理，避免 Web Audio（频谱/EQ）被 CORS 污染
+  proxyMedia: (url) => {
+    if (!url || typeof url !== "string") return url
+    if (/^https?:\/\//i.test(url)) return "mpmedia://audio/?u=" + encodeURIComponent(url)
+    return url
   },
 })

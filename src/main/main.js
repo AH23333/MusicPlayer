@@ -1,58 +1,425 @@
-const { app, BrowserWindow } = require("electron")
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  globalShortcut,
+  Tray,
+  Menu,
+  Notification,
+  nativeImage,
+  screen,
+  protocol,
+  net,
+} = require("electron")
 const path = require("path")
+const zlib = require("zlib")
 const logger = require("./services/logger")
 const { initIpcHandlers } = require("./ipcHandlers")
 const musicDlService = require("./services/musicDlService")
 
-let mainWindow
+// 注册同源媒体代理协议（必须在 app.ready 前）：
+// 让跨域音频经 mpmedia:// 代理，避免 createMediaElementSource（频谱/均衡器）时被 CORS 污染为静音。
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "mpmedia",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      corsEnabled: true,
+      bypassCSP: true,
+    },
+  },
+])
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
+let mainWindow
+let tray = null
+let desktopLyricsWin = null
+let desktopLyricsOpacity = 0.92
+let savedBounds = null
+let isQuitting = false
+
+// 生成绿色音符托盘图标（无需外部资源）
+function createTrayIcon(size = 22) {
+  const S = size
+  // 单八分音符：符干 + 符头(椭圆) + 符尾(三角)
+  const inEllipse = (x, y, cx, cy, rx, ry) => {
+    const d = ((x - cx) ** 2) / (rx * rx) + ((y - cy) ** 2) / (ry * ry)
+    return d <= 1
+  }
+  const tri = [
+    [Math.round(S * 0.58), Math.round(S * 0.14)],
+    [Math.round(S * 0.88), Math.round(S * 0.28)],
+    [Math.round(S * 0.58), Math.round(S * 0.46)],
+  ]
+  const inTri = (px, py) => {
+    const [a, b, c] = tri
+    const v0x = c[0] - a[0], v0y = c[1] - a[1]
+    const v1x = b[0] - a[0], v1y = b[1] - a[1]
+    const v2x = px - a[0], v2y = py - a[1]
+    const dot = v0x * v0x + v0y * v0y
+    const dot1 = v0x * v1x + v0y * v1y
+    const dot2 = v0x * v2x + v0y * v2y
+    const dot3 = v1x * v1x + v1y * v1y
+    const dot4 = v1x * v2x + v1y * v2y
+    const inv = 1 / (dot * dot3 - dot1 * dot1)
+    const u = (dot3 * dot2 - dot1 * dot4) * inv
+    const v = (dot * dot4 - dot1 * dot2) * inv
+    return u >= 0 && v >= 0 && u + v < 1
+  }
+  const barX0 = Math.round(S * 0.5),
+    barX1 = Math.round(S * 0.62),
+    barY0 = Math.round(S * 0.14),
+    barY1 = Math.round(S * 0.72)
+  const headCx = S * 0.36,
+    headCy = S * 0.72,
+    rx = S * 0.21,
+    ry = S * 0.16
+  const isNote = (x, y) => {
+    if (x >= barX0 && x <= barX1 && y >= barY0 && y <= barY1) return true
+    if (inEllipse(x, y, headCx, headCy, rx, ry)) return true
+    if (inTri(x + 0.5, y + 0.5)) return true
+    return false
+  }
+  // 原始 RGBA
+  const raw = Buffer.alloc(S * (S * 4 + 1))
+  for (let y = 0; y < S; y++) {
+    raw[y * (S * 4 + 1)] = 0 // filter byte
+    for (let x = 0; x < S; x++) {
+      const o = y * (S * 4 + 1) + 1 + x * 4
+      if (isNote(x, y)) {
+        raw[o] = 29; raw[o + 1] = 185; raw[o + 2] = 84; raw[o + 3] = 255
+      } else {
+        raw[o] = 0; raw[o + 1] = 0; raw[o + 2] = 0; raw[o + 3] = 0
+      }
+    }
+  }
+  const crcTable = (() => {
+    const t = new Int32Array(256)
+    for (let n = 0; n < 256; n++) {
+      let c = n
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+      t[n] = c
+    }
+    return t
+  })()
+  const crc32 = (buf) => {
+    let c = 0xffffffff
+    for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xff] ^ (c >>> 8)
+    return (c ^ 0xffffffff) >>> 0
+  }
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4)
+    len.writeUInt32BE(data.length)
+    const t = Buffer.from(type, "ascii")
+    const c = Buffer.alloc(4)
+    c.writeUInt32BE(crc32(Buffer.concat([t, data])))
+    return Buffer.concat([len, t, data, c])
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(S, 0); ihdr.writeUInt32BE(S, 4)
+  ihdr[8] = 8; ihdr[9] = 6 // 8-bit RGBA
+  const idat = zlib.deflateSync(raw)
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", idat),
+    chunk("IEND", Buffer.alloc(0)),
+  ])
+  return nativeImage.createFromBuffer(png)
+}
+
+function sendControl(action) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("media-control", action)
+  }
+}
+
+function createTray() {
+  if (tray) return
+  const icon = createTrayIcon(22)
+  tray = new Tray(icon)
+  tray.setToolTip("音乐播放器")
+  const buildMenu = () =>
+    Menu.buildFromTemplate([
+      { label: "播放 / 暂停", click: () => sendControl("toggle") },
+      { label: "上一首", click: () => sendControl("prev") },
+      { label: "下一首", click: () => sendControl("next") },
+      { type: "separator" },
+      { label: "桌面歌词", click: () => toggleDesktopLyrics() },
+      { label: "迷你模式", click: () => setMiniMode(true) },
+      { label: "显示主界面", click: () => restoreMainWindow() },
+      { type: "separator" },
+      {
+        label: "退出",
+        click: () => {
+          isQuitting = true
+          app.quit()
+        },
+      },
+    ])
+  tray.setContextMenu(buildMenu())
+  tray.on("click", () => {
+    if (mainWindow.isVisible()) mainWindow.hide()
+    else restoreMainWindow()
+  })
+}
+
+function restoreMainWindow() {
+  if (!mainWindow) return
+  if (!mainWindow.isVisible()) mainWindow.show()
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.focus()
+}
+
+function setMiniMode(enter) {
+  if (!mainWindow) return
+  if (enter) {
+    if (!savedBounds) savedBounds = mainWindow.getBounds()
+    mainWindow.setResizable(false)
+    mainWindow.setAlwaysOnTop(true, "floating")
+    const w = 320,
+      h = 118
+    const wa = screen.getPrimaryDisplay().workAreaSize
+    mainWindow.setBounds({
+      width: w,
+      height: h,
+      x: Math.round(wa.width - w - 24),
+      y: Math.round(wa.height - h - 24),
+    })
+    mainWindow.setMinimumSize(320, 118)
+    mainWindow.show()
+  } else {
+    mainWindow.setResizable(true)
+    mainWindow.setAlwaysOnTop(false)
+    mainWindow.setMinimumSize(900, 600)
+    if (savedBounds) mainWindow.setBounds(savedBounds)
+    else mainWindow.setSize(1080, 720)
+  }
+}
+
+function createDesktopLyricsWindow() {
+  const dm = screen.getPrimaryDisplay().workAreaSize
+  const w = Math.min(1000, dm.width - 40)
+  desktopLyricsWin = new BrowserWindow({
+    width: w,
+    height: 110,
+    x: Math.round((dm.width - w) / 2),
+    y: dm.height - 180,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    focusable: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
       preload: path.join(__dirname, "preload.js"),
-      webSecurity: false, // 禁用web安全策略，允许加载外部资源
+    },
+  })
+  desktopLyricsWin.setAlwaysOnTop(true, "screen-saver")
+  desktopLyricsWin.setOpacity(desktopLyricsOpacity)
+  desktopLyricsWin.loadFile(
+    path.join(__dirname, "..", "renderer", "desktop-lyrics.html")
+  )
+  desktopLyricsWin.on("closed", () => {
+    desktopLyricsWin = null
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send("desktop-lyrics-state", false)
+  })
+}
+
+function toggleDesktopLyrics(force) {
+  const shouldShow =
+    typeof force === "boolean" ? force : !(desktopLyricsWin && desktopLyricsWin.isVisible())
+  if (shouldShow) {
+    if (!desktopLyricsWin) createDesktopLyricsWindow()
+    else desktopLyricsWin.show()
+  } else if (desktopLyricsWin) {
+    desktopLyricsWin.hide()
+  }
+  if (mainWindow && !mainWindow.isDestroyed())
+    mainWindow.webContents.send("desktop-lyrics-state", shouldShow)
+}
+
+// 同源媒体代理：mpmedia://audio?u=<encodeURIComponent(真实URL)>
+// 透传 Range 以支持 206 分段与拖拽，跟随重定向，并补 CORS 头使 Web Audio 不被污染。
+function registerMediaProtocol() {
+  protocol.handle("mpmedia", async (request) => {
+    const t0 = Date.now()
+    let target = ""
+    try {
+      const reqUrl = new URL(request.url)
+      target = reqUrl.searchParams.get("u")
+      if (!target) return new Response("bad url", { status: 400 })
+      const headers = new Headers()
+      const range = request.headers.get("range")
+      if (range) headers.set("range", range)
+      const resp = await net.fetch(target, {
+        headers,
+        redirect: "follow",
+        signal: request.signal,
+      })
+      // 只白名单透传媒体必需响应头：net.fetch 已对 body 解码/去分块，
+      // 原样带回 content-encoding / transfer-encoding 会让媒体流解析挂起。
+      const out = new Headers()
+      for (const k of [
+        "content-type",
+        "content-length",
+        "content-range",
+        "accept-ranges",
+        "cache-control",
+        "etag",
+        "last-modified",
+      ]) {
+        const v = resp.headers.get(k)
+        if (v) out.set(k, v)
+      }
+      out.set("Access-Control-Allow-Origin", "*")
+      return new Response(resp.body, {
+        status: resp.status,
+        statusText: resp.statusText,
+        headers: out,
+      })
+    } catch (err) {
+      // 客户端切歌/中止时 request.signal 触发，取消上游、释放连接，不算错误
+      if (err && (err.name === "AbortError" || /abort/i.test(err.message || ""))) {
+        return new Response("aborted", { status: 499 })
+      }
+      console.log("[mpmedia] proxy error", err.message, "after", Date.now() - t0, "ms", target.slice(0, 70))
+      return new Response("proxy error: " + err.message, { status: 502 })
+    }
+  })
+}
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1080,
+    height: 720,
+    minWidth: 900,
+    minHeight: 600,
+    frame: false,
+    backgroundColor: "#0e0f13",
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      preload: path.join(__dirname, "preload.js"),
+      webSecurity: false,
     },
   })
 
+  mainWindow.setMenu(null)
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"))
   logger.info("窗口创建完成，预加载脚本已配置")
+
+  // 转发渲染端 console，便于排查
+  mainWindow.webContents.on("console-message", (_e, level, message, line, sourceId) => {
+    const tag = ["LOG", "WARN", "ERROR"][level] || "LOG"
+    console.log(`[renderer:${tag}] ${message}  (${sourceId.split(/[\\/]/).pop()}:${line})`)
+  })
+  mainWindow.webContents.on("render-process-gone", (_e, details) => {
+    console.log(`[renderer:GONE] ${details.reason}`)
+  })
+  mainWindow.webContents.on("did-fail-load", (_e, code, desc) => {
+    console.log(`[renderer:LOADFAIL] ${code} ${desc}`)
+  })
+
+  // 关闭按钮：默认隐藏到托盘，退出走托盘菜单
+  mainWindow.on("close", (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      mainWindow.hide()
+    }
+  })
+
+  // 无边框窗口控制
+  ipcMain.on("window-minimize", () => mainWindow.minimize())
+  ipcMain.on("window-maximize", () => {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
+  })
+  ipcMain.on("window-close", () => mainWindow.close())
+
+  // 迷你模式
+  ipcMain.on("set-mini-mode", (_e, enter) => setMiniMode(enter))
+
+  // 桌面歌词
+  ipcMain.on("desktop-lyrics-toggle", (_e, force) => toggleDesktopLyrics(force))
+  ipcMain.on("desktop-lyrics-line", (_e, data) => {
+    if (desktopLyricsWin && !desktopLyricsWin.isDestroyed())
+      desktopLyricsWin.webContents.send("desktop-lyrics-line", data)
+  })
+  ipcMain.on("desktop-lyrics-opacity", (_e, val) => {
+    desktopLyricsOpacity = Math.min(1, Math.max(0.1, val))
+    if (desktopLyricsWin) desktopLyricsWin.setOpacity(desktopLyricsOpacity)
+  })
+
+  // 切歌系统通知
+  ipcMain.on("notify-song", (_e, info) => {
+    try {
+      if (Notification.isSupported() && info && info.title) {
+        const n = new Notification({
+          title: info.title,
+          body: info.artist || "",
+          icon: createTrayIcon(64),
+          silent: true,
+        })
+        n.on("click", () => restoreMainWindow())
+        n.show()
+      }
+    } catch (err) {
+      console.log("[notify] error", err.message)
+    }
+  })
 }
 
-// 启动时初始化日志文件和 IPC 处理器
 app.whenReady().then(() => {
-  logger.init() // 初始化日志文件
+  logger.init()
   logger.info("Electron应用启动")
 
-  // 启动音乐下载服务
+  // 全局媒体键
+  try {
+    globalShortcut.register("MediaPlayPause", () => sendControl("toggle"))
+    globalShortcut.register("MediaNextTrack", () => sendControl("next"))
+    globalShortcut.register("MediaPreviousTrack", () => sendControl("prev"))
+    globalShortcut.register("MediaStop", () => sendControl("pause"))
+  } catch (err) {
+    console.log("[globalShortcut] 注册失败", err.message)
+  }
+
   musicDlService
     .start()
-    .then(() => {
-      logger.info("音乐下载服务启动成功")
-    })
-    .catch((error) => {
-      logger.error("音乐下载服务启动失败:", error)
-    })
+    .then(() => logger.info("音乐下载服务启动成功"))
+    .catch((error) => logger.error("音乐下载服务启动失败:", error))
 
-  initIpcHandlers() // 初始化 IPC 处理器
+  initIpcHandlers()
+  registerMediaProtocol()
   createWindow()
-  // 移除自动检查更新，避免API调用
+  createTray()
 })
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit()
+  if (process.platform !== "darwin") {
+    // 托盘常驻，不主动退出
+  }
 })
 
-app.on("before-quit", async () => {
-  // 停止音乐下载服务
+app.on("before-quit", () => {
+  isQuitting = true
   try {
-    await musicDlService.stop()
-    logger.info("音乐下载服务已停止")
-  } catch (error) {
-    logger.error("停止音乐下载服务时出错:", error)
-  }
+    globalShortcut.unregisterAll()
+  } catch (e) {}
+})
+
+app.on("will-quit", () => {
+  try {
+    globalShortcut.unregisterAll()
+  } catch (e) {}
 })

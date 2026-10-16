@@ -16,6 +16,16 @@ const axios = require("axios")
 // 同时在 ipcHandlers.js 顶部定义 PAGE_SIZE
 const PAGE_SIZE = 20
 
+// 本地歌曲稳定 ID：基于文件名生成（避免每次读取用随机 ID 导致喜欢/选中状态丢失）
+function stableLocalSongId(fileName) {
+  return (
+    "local_" +
+    Buffer.from(String(fileName))
+      .toString("base64")
+      .replace(/[^a-zA-Z0-9]/g, "")
+  )
+}
+
 // 初始化 IPC 处理器
 function initIpcHandlers() {
   // 测试函数
@@ -204,7 +214,9 @@ function initIpcHandlers() {
 
     // 直接使用Meting API（因为网易云API已失效）
     logger.info("使用Meting API进行搜索")
-    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=${PAGE_SIZE}&offset=${offset}`
+    // Meting search 不支持 offset，通过一次多取（offset+PAGE_SIZE）再切片实现分页
+    const fetchLimit = offset + PAGE_SIZE
+    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=${fetchLimit}&offset=${offset}`
     const metingData = await fetchViaProxy(metingUrl)
 
     logger.info(`Meting API返回数据类型: ${typeof metingData}`)
@@ -247,7 +259,8 @@ function initIpcHandlers() {
       if (songs.length > 0) {
         logger.info(`第一个解析结果: ${JSON.stringify(songs[0])}`)
       }
-      return songs
+      // 仅返回当前页（第 offset 起 PAGE_SIZE 条）
+      return songs.slice(offset, offset + PAGE_SIZE)
     }
 
     logger.warn("所有搜索API均无结果")
@@ -448,7 +461,7 @@ function initIpcHandlers() {
   })
 
   // 导出用户信息
-  ipcMain.handle("export-user-info", async (event) => {
+  ipcMain.handle("export-user-info", async (event, localData) => {
     logger.info("导出用户信息")
     const window = event.sender.getOwnerBrowserWindow()
     try {
@@ -459,6 +472,7 @@ function initIpcHandlers() {
         diyPlaylists: [],
         searchHistory: [],
         latestPlayed: [],
+        local: null,
       }
 
       // 读取我喜欢的歌曲
@@ -475,6 +489,9 @@ function initIpcHandlers() {
 
       // 读取最近播放
       userData.latestPlayed = await storage.readJSON("Latest.json")
+
+      // 附带 renderer 端 localStorage 数据（设置 / 统计 / 音量等）
+      userData.local = localData && typeof localData === "object" ? localData : null
 
       // 打开文件保存对话框
       const result = await dialog.showSaveDialog(window, {
@@ -554,7 +571,7 @@ function initIpcHandlers() {
           }
 
           logger.info(`用户信息导入成功：${importPath}`)
-          return { success: true }
+          return { success: true, local: userData.local || null }
         } else {
           throw new Error("用户数据格式错误")
         }
@@ -597,8 +614,11 @@ function initIpcHandlers() {
         const formatMatch = coverData.match(/^data:image\/(\w+);base64,/)
         const format = formatMatch ? formatMatch[1] : "png"
 
-        // 生成文件名
-        const fileName = `${playlistId}.${format}`
+        // 生成文件名（净化 playlistId，防止路径遍历写入）
+        const safeId = path
+          .basename(String(playlistId))
+          .replace(/[^\w-]/g, "_")
+        const fileName = `${safeId}.${format}`
         const filePath = path.join(coverDir, fileName)
 
         // 解码base64数据
@@ -645,7 +665,7 @@ function initIpcHandlers() {
           const songInfo = fileName.split(" - ")
 
           songs.push({
-            id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: stableLocalSongId(file),
             name: songInfo.length > 1 ? songInfo[1] : fileName,
             artist: songInfo.length > 1 ? songInfo[0] : "本地艺术家",
             album: "本地专辑",
@@ -706,7 +726,7 @@ function initIpcHandlers() {
           // 提取歌曲信息
           const songInfo = fileName.split(" - ")
           importedSongs.push({
-            id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: stableLocalSongId(fileName),
             name:
               songInfo.length > 1
                 ? songInfo[1]
@@ -734,8 +754,16 @@ function initIpcHandlers() {
     logger.info(`删除本地歌曲：${songUrl}`)
     try {
       const fs = require("fs").promises
-      await fs.unlink(songUrl)
-      logger.info(`本地歌曲删除成功：${songUrl}`)
+      const path = require("path")
+      const localDir = path.resolve(storage.ROOT_DIR, "ImportLocalSongs")
+      const target = path.resolve(songUrl)
+      // 仅允许删除导入目录内的文件，防止渲染端传入任意路径造成任意文件删除
+      if (target !== localDir && !target.startsWith(localDir + path.sep)) {
+        logger.warn(`拒绝删除导入目录之外的文件：${target}`)
+        return { success: false, error: "仅允许删除已导入的本地歌曲" }
+      }
+      await fs.unlink(target)
+      logger.info(`本地歌曲删除成功：${target}`)
       return { success: true }
     } catch (err) {
       logger.error(`删除本地歌曲失败：${err.message}`)
@@ -1407,6 +1435,27 @@ function initIpcHandlers() {
     return {
       running: musicDlService.isRunning(),
       baseUrl: musicDlService.getBaseUrl(),
+    }
+  })
+
+  // 按歌曲 id 解析在线歌曲详情（名称/歌手/真实封面/歌词），用于补全封面与歌词页沉浸背景
+  ipcMain.handle("music-song-detail", async (event, server, id) => {
+    const srv = String(server || "netease")
+    const songId = String(id)
+    try {
+      const api =
+        "https://api.qijieya.cn/meting/?server=" +
+        encodeURIComponent(srv) +
+        "&type=song&id=" +
+        encodeURIComponent(songId)
+      const resp = await axios.get(api, { timeout: 15000 })
+      const arr = resp.data
+      if (Array.isArray(arr) && arr.length && arr[0]) {
+        return { success: true, ...arr[0] }
+      }
+      return { success: false, error: "empty" }
+    } catch (err) {
+      return { success: false, error: err.message }
     }
   })
 

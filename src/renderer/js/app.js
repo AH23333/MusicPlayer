@@ -7,10 +7,8 @@
   function debounce(fn, delay) {
     let timer
     const debounced = function (...args) {
-      console.log("[防抖] 调用，延迟", delay, "ms")
       clearTimeout(timer)
       timer = setTimeout(() => {
-        console.log("[防抖] 执行目标函数")
         fn.apply(this, args)
       }, delay)
     }
@@ -39,7 +37,16 @@
   let latestPlayed = []
   let localSongs = []
   let currentSongIndex = -1
+  let playGeneration = 0
+  let consecutiveFailCount = 0
   let playMode = "order"
+  // 播放看护：区分用户主动暂停与网络/解码器导致的异常暂停、缓冲卡死
+  let userIntentPause = true // 用户意图是否暂停（无歌时视为暂停）
+  let watchdogLastTime = -1 // 看护检测到的上次播放进度
+  let stallTicks = 0 // 播放中进度连续不推进的秒数
+  let recoverTries = 0 // 当前曲目已尝试的自动恢复次数
+  let loadingSong = false // playCurrentSong 加载/重载中（看护期间不干预）
+  let watchdogStarted = false
   let currentLyrics = []
   let lyricLines = []
   let searchOffset = 0
@@ -53,9 +60,29 @@
   let isSearching = false
   let lastActiveIndex = -1
   let animationFrameId = null
+  // 歌词时间轴偏移（秒）：正值歌词提前，负值歌词延后
+  let lyricOffset = 0
+  try {
+    lyricOffset = parseFloat(localStorage.getItem("mp-lyric-offset")) || 0
+  } catch (e) {
+    lyricOffset = 0
+  }
+  function adjustLyricOffset(delta) {
+    lyricOffset = Math.max(
+      -10,
+      Math.min(10, Math.round((lyricOffset + delta) * 10) / 10)
+    )
+    try {
+      localStorage.setItem("mp-lyric-offset", lyricOffset)
+    } catch (e) {}
+    lastActiveIndex = -999 // 强制下一次重新计算并高亮
+    return lyricOffset
+  }
   const MAX_SEARCH_HISTORY = 50
   const PAGE_SIZE = 20
   const MAX_LATEST_PLAYED = 50
+  const SEARCH_CACHE_MAX = 60
+  const LYRICS_CACHE_MAX = 100
   const DOWNLOAD_QUALITY_KEY = "downloadMusicQuality"
   let selectedSearchIds = new Set()
   let selectedPlaylistDetailIds = new Set()
@@ -66,6 +93,18 @@
   let downloadActive = false
   let lastDownloadUi = { overallPercent: 0, text: "" }
   let teardownDownloadProgress = null
+
+  // ========== 功能模块事件总线（供 features.js 订阅）==========
+  const featureEventListeners = {}
+  function emitFeature(evt, payload) {
+    ;(featureEventListeners[evt] || []).forEach((cb) => {
+      try {
+        cb(payload)
+      } catch (err) {
+        console.error("[feature] 事件处理错误", evt, err)
+      }
+    })
+  }
 
   // ========== 辅助函数 ==========
   let likedSavesQueue = []
@@ -102,13 +141,25 @@
   }
 
   function escapeHtml(str) {
-    if (!str) return ""
-    return str.replace(/[&<>]/g, function (m) {
+    if (str === null || str === undefined) return ""
+    return String(str).replace(/[&<>"']/g, function (m) {
       if (m === "&") return "&amp;"
       if (m === "<") return "&lt;"
       if (m === ">") return "&gt;"
+      if (m === '"') return "&quot;"
+      if (m === "'") return "&#39;"
       return m
     })
+  }
+
+  // 统一控制“加载更多”显隐：Tailwind .hidden 为 display:none !important，
+  // 内联 style.display 无法覆盖，必须操作 classList
+  function setLoadMoreVisible(show) {
+    const btn =
+      loadMoreBtn || document.getElementById("loadMoreBtn")
+    if (!btn) return
+    btn.classList.toggle("hidden", !show)
+    btn.style.display = ""
   }
 
   function isSongLocalPath(song) {
@@ -609,7 +660,11 @@
   let searchResultsSection,
     playlistDetailSection,
     playlistDetailTitle,
-    playlistDetailList
+    playlistDetailList,
+    playlistDetailGrid,
+    playlistDetailListCard,
+    viewListBtn,
+    viewGridBtn
   let backToSearchBtn
   let lyricsArea,
     lyricsInterface,
@@ -618,7 +673,16 @@
     lyricsSongTitle,
     lyricsSongArtist
   let audioPlayer, coverImg, songTitle, songArtist, prevBtn, nextBtn
-  let orderBtn, reverseBtn, singleLoopBtn, listLoopBtn, shuffleBtn, modeBtns
+  let orderBtn, reverseBtn, singleLoopBtn, listLoopBtn, shuffleBtn, modeBtns, modeCycleBtn
+  // 底栏单个模式按钮的循环顺序与中文标题
+  const MODE_CYCLE = ["order", "listLoop", "singleLoop", "shuffle", "reverse"]
+  const MODE_LABELS = {
+    order: "顺序播放（播完停止）",
+    reverse: "倒序播放",
+    singleLoop: "单曲循环",
+    listLoop: "列表循环",
+    shuffle: "随机播放",
+  }
   let mainInterface
   let playlistEditModal, playlistEditForm, playlistName, playlistDescription
   let coverUpload, coverPreview, cancelPlaylistBtn, savePlaylistBtn
@@ -654,6 +718,10 @@
     playlistDetailSection = document.getElementById("playlistDetailSection")
     playlistDetailTitle = document.getElementById("playlistDetailTitle")
     playlistDetailList = document.getElementById("playlistDetailList")
+    playlistDetailGrid = document.getElementById("playlistDetailGrid")
+    playlistDetailListCard = document.getElementById("playlistDetailListCard")
+    viewListBtn = document.getElementById("viewListBtn")
+    viewGridBtn = document.getElementById("viewGridBtn")
     backToSearchBtn = document.getElementById("backToSearchBtn")
     lyricsArea = document.getElementById("lyricsArea")
     lyricsInterface = document.getElementById("lyricsInterface")
@@ -673,6 +741,7 @@
     listLoopBtn = document.getElementById("listLoopBtn")
     shuffleBtn = document.getElementById("shuffleBtn")
     modeBtns = [orderBtn, reverseBtn, singleLoopBtn, listLoopBtn, shuffleBtn]
+    modeCycleBtn = document.getElementById("modeCycleBtn")
     mainInterface = document.getElementById("mainInterface")
     playlistEditModal = document.getElementById("playlistEditModal")
     playlistEditForm = document.getElementById("playlistEditForm")
@@ -901,6 +970,7 @@
     })
     syncPlaylistQueueSelectAllCheckbox()
     window.ElectronAPI.savePlaylist(playQueue)
+    emitFeature("queuechange", playQueue.slice())
   }
 
   function renderPlaylistSidebar() {
@@ -949,16 +1019,28 @@
     }
     const modalTitle = document.querySelector("#playlistEditModal h2")
     if (modalTitle) modalTitle.textContent = "修改歌单"
-    const submitBtn = document.querySelector(
-      '#playlistEditForm button[type="submit"]'
-    )
+    const submitBtn = document.getElementById("savePlaylistBtn")
     if (submitBtn) submitBtn.textContent = "保存"
     if (playlistEditModal) playlistEditModal.classList.remove("hidden")
   }
 
   function setActiveModeBtn(btn) {
-    modeBtns.forEach((b) => b.classList.remove("active"))
-    btn.classList.add("active")
+    modeBtns.forEach((b) => b && b.classList.remove("active"))
+    if (btn) btn.classList.add("active")
+    updateCycleMode(btn ? btn.dataset.mode : null)
+  }
+
+  // 同步底栏单个模式按钮的图标、提示与高亮（顺序模式不高亮，其余高亮）
+  function updateCycleMode(mode) {
+    if (!modeCycleBtn) return
+    const src = modeBtns.find((b) => b && b.dataset.mode === mode)
+    const icon = document.getElementById("modeCycleIcon")
+    if (src && icon) {
+      const svg = src.querySelector("svg")
+      if (svg) icon.innerHTML = svg.innerHTML
+    }
+    modeCycleBtn.title = MODE_LABELS[mode] || "播放模式"
+    modeCycleBtn.classList.toggle("active", !!mode && mode !== "order")
   }
 
   // ========== 搜索历史 ==========
@@ -1079,8 +1161,7 @@
     const sectionTitle = document.querySelector("#searchResultsSection h2")
     if (sectionTitle) sectionTitle.textContent = "关注歌手"
     if (searchResultList) searchResultList.innerHTML = ""
-    const loadMoreBtnEl = document.getElementById("loadMoreBtn")
-    if (loadMoreBtnEl) loadMoreBtnEl.style.display = "none"
+    setLoadMoreVisible(false)
     if (backToSearchBtn) backToSearchBtn.classList.remove("hidden")
 
     if (followedArtists.length === 0) {
@@ -1204,6 +1285,10 @@
     } else {
       currentLyrics = parseLyrics(lyrics)
       lyricsCache.set(songId, currentLyrics)
+      if (lyricsCache.size > LYRICS_CACHE_MAX) {
+        const oldestKey = lyricsCache.keys().next().value
+        lyricsCache.delete(oldestKey)
+      }
     }
     if (!lyricsArea) return
     lyricsArea.innerHTML = ""
@@ -1225,6 +1310,17 @@
       line.className = "lyric-line"
       line.textContent = lyric.text
       line.dataset.index = index
+      if (isFinite(lyric.time)) {
+        line.classList.add("seekable")
+        const mm = Math.floor(lyric.time / 60),
+          ss = Math.floor(lyric.time % 60)
+        line.title = "点击跳转到 " + mm + ":" + (ss < 10 ? "0" : "") + ss
+        line.addEventListener("click", () => {
+          if (audioPlayer && isFinite(lyric.time)) {
+            audioPlayer.currentTime = lyric.time
+          }
+        })
+      }
       lyricsArea.appendChild(line)
       lyricLines.push(line)
     })
@@ -1245,7 +1341,7 @@
     animationFrameId = requestAnimationFrame(() => {
       animationFrameId = null
       if (!lyricsArea || !audioPlayer || currentLyrics.length === 0) return
-      const currentTime = audioPlayer.currentTime
+      const currentTime = audioPlayer.currentTime + lyricOffset
       let activeIndex = -1
       let left = 0,
         right = currentLyrics.length - 1
@@ -1277,6 +1373,13 @@
               behavior: "smooth",
             })
           }
+        }
+        if (activeIndex !== -1 && currentLyrics[activeIndex]) {
+          emitFeature("lyricchange", {
+            index: activeIndex,
+            text: currentLyrics[activeIndex].text || "",
+            lines: currentLyrics,
+          })
         }
         lastActiveIndex = activeIndex
       }
@@ -1444,7 +1547,8 @@
       playlist.id === "liked" ||
       playlist.id === "recent" ||
       playlist.id === "local" ||
-      playlist.id === "followed"
+      playlist.id === "followed" ||
+      String(playlist.id).startsWith("smart-")
     ) {
       if (playlistDetailTitle) {
         playlistDetailTitle.textContent = playlist.name
@@ -1470,7 +1574,8 @@
       playlist.id !== "liked" &&
       playlist.id !== "recent" &&
       playlist.id !== "local" &&
-      playlist.id !== "followed"
+      playlist.id !== "followed" &&
+      !String(playlist.id).startsWith("smart-")
     ) {
       if (exportPlaylistBtnEl) exportPlaylistBtnEl.classList.remove("hidden")
       if (playPlaylistBtnEl) playPlaylistBtnEl.classList.remove("hidden")
@@ -1514,7 +1619,8 @@
       playlist.id === "liked" ||
       playlist.id === "recent" ||
       playlist.id === "local" ||
-      playlist.id === "followed"
+      playlist.id === "followed" ||
+      String(playlist.id).startsWith("smart-")
     ) {
       if (playlistInfoArea) playlistInfoArea.classList.add("hidden")
       if (playlistDetailNameEl) playlistDetailNameEl.textContent = ""
@@ -1602,6 +1708,7 @@
         </div>
       `
       li.dataset.index = index
+      li.dataset.songId = song.id
       li.dataset.list = "playlist-detail"
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
@@ -1631,8 +1738,59 @@
       playlistDetailList.appendChild(li)
     })
     syncPlaylistDetailSelectAllCheckbox()
+    renderPlaylistDetailGrid(playlist)
   }
 
+  function renderPlaylistDetailGrid(playlist) {
+    if (!playlistDetailGrid) return
+    playlistDetailGrid.innerHTML = ""
+    playlist.songs.forEach((song) => {
+      if (!song.id) return
+      const cov = song.coverUrl || song.cover || ""
+      const card = document.createElement("div")
+      card.className = "dg-card"
+      card.dataset.songId = song.id
+      card.innerHTML =
+        '<div class="dg-cover">' +
+        (cov
+          ? '<img src="' + cov + '" alt="" loading="lazy">'
+          : '<div class="dg-note"><svg viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3zm12-3c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3z"/></svg></div>') +
+        '<button class="dg-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>' +
+        "</div>" +
+        '<div class="dg-name">' + escapeHtml(song.name) + "</div>" +
+        '<div class="dg-artist">' + escapeHtml(song.artist || "") + "</div>"
+      const img = card.querySelector("img")
+      if (img) {
+        img.addEventListener("error", () => {
+          const note = document.createElement("div")
+          note.className = "dg-note"
+          note.innerHTML =
+            '<svg viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3zm12-3c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3z"/></svg>'
+          img.replaceWith(note)
+        })
+      }
+      card.addEventListener("click", () => playSelectedSong(song, "playlist-detail"))
+      card.addEventListener("contextmenu", (e) => {
+        e.preventDefault()
+        showSongContextMenu(e, song, "playlist-detail")
+      })
+      playlistDetailGrid.appendChild(card)
+    })
+  }
+
+  function setDetailView(mode) {
+    const grid = mode === "grid"
+    if (playlistDetailListCard) playlistDetailListCard.classList.toggle("hidden", grid)
+    if (playlistDetailGrid) playlistDetailGrid.classList.toggle("hidden", !grid)
+    if (viewListBtn) viewListBtn.classList.toggle("on", !grid)
+    if (viewGridBtn) viewGridBtn.classList.toggle("on", grid)
+    localStorage.setItem("mp-detail-view", grid ? "grid" : "list")
+  }
+  function initDetailViewToggle() {
+    if (viewListBtn) viewListBtn.addEventListener("click", () => setDetailView("list"))
+    if (viewGridBtn) viewGridBtn.addEventListener("click", () => setDetailView("grid"))
+    setDetailView(localStorage.getItem("mp-detail-view") === "grid" ? "grid" : "list")
+  }
   function removeFromCustomPlaylist(playlist, index) {
     const song = playlist.songs[index]
     playlist.songs.splice(index, 1)
@@ -1722,18 +1880,25 @@
     showToast(`开始播放歌单《${selectedPlaylist.name}》`)
   }
 
+  let pendingDeletePlaylist = null
+
   function deletePlaylist(playlist) {
-    const deleteConfirmModal = document.getElementById("deleteConfirmModal")
-    const deleteConfirmMessage = document.getElementById("deleteConfirmMessage")
-    if (deleteConfirmMessage)
-      deleteConfirmMessage.textContent = `确定要删除歌单《${playlist.name}》吗？`
-    if (deleteConfirmModal) deleteConfirmModal.classList.remove("hidden")
+    pendingDeletePlaylist = playlist
+    const msg = document.getElementById("deleteConfirmMessage")
+    if (msg) msg.textContent = `确定要删除歌单《${playlist.name}》吗？`
+    document.getElementById("deleteConfirmModal").classList.remove("hidden")
+  }
 
-    const confirmBtn = document.getElementById("confirmDeleteBtn")
-    const cancelBtn = document.getElementById("cancelDeleteBtn")
-
-    if (confirmBtn) {
-      confirmBtn.onclick = () => {
+  // 删除确认弹窗：常驻绑定一次（确认 / 取消 / 点遮罩关闭）
+  function bindDeleteConfirmEvents() {
+    const modal = document.getElementById("deleteConfirmModal")
+    const close = () => {
+      modal.classList.add("hidden")
+      pendingDeletePlaylist = null
+    }
+    document.getElementById("confirmDeleteBtn").addEventListener("click", () => {
+      const playlist = pendingDeletePlaylist
+      if (playlist) {
         const index = diyPlaylists.findIndex((p) => p.id === playlist.id)
         if (index > -1) {
           diyPlaylists.splice(index, 1)
@@ -1744,30 +1909,145 @@
           }
           showToast(`歌单《${playlist.name}》已删除`)
         }
-        if (deleteConfirmModal) deleteConfirmModal.classList.add("hidden")
-        confirmBtn.onclick = null
-        if (cancelBtn) cancelBtn.onclick = null
+      }
+      close()
+    })
+    document.getElementById("cancelDeleteBtn").addEventListener("click", close)
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close()
+    })
+  }
+
+  // ========== 键盘快捷键与弹层统一管理 ==========
+  function closeTopmostOverlay() {
+    // 模态弹窗优先（按视觉层级）
+    const modals = [
+      downloadSongModal,
+      webPlaylistImportModal,
+      playlistEditModal,
+      deleteConfirmModal,
+      updateModal,
+    ]
+    for (const m of modals) {
+      if (m && !m.classList.contains("hidden")) {
+        m.classList.add("hidden")
+        if (m === deleteConfirmModal) pendingDeletePlaylist = null
+        if (m === playlistEditModal) currentEditingPlaylistId = null
+        return true
       }
     }
-
-    if (cancelBtn) {
-      cancelBtn.onclick = () => {
-        if (deleteConfirmModal) deleteConfirmModal.classList.add("hidden")
-        confirmBtn.onclick = null
-        cancelBtn.onclick = null
-      }
+    if (lyricsInterface && !lyricsInterface.classList.contains("hidden")) {
+      lyricsInterface.classList.add("hidden")
+      return true
     }
+    if (playlistFloat && playlistFloat.classList.contains("open")) {
+      playlistFloat.classList.remove("open")
+      return true
+    }
+    if (searchSourceMenu && !searchSourceMenu.classList.contains("hidden")) {
+      searchSourceMenu.classList.add("hidden")
+      return true
+    }
+    if (
+      searchHistoryContainer &&
+      !searchHistoryContainer.classList.contains("hidden")
+    ) {
+      searchHistoryContainer.classList.add("hidden")
+      return true
+    }
+    return false
+  }
 
-    if (deleteConfirmModal) {
-      deleteConfirmModal.addEventListener("click", function closeModal(e) {
-        if (e.target === deleteConfirmModal) {
-          deleteConfirmModal.classList.add("hidden")
-          confirmBtn.onclick = null
-          cancelBtn.onclick = null
-          deleteConfirmModal.removeEventListener("click", closeModal)
+  // 相对当前进度快进/快退（秒）
+  function seekBy(seconds) {
+    if (!audioPlayer || !isFinite(audioPlayer.currentTime)) return
+    const max = isFinite(audioPlayer.duration) ? audioPlayer.duration : Infinity
+    audioPlayer.currentTime = Math.max(
+      0,
+      Math.min(max, audioPlayer.currentTime + seconds)
+    )
+  }
+
+  function togglePlayback() {
+    if (!audioPlayer || currentSongIndex < 0) return
+    if (audioPlayer.paused) {
+      userIntentPause = false
+      recoverTries = 0
+      stallTicks = 0
+      watchdogLastTime = -1
+      audioPlayer.play().catch(() => {})
+    } else {
+      userIntentPause = true
+      audioPlayer.pause()
+    }
+  }
+
+  function setupKeyboardShortcuts() {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeTopmostOverlay()
+        return
+      }
+      const tag = (e.target.tagName || "").toLowerCase()
+      const isEditable =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        e.target.isContentEditable
+
+      if (e.key === " " && !isEditable) {
+        e.preventDefault()
+        togglePlayback()
+        return
+      }
+      if (!isEditable && currentSongIndex >= 0) {
+        if (e.key === "ArrowRight") {
+          e.preventDefault()
+          seekBy(e.shiftKey ? 15 : 5)
+          return
+        }
+        if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          seekBy(e.shiftKey ? -15 : -5)
+          return
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault()
+          if (window.__mpFeatures) window.__mpFeatures.adjustVolume(0.05)
+          return
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault()
+          if (window.__mpFeatures) window.__mpFeatures.adjustVolume(-0.05)
+          return
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault()
+        if (searchInput) {
+          searchInput.focus()
+          searchInput.select()
+        }
+      }
+    })
+  }
+
+  // 模态弹窗打开时自动聚焦首个可编辑元素（MutationObserver 集中处理）
+  function setupModalAutoFocus() {
+    document.querySelectorAll(".dialog-layer").forEach((layer) => {
+      const observer = new MutationObserver(() => {
+        if (layer.classList.contains("hidden")) return
+        const focusable = layer.querySelector(
+          "input:not([type='hidden']), select, textarea, button"
+        )
+        if (focusable) {
+          setTimeout(() => {
+            if (!layer.classList.contains("hidden")) focusable.focus()
+          }, 30)
         }
       })
-    }
+      observer.observe(layer, { attributes: true, attributeFilter: ["hidden"] })
+    })
   }
 
   let initialSearchState = null
@@ -1793,14 +2073,7 @@
         renderSearchResults(searchResults, 0)
       }
     }
-    const loadMoreBtnEl = document.getElementById("loadMoreBtn")
-    if (loadMoreBtnEl) {
-      if (searchResults.length >= PAGE_SIZE) {
-        loadMoreBtnEl.style.display = "block"
-      } else {
-        loadMoreBtnEl.style.display = "none"
-      }
-    }
+    setLoadMoreVisible(searchResults.length >= PAGE_SIZE)
   }
 
   function initSearchState() {
@@ -1827,14 +2100,7 @@
     const titleElement = document.querySelector("#searchResultsSection h2")
     if (titleElement) titleElement.textContent = "搜索结果"
     if (searchInput) searchInput.value = currentKeyword
-    const loadMoreBtnEl = document.getElementById("loadMoreBtn")
-    if (loadMoreBtnEl) {
-      if (searchResults.length >= PAGE_SIZE) {
-        loadMoreBtnEl.style.display = "block"
-      } else {
-        loadMoreBtnEl.style.display = "none"
-      }
-    }
+    setLoadMoreVisible(searchResults.length >= PAGE_SIZE)
   }
 
   async function toggleLike(song) {
@@ -1975,6 +2241,7 @@
       `
       const globalIndex = searchResults.length - songs.length + idx
       li.dataset.index = globalIndex
+      li.dataset.songId = song.id
       li.dataset.list = "search"
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
@@ -2006,10 +2273,8 @@
 
     syncSearchSelectAllCheckbox()
 
-    if (loadMoreBtn) {
-      loadMoreBtn.style.display = songs.length >= PAGE_SIZE ? "block" : "none"
-      loadMoreBtn.style.margin = "0 auto"
-    }
+    setLoadMoreVisible(songs.length >= PAGE_SIZE)
+    if (loadMoreBtn) loadMoreBtn.style.margin = "0 auto"
   }
 
   function removeFromPlaylist(index) {
@@ -2020,8 +2285,10 @@
 
     if (index === currentSongIndex) {
       if (playQueue.length === 0) {
+        userIntentPause = true
         if (audioPlayer) audioPlayer.pause()
         currentSongIndex = -1
+        syncNowPlayingRows(null)
         if (songTitle) songTitle.textContent = "未播放歌曲"
         if (songArtist) songArtist.textContent = "--"
         if (coverImg) coverImg.src = ""
@@ -2032,6 +2299,66 @@
     } else if (index < currentSongIndex) {
       currentSongIndex--
     }
+  }
+
+  // 清空整个播放队列并停止播放
+  function clearQueue() {
+    if (playQueue.length === 0) return
+    playQueue = []
+    currentSongIndex = -1
+    userIntentPause = true
+    if (audioPlayer) audioPlayer.pause()
+    renderPlaylist()
+    window.ElectronAPI.savePlaylist(playQueue)
+    syncNowPlayingRows(null)
+    if (songTitle) songTitle.textContent = "未播放歌曲"
+    if (songArtist) songArtist.textContent = "--"
+    if (coverImg) coverImg.src = ""
+    renderLyrics("")
+    localStorage.removeItem("mp-session")
+  }
+
+  // 把歌曲设为"下一首播放"（插入到当前曲目的后一位）
+  function playSongNext(song) {
+    if (!song || !song.id) return
+    const existIdx = playQueue.findIndex((s) => s.id === song.id)
+    if (existIdx === currentSongIndex) {
+      showToast("该歌曲正在播放")
+      return
+    }
+    if (existIdx !== -1) {
+      const [moved] = playQueue.splice(existIdx, 1)
+      if (existIdx < currentSongIndex) currentSongIndex--
+      const insertAt = currentSongIndex >= 0 ? currentSongIndex + 1 : 0
+      playQueue.splice(insertAt, 0, moved)
+    } else {
+      const insertAt = currentSongIndex >= 0 ? currentSongIndex + 1 : 0
+      playQueue.splice(insertAt, 0, song)
+    }
+    renderPlaylist()
+    showToast(`已将《${song.name}》设为下一首播放`)
+  }
+
+  // 拖拽重排队列，保持当前播放索引正确
+  function reorderQueue(from, to) {
+    if (
+      from === to ||
+      from < 0 ||
+      from >= playQueue.length ||
+      to < 0 ||
+      to >= playQueue.length
+    )
+      return
+    const [moved] = playQueue.splice(from, 1)
+    playQueue.splice(to, 0, moved)
+    if (from === currentSongIndex) {
+      currentSongIndex = to
+    } else if (from < currentSongIndex && to >= currentSongIndex) {
+      currentSongIndex--
+    } else if (from > currentSongIndex && to <= currentSongIndex) {
+      currentSongIndex++
+    }
+    renderPlaylist()
   }
 
   async function removeFromLatestPlayed(song) {
@@ -2158,6 +2485,7 @@
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToLikedBtn">${isLiked ? "移除我喜欢" : "添加到我喜欢"}</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToFollowedBtn">${isFollowed ? "取消关注歌手" : "关注歌手"}</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToCurrentPlaylistBtn">添加到当前播放列表</button>
+      ${listType === "playlist" ? `<button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="playNextMenuBtn">下一首播放</button><button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-red-400" id="removeFromQueueBtn">从队列移除</button>` : ""}
       ${!isSongLocalPath(song) && dlSongs.length ? `<button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="downloadSongMenuBtn">${dlLabel}</button>` : ""}
       <div class="border-t border-gray-300 my-1 dark:border-gray-700"></div>
       <div class="px-4 py-1 text-xs text-gray-400 dark:text-gray-500">添加到自定义歌单</div>
@@ -2223,6 +2551,22 @@
       addToCurrentBtn.addEventListener("click", () => {
         addToPlaylist(song)
         document.body.removeChild(menu)
+      })
+    }
+
+    const playNextMenuBtn = menu.querySelector("#playNextMenuBtn")
+    if (playNextMenuBtn) {
+      playNextMenuBtn.addEventListener("click", () => {
+        playSongNext(song)
+        if (document.body.contains(menu)) document.body.removeChild(menu)
+      })
+    }
+    const removeFromQueueBtn = menu.querySelector("#removeFromQueueBtn")
+    if (removeFromQueueBtn) {
+      removeFromQueueBtn.addEventListener("click", () => {
+        const idx = playQueue.findIndex((item) => item.id === song.id)
+        if (idx > -1) removeFromPlaylist(idx)
+        if (document.body.contains(menu)) document.body.removeChild(menu)
       })
     }
 
@@ -2302,139 +2646,94 @@
     }
   }
 
-  async function playCurrentSong() {
-    console.log(
-      "[播放器] playCurrentSong 被调用，currentSongIndex:",
-      currentSongIndex
-    )
-    if (currentSongIndex < 0 || currentSongIndex >= playQueue.length) {
-      console.log("[播放器] currentSongIndex 无效，返回")
-      return
-    }
+  // 同步“当前播放行”高亮到搜索结果 / 歌单详情列表（队列由 renderPlaylist 处理）
+  function syncNowPlayingRows(song) {
+    const id = song ? String(song.id) : null
+    ;[searchResultList, playlistDetailList].forEach((c) => {
+      if (!c) return
+      c.querySelectorAll("li.song-item").forEach((li) => {
+        li.classList.toggle("now-playing", li.dataset.songId === id)
+      })
+    })
+  }
 
-    const song = playQueue[currentSongIndex]
-    console.log("[播放器] 当前歌曲:", song)
-    console.log("[播放器] 歌曲URL:", song.url)
-    if (!audioPlayer) {
-      console.log("[播放器] audioPlayer 不存在，返回")
+  // 歌曲加载/解码失败兜底：CDN 偶发挂起或链接失效时自动跳过，避免永久卡在加载态。
+  // 连续失败超过上限则停止，防止全队列失效时死循环。
+  function handlePlaybackFailure() {
+    const n = playQueue.length
+    if (n === 0) return
+    if (consecutiveFailCount >= 3) {
+      userIntentPause = true
+      if (audioPlayer) audioPlayer.pause()
+      showToastError("多首歌曲加载失败，请检查网络后重试")
       return
     }
-    // 检查URL是否有效
-    let audioUrl = song.url
-    if (!audioUrl || audioUrl.trim() === "") {
-      console.error("[播放器] 歌曲URL无效:", audioUrl)
+    consecutiveFailCount++
+    if (n <= 1) {
+      userIntentPause = true
+      if (audioPlayer) audioPlayer.pause()
+      showToastError("播放失败：歌曲链接可能失效")
+      return
+    }
+    showToast("当前歌曲加载失败，正在尝试下一首…", "info")
+    currentSongIndex = (currentSongIndex + 1) % n
+    playCurrentSong()
+  }
+
+  async function playCurrentSong(opts = {}) {
+    const autoplay = opts.autoplay !== false
+    if (currentSongIndex < 0 || currentSongIndex >= playQueue.length) return
+
+    const myGeneration = ++playGeneration
+    loadingSong = true
+    const song = playQueue[currentSongIndex]
+    if (!song.url || song.url.trim() === "") {
+      loadingSong = false
       showToastError("播放失败：歌曲链接无效")
       return
     }
+    if (!isSongLocalPath(song) && !/^https?:\/\//i.test(song.url)) {
+      loadingSong = false
+      showToastError("播放失败：歌曲链接格式错误")
+      return
+    }
 
-    // 检查是否是本地文件
-    const isLocal = isSongLocalPath(song)
-    console.log("[播放器] 是否本地文件:", isLocal)
-
-    // 如果不是本地文件，进行URL验证
-    if (!isLocal) {
-      // 尝试对URL进行编码处理
-      try {
-        // 检查URL是否包含有效协议
-        if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
-          console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-          showToastError("播放失败：歌曲链接格式错误")
-          return
-        }
-        console.log("[播放器] 原始URL:", audioUrl)
-        console.log("[播放器] URL长度:", audioUrl.length)
-        console.log("[播放器] URL是否包含特殊字符:", /[+&=]/.test(audioUrl))
-        // 检查URL是否可以访问
-        fetch(audioUrl, { method: "HEAD" })
-          .then((response) => {
-            console.log("[播放器] URL检查响应状态:", response.status)
-            console.log(
-              "[播放器] URL Content-Type:",
-              response.headers.get("content-type")
-            )
-          })
-          .catch((err) => {
-            console.error("[播放器] URL检查失败:", err)
-          })
-      } catch (e) {
-        console.error("[播放器] URL处理错误:", e)
+    // 在线歌封面缺失或误用歌曲 id 构造（meting pic 直接用歌曲id会 404）时，按 id 解析真实封面
+    if (
+      !isSongLocalPath(song) &&
+      /^https?:\/\//i.test(song.url) &&
+      window.ElectronAPI &&
+      typeof window.ElectronAPI.musicSongDetail === "function"
+    ) {
+      const badCover =
+        !song.coverUrl ||
+        (song.coverUrl.indexOf("type=pic") >= 0 &&
+          song.coverUrl.indexOf("id=" + song.id) >= 0)
+      if (badCover) {
+        try {
+          const d = await window.ElectronAPI.musicSongDetail(
+            song.source || "netease",
+            song.id
+          )
+          if (myGeneration !== playGeneration) return
+          if (d && d.success) {
+            if (d.pic) song.coverUrl = d.pic
+            if ((!song.name || song.name === "未知歌曲") && d.name)
+              song.name = d.name
+            if ((!song.artist || song.artist === "未知歌手") && d.artist)
+              song.artist = d.artist
+          }
+        } catch (e) {}
       }
     }
 
-    // 尝试对URL进行编码处理
-    let encodedUrl = audioUrl
-    if (!isLocal) {
-      try {
-        // 检查URL是否包含有效协议
-        if (!audioUrl.startsWith("http://") && !audioUrl.startsWith("https://")) {
-          console.error("[播放器] 歌曲URL格式错误，缺少协议:", audioUrl)
-          showToastError("播放失败：歌曲链接格式错误")
-          return
-        }
-
-        // 尝试对URL进行编码
-        encodedUrl = encodeURIComponent(audioUrl)
-        console.log("[播放器] 原始URL:", audioUrl)
-        console.log("[播放器] 编码后URL:", encodedUrl)
-        console.log("[播放器] URL长度:", audioUrl.length)
-
-        // 检查URL是否可以访问
-        fetch(audioUrl, { method: "HEAD" })
-          .then((response) => {
-            console.log("[播放器] URL检查响应状态:", response.status)
-            console.log(
-              "[播放器] URL Content-Type:",
-              response.headers.get("content-type")
-            )
-          })
-          .catch((err) => {
-            console.error("[播放器] URL检查失败:", err)
-          })
-      } catch (e) {
-        console.error("[播放器] URL处理错误:", e)
-      }
-    }
-
-    // 先尝试使用原始URL，如果失败再尝试编码后的URL
-    // 检查URL中是否有+字符，这些可能需要特殊处理
-    let processedUrl = audioUrl
-    if (processedUrl.includes("+")) {
-      console.log("[播放器] URL包含+字符，尝试替换")
-    }
-
-    // 使用新的方式加载音频：先创建新的Audio对象来测试
-    console.log("[播放器] 测试音频URL是否可访问...")
-    const testAudio = new Audio(processedUrl)
-    testAudio.preload = "metadata"
-
-    const canPlayPromise = new Promise((resolve, reject) => {
-      testAudio.addEventListener("canplay", () => {
-        console.log("[播放器] 测试音频可以播放")
-        resolve(true)
-      })
-      testAudio.addEventListener("error", (e) => {
-        console.error("[播放器] 测试音频加载失败:", e)
-        resolve(false)
-      })
-      // 超时处理
-      setTimeout(() => {
-        console.log("[播放器] 测试音频加载超时")
-        resolve(false)
-      }, 5000)
-    })
-
-    const canPlay = await canPlayPromise
-    console.log("[播放器] 测试结果:", canPlay)
-
-    // 设置audioPlayer的src
-    // 先重置audio元素
+    // 重置并直接加载目标音频（不再用临时 Audio 双重加载）
     audioPlayer.pause()
-    audioPlayer.removeAttribute("src")
-    audioPlayer.load()
-    console.log("[播放器] audioPlayer已重置")
-
-    audioPlayer.src = processedUrl
-    console.log("[播放器] audioPlayer.src 已设置:", processedUrl)
+    audioPlayer.src =
+      window.ElectronAPI && typeof window.ElectronAPI.proxyMedia === "function"
+        ? window.ElectronAPI.proxyMedia(song.url)
+        : song.url
+    syncNowPlayingRows(song)
     if (songTitle) songTitle.textContent = song.name
     if (songArtist) songArtist.textContent = song.artist
 
@@ -2447,48 +2746,81 @@
       if (coverImg) coverImg.src = defaultCover
       if (lyricsCoverImg) lyricsCoverImg.src = defaultCover
     }
+    // 歌词页沉浸式模糊背景跟随当前封面
+    const lyricsBg = document.getElementById("lyricsBg")
+    if (lyricsBg) {
+      lyricsBg.style.backgroundImage = song.coverUrl
+        ? `url("${song.coverUrl}")`
+        : ""
+    }
 
     if (lyricsSongTitle) lyricsSongTitle.textContent = song.name
     if (lyricsSongArtist) lyricsSongArtist.textContent = song.artist
 
     await loadLyricsWithStatus(song)
+    if (myGeneration !== playGeneration) return
 
     try {
-      console.log("[播放器] 等待音频加载完成...")
       if (audioPlayer.readyState < 2) {
-        console.log("[播放器] 音频未准备好，等待loadedmetadata事件...")
         await new Promise((resolve) => {
-          audioPlayer.addEventListener(
-            "loadedmetadata",
-            () => {
-              console.log("[播放器] loadedmetadata事件触发，音频已准备好")
-              resolve()
-            },
-            { once: true }
-          )
-          audioPlayer.addEventListener(
-            "error",
-            (e) => {
-              console.error("[播放器] 音频加载错误:", e)
-              resolve()
-            },
-            { once: true }
-          )
+          let settled = false
+          const finish = () => {
+            if (settled) return
+            settled = true
+            clearTimeout(metaTimer)
+            resolve()
+          }
+          const metaTimer = setTimeout(finish, 12000)
+          audioPlayer.addEventListener("loadedmetadata", finish, { once: true })
+          audioPlayer.addEventListener("error", finish, { once: true })
         })
       }
-      console.log("[播放器] 开始播放，readyState:", audioPlayer.readyState)
-      await audioPlayer.play()
-      renderPlaylist()
-      await addToLatestPlayed(song)
+      if (myGeneration !== playGeneration) return
+      // 加载超时或 error 事件：readyState 仍无元数据，判定加载失败
+      if (audioPlayer.readyState < 1) {
+        const err = new Error("MEDIA_TIMEOUT")
+        err.name = "MediaTimeoutError"
+        throw err
+      }
+      if (autoplay) {
+        await audioPlayer.play()
+        if (myGeneration !== playGeneration) return
+        if (isFinite(opts.startTime) && opts.startTime > 1) {
+          audioPlayer.currentTime = opts.startTime
+        }
+        consecutiveFailCount = 0
+        stallTicks = 0
+        loadingSong = false
+        watchdogLastTime = -1
+        userIntentPause = false
+        renderPlaylist()
+        await addToLatestPlayed(song)
+        emitFeature("songchange", song)
+      } else {
+        if (isFinite(opts.startTime) && opts.startTime > 0) {
+          audioPlayer.currentTime = opts.startTime
+        }
+        loadingSong = false
+        userIntentPause = true
+        renderPlaylist()
+        emitFeature("songchange", song)
+      }
     } catch (err) {
-      if (
-        err.name === "NotAllowedError" ||
+      if (myGeneration !== playGeneration) return
+      loadingSong = false
+      userIntentPause = true
+      if (err.name === "NotAllowedError") {
+        showToastError("播放失败：浏览器阻止了自动播放")
+      } else if (
+        err.name === "MediaTimeoutError" ||
         err.name === "NetworkError" ||
-        err.name === "DecodeError"
+        err.name === "DecodeError" ||
+        err.name === "NotSupportedError"
       ) {
-        showToastError("播放失败：歌曲链接可能失效")
+        handlePlaybackFailure()
       }
     }
+    if (myGeneration !== playGeneration) return
     preloadNextSong()
   }
 
@@ -2618,8 +2950,10 @@
       case "order":
         currentSongIndex = (currentSongIndex + 1) % playQueue.length
         if (wasLastSong) {
+          userIntentPause = true
           if (audioPlayer) audioPlayer.pause()
           currentSongIndex = -1
+          syncNowPlayingRows(null)
           if (songTitle) songTitle.textContent = "播放结束"
           if (songArtist) songArtist.textContent = ""
           if (lyricsInterface) lyricsInterface.classList.add("hidden")
@@ -2631,8 +2965,10 @@
         currentSongIndex =
           (currentSongIndex - 1 + playQueue.length) % playQueue.length
         if (wasLastSong) {
+          userIntentPause = true
           if (audioPlayer) audioPlayer.pause()
           currentSongIndex = -1
+          syncNowPlayingRows(null)
           if (songTitle) songTitle.textContent = "播放结束"
           if (songArtist) songArtist.textContent = ""
           if (lyricsInterface) lyricsInterface.classList.add("hidden")
@@ -2701,8 +3037,8 @@
             const response = await window.ElectronAPI.musicDlSearch(
               keyword,
               sourcesString,
-              Math.floor(offset / 10) + 1,
-              10
+              Math.floor(offset / PAGE_SIZE) + 1,
+              PAGE_SIZE
             )
 
             console.log(`[搜索] go-music-dl API 响应状态：成功`)
@@ -2751,17 +3087,16 @@
           }
         } else {
           // 使用默认 API 搜索
-          console.log(
-            `[搜索] 未选择搜索源，使用默认 API 搜索：${keyword}, ${offset}`
-          )
           songs = await window.ElectronAPI.searchMusic(keyword, offset)
-          console.log(
-            `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
-          )
         }
 
         if (songs && songs.length > 0) {
           searchCache.set(cacheKey, songs)
+          // 简单 LRU：超出上限淘汰最早条目，避免长期使用无限增长
+          if (searchCache.size > SEARCH_CACHE_MAX) {
+            const oldestKey = searchCache.keys().next().value
+            searchCache.delete(oldestKey)
+          }
         }
       } catch (err) {
         console.error("[搜索] API请求失败：", err)
@@ -2769,7 +3104,7 @@
         if (offset === 0 && searchResultList) {
           searchResultList.innerHTML =
             '<div class="p-10 text-center text-red-500 dark:text-red-400">搜索失败，请稍后重试</div>'
-          if (loadMoreBtn) loadMoreBtn.style.display = "none"
+          setLoadMoreVisible(false)
         }
         return
       }
@@ -2792,7 +3127,7 @@
       if (searchResultList)
         searchResultList.innerHTML =
           '<div class="p-10 text-center text-gray-500 dark:text-gray-400">未找到相关歌曲</div>'
-      if (loadMoreBtn) loadMoreBtn.style.display = "none"
+      setLoadMoreVisible(false)
     }
   }
 
@@ -2828,6 +3163,7 @@
   // ========== 音频事件监听 ==========
   function setupAudioListeners() {
     if (audioPlayer) {
+      setupPlaybackWatchdog()
       audioPlayer.removeEventListener("timeupdate", updateLyricHighlight)
       audioPlayer.removeEventListener("ended", playNextSong)
       audioPlayer.removeEventListener("loadedmetadata", handleLoadedMetadata)
@@ -2844,20 +3180,6 @@
       audioPlayer.addEventListener("play", handlePlay)
       audioPlayer.addEventListener("pause", handlePause)
       audioPlayer.addEventListener("error", handleError)
-
-      // 监听src变化
-      let lastSrc = audioPlayer.src
-      setInterval(() => {
-        if (audioPlayer.src !== lastSrc) {
-          console.log(
-            "[播放器] audioPlayer.src 发生变化:",
-            lastSrc,
-            "->",
-            audioPlayer.src
-          )
-          lastSrc = audioPlayer.src
-        }
-      }, 100)
     }
 
     // 处理音频元数据加载完成事件
@@ -2890,13 +3212,13 @@
     // 处理播放事件
     function handlePlay() {
       console.log("[播放器] 开始播放")
-      // store未导入，暂不更新播放状态
+      emitFeature("play")
     }
 
     // 处理暂停事件
     function handlePause() {
       console.log("[播放器] 暂停播放")
-      // store未导入，暂不更新播放状态
+      emitFeature("pause")
     }
 
     // 处理错误事件
@@ -2923,8 +3245,65 @@
       }
     }
 
-    // 添加错误事件监听器
-    audioPlayer.addEventListener("error", handleError)
+    // 播放看护：网络/CDN 抖动或解码器异常导致的意外暂停、缓冲卡死会被自动恢复，
+    // 而不是静默停在某一秒。用户主动暂停（userIntentPause）与切歌瞬间不会被干预。
+    function setupPlaybackWatchdog() {
+      if (watchdogStarted || !audioPlayer) return
+      watchdogStarted = true
+      const STALL_LIMIT = 8 // 连续 8 秒无进度且缓冲不足判定为卡死
+      const MAX_RECOVER = 3 // 单首最多自动恢复 3 次，超限走失败兜底跳下一首
+      setInterval(() => {
+        if (!audioPlayer) return
+        if (currentSongIndex < 0 || userIntentPause) return
+        const song = playQueue[currentSongIndex]
+        if (!song || !song.url) return
+        if (loadingSong) return
+        const t = audioPlayer.currentTime
+
+        if (audioPlayer.paused) {
+          // 已加载出数据却被暂停：典型的意外暂停
+          if (audioPlayer.readyState >= 2 && recoverTries < MAX_RECOVER) {
+            recoverTries++
+            console.log("[播放看护] 检测到异常暂停，尝试恢复播放（", recoverTries, "）")
+            audioPlayer.play().catch(() => {})
+          } else if (audioPlayer.readyState < 2) {
+            // 曾在播放却被重置为无数据：缓冲/连接中断
+            stallTicks++
+            if (stallTicks >= STALL_LIMIT) {
+              stallTicks = 0
+              recoverTries++
+              if (recoverTries > MAX_RECOVER) return handlePlaybackFailure()
+              loadingSong = true
+              showToast("网络缓冲，正在重新缓冲…", "info")
+              playCurrentSong({ startTime: Math.max(0, t) })
+            }
+          } else if (recoverTries >= MAX_RECOVER) {
+            handlePlaybackFailure()
+          }
+          return
+        }
+
+        // 未暂停：监测进度是否推进
+        if (t === watchdogLastTime) {
+          if (audioPlayer.readyState < 3) {
+            stallTicks++
+            if (stallTicks >= STALL_LIMIT) {
+              stallTicks = 0
+              recoverTries++
+              if (recoverTries > MAX_RECOVER) return handlePlaybackFailure()
+              loadingSong = true
+              console.log("[播放看护] 缓冲卡死，重新加载当前曲目续播于", t)
+              showToast("网络缓冲，正在重新缓冲…", "info")
+              playCurrentSong({ startTime: Math.max(0, t) })
+            }
+          }
+        } else {
+          watchdogLastTime = t
+          stallTicks = 0
+          if (audioPlayer.readyState >= 3) recoverTries = 0
+        }
+      }, 1000)
+    }
   }
 
   // ========== 侧边栏拉伸功能 ==========
@@ -2962,6 +3341,9 @@
     // 用户信息按钮
     bindUserInfoEvents()
     bindUpdateModalEvents()
+    bindDeleteConfirmEvents()
+    setupKeyboardShortcuts()
+    setupModalAutoFocus()
 
     // 搜索相关
     if (clearSearchBtn) {
@@ -2992,36 +3374,31 @@
     }
 
     // 清除缓存并搜索按钮
-    const clearCacheBtn = document.getElementById("clearCacheBtn")
-    if (clearCacheBtn) {
-      clearCacheBtn.addEventListener("click", async () => {
-        console.log("[搜索] 清除缓存并搜索")
-        // 清除搜索缓存
+    const refreshSearchBtn = document.getElementById("refreshSearchBtn")
+    if (refreshSearchBtn) {
+      refreshSearchBtn.addEventListener("click", async () => {
+        // 忽略本地搜索缓存，强制重新拉取一次结果
         searchCache.clear()
-        console.log("[搜索] 搜索缓存已清除")
-
-        // 获取当前搜索框的值
         const keyword = searchInput ? searchInput.value.trim() : ""
-        if (keyword) {
-          // 重新搜索
-          searchOffset = 0
-          if (searchResultList) searchResultList.innerHTML = ""
-          if (searchResultsSection)
-            searchResultsSection.classList.remove("hidden")
-          if (playlistDetailSection)
-            playlistDetailSection.classList.add("hidden")
-          if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
-          if (searchResultList)
-            searchResultList.innerHTML =
-              '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
-          await loadSearchResults(keyword, searchOffset)
-          await updateSearchHistory(keyword)
-          if (searchResultsSection) {
-            searchResultsSection.classList.remove("fade-in")
-            void searchResultsSection.offsetWidth
-            searchResultsSection.classList.add("fade-in")
-          }
+        if (!keyword) {
+          showToast("请先输入要搜索的内容", "info")
+          return
         }
+        searchOffset = 0
+        if (searchResultList) searchResultList.innerHTML = ""
+        if (searchResultsSection) searchResultsSection.classList.remove("hidden")
+        if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
+        if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
+        if (searchResultList)
+          searchResultList.innerHTML =
+            '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
+        await loadSearchResults(keyword, searchOffset)
+        if (searchResultsSection) {
+          searchResultsSection.classList.remove("fade-in")
+          void searchResultsSection.offsetWidth
+          searchResultsSection.classList.add("fade-in")
+        }
+        showToast("已刷新搜索结果", "info")
       })
     }
 
@@ -3116,9 +3493,7 @@
         currentEditingPlaylistId = null
         const modalTitle = document.querySelector("#playlistEditModal h2")
         if (modalTitle) modalTitle.textContent = "创建歌单"
-        const submitBtn = document.querySelector(
-          '#playlistEditForm button[type="submit"]'
-        )
+        const submitBtn = document.getElementById("savePlaylistBtn")
         if (submitBtn) submitBtn.textContent = "创建"
         if (playlistEditModal) playlistEditModal.classList.remove("hidden")
       })
@@ -3164,6 +3539,11 @@
         if (playlistEditModal) playlistEditModal.classList.add("hidden")
         currentEditingPlaylistId = null
       })
+    }
+
+    // 主“创建/保存”按钮在 form 外，点击时提交表单（触发校验与 submit 逻辑）
+    if (savePlaylistBtn && playlistEditForm) {
+      savePlaylistBtn.addEventListener("click", () => playlistEditForm.requestSubmit())
     }
 
     // 提交表单
@@ -3345,6 +3725,17 @@
       }
     })
 
+    // 底栏单个模式按钮：在各模式间循环切换
+    if (modeCycleBtn) {
+      modeCycleBtn.addEventListener("click", () => {
+        const idx = MODE_CYCLE.indexOf(playMode)
+        const next = MODE_CYCLE[(idx + 1) % MODE_CYCLE.length]
+        const target = modeBtns.find((b) => b && b.dataset.mode === next)
+        if (target) target.click()
+        showToast(MODE_LABELS[next], "info")
+      })
+    }
+
     // 歌词界面
     if (coverImg) {
       coverImg.addEventListener("click", () => {
@@ -3359,10 +3750,8 @@
             if (lyricsSongTitle) lyricsSongTitle.textContent = song.name
             if (lyricsSongArtist) lyricsSongArtist.textContent = song.artist
             lyricsInterface.classList.remove("hidden")
-            if (mainInterface) mainInterface.classList.add("hidden")
           } else {
             if (lyricsInterface) lyricsInterface.classList.add("hidden")
-            if (mainInterface) mainInterface.classList.remove("hidden")
           }
         }
       })
@@ -3371,20 +3760,34 @@
     if (closeLyricsBtn) {
       closeLyricsBtn.addEventListener("click", () => {
         if (lyricsInterface) lyricsInterface.classList.add("hidden")
-        if (mainInterface) mainInterface.classList.remove("hidden")
       })
     }
 
     // 播放列表浮窗
+    const isQueueOpen = () =>
+      playlistFloat && playlistFloat.classList.contains("open")
+    const closeQueue = () => {
+      if (playlistFloat) playlistFloat.classList.remove("open")
+    }
     if (togglePlaylistBtn) {
-      togglePlaylistBtn.addEventListener("click", () => {
-        if (playlistFloat) playlistFloat.classList.toggle("translate-x-full")
+      togglePlaylistBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        if (playlistFloat) playlistFloat.classList.toggle("open")
       })
     }
 
     if (closePlaylistBtn) {
       closePlaylistBtn.addEventListener("click", () => {
-        if (playlistFloat) playlistFloat.classList.add("translate-x-full")
+        closeQueue()
+      })
+    }
+
+    if (playlistFloat) {
+      // 点击抽屉内部不触发外部关闭
+      playlistFloat.addEventListener("click", (e) => e.stopPropagation())
+      // 点击抽屉外部任意位置即关闭（light-dismiss）
+      document.addEventListener("click", () => {
+        if (isQueueOpen()) closeQueue()
       })
     }
 
@@ -3401,7 +3804,7 @@
         } else {
           if (clearSearchBtn) clearSearchBtn.classList.add("hidden")
           if (searchResultList) searchResultList.innerHTML = ""
-          if (loadMoreBtn) loadMoreBtn.style.display = "none"
+          setLoadMoreVisible(false)
         }
       })
     }
@@ -3423,11 +3826,20 @@
     }
 
     if (loadMoreBtn) {
+      let isLoadingMore = false
       loadMoreBtn.addEventListener("click", async () => {
+        if (isLoadingMore) return
         const keyword = searchInput ? searchInput.value.trim() : ""
         if (!keyword) return
-        searchOffset += PAGE_SIZE
-        await loadSearchResults(keyword, searchOffset)
+        isLoadingMore = true
+        loadMoreBtn.disabled = true
+        try {
+          searchOffset += PAGE_SIZE
+          await loadSearchResults(keyword, searchOffset)
+        } finally {
+          isLoadingMore = false
+          loadMoreBtn.disabled = false
+        }
       })
     }
 
@@ -3570,15 +3982,30 @@
       searchResultList.addEventListener("click", handleSearchResultClick)
     if (playlistDetailList)
       playlistDetailList.addEventListener("click", handlePlaylistDetailClick)
+    initDetailViewToggle()
   }
 
   // ========== 初始化数据读取 ==========
+  function updateBrandGreeting() {
+    const el = document.getElementById("brandGreeting")
+    if (!el) return
+    const h = new Date().getHours()
+    let g = "享受音乐时光"
+    if (h >= 5 && h < 11) g = "早上好，听歌开启一天"
+    else if (h >= 11 && h < 14) g = "中午好，稍作休息"
+    else if (h >= 14 && h < 18) g = "下午好，来首歌吗"
+    else if (h >= 18 && h < 23) g = "晚上好，放松一下"
+    else g = "夜深了，来点轻音乐"
+    el.textContent = g
+  }
+
   async function initApp() {
     initDOMElements()
     bindAllEvents()
     setupDownloadProgressListener()
     setupAudioListeners()
     setupSidebarResize()
+    updateBrandGreeting()
 
     try {
       const savedPlaylist = await window.ElectronAPI.readPlaylist()
@@ -3665,6 +4092,89 @@
     }
 
     syncDownloadQualitySelects()
+    emitFeature("app-ready")
+  }
+
+  // ========== 对外功能桥接（供 features.js 使用）==========
+  const MODE_BTN_IDS = {
+    order: "orderBtn",
+    reverse: "reverseBtn",
+    singleLoop: "singleLoopBtn",
+    listLoop: "listLoopBtn",
+    shuffle: "shuffleBtn",
+  }
+  window.MusicPlayer = {
+    on(evt, cb) {
+      ;(featureEventListeners[evt] =
+        featureEventListeners[evt] || []).push(cb)
+      return () => {
+        featureEventListeners[evt] = (featureEventListeners[evt] || []).filter(
+          (f) => f !== cb
+        )
+      }
+    },
+    getAudio: () => audioPlayer,
+    getCurrentSong: () =>
+      currentSongIndex >= 0 && playQueue[currentSongIndex]
+        ? playQueue[currentSongIndex]
+        : null,
+    getCurrentIndex: () => currentSongIndex,
+    getQueue: () => playQueue.slice(),
+    getMode: () => playMode,
+    isPlaying: () =>
+      !!(audioPlayer && currentSongIndex >= 0 && !audioPlayer.paused),
+    getLyrics: () => ({ lines: currentLyrics, activeIndex: lastActiveIndex }),
+    getLyricOffset: () => lyricOffset,
+    adjustLyricOffset: (d) => adjustLyricOffset(d),
+    toggle: () => togglePlayback(),
+    play: () => {
+      if (audioPlayer && currentSongIndex >= 0) {
+        userIntentPause = false
+        recoverTries = 0
+        stallTicks = 0
+        watchdogLastTime = -1
+        audioPlayer.play().catch(() => {})
+      }
+    },
+    pause: () => {
+      userIntentPause = true
+      if (audioPlayer) audioPlayer.pause()
+    },
+    next: () => playNextSong(),
+    prev: () => {
+      if (prevBtn) prevBtn.click()
+    },
+    playAt: (i, opts) => {
+      if (i >= 0 && i < playQueue.length) {
+        currentSongIndex = i
+        return playCurrentSong(opts)
+      }
+      return Promise.resolve()
+    },
+    playSongNext: (s) => playSongNext(s),
+    removeAt: (i) => {
+      if (i >= 0 && i < playQueue.length) removeFromPlaylist(i)
+    },
+    appendRaw: (s) => {
+      if (s && s.id) {
+        playQueue.push(s)
+        renderPlaylist()
+        window.ElectronAPI.savePlaylist(playQueue)
+      }
+    },
+    clearQueue: () => clearQueue(),
+    openSmartPlaylist: (id, name, songs) =>
+      showPlaylistDetail({ id, name, songs, description: "根据你的收听习惯自动生成" }),
+    reorder: (from, to) => reorderQueue(from, to),
+    seek: (t) => {
+      if (audioPlayer && isFinite(t)) audioPlayer.currentTime = t
+    },
+    setMode: (m) => {
+      const id = MODE_BTN_IDS[m]
+      const btn = id && document.getElementById(id)
+      if (btn) btn.click()
+    },
+    toast: (m, t) => showToast(m, t || "success"),
   }
 
   // 启动应用
