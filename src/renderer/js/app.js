@@ -140,6 +140,23 @@
     }, 500)
   }
 
+  // 防抖保存播放队列：renderPlaylist 高频触发，避免每次渲染都全量写盘
+  let queueSaveTimer = null
+  function scheduleQueueSave() {
+    if (queueSaveTimer) clearTimeout(queueSaveTimer)
+    queueSaveTimer = setTimeout(() => {
+      queueSaveTimer = null
+      window.ElectronAPI.savePlaylist(playQueue)
+    }, 500)
+  }
+  function flushQueueSave() {
+    if (queueSaveTimer) {
+      clearTimeout(queueSaveTimer)
+      queueSaveTimer = null
+      window.ElectronAPI.savePlaylist(playQueue)
+    }
+  }
+
   function escapeHtml(str) {
     if (str === null || str === undefined) return ""
     return String(str).replace(/[&<>"']/g, function (m) {
@@ -694,6 +711,9 @@
     confirmWebPlaylistImportBtn
   let importUserBtn, exportUserBtn, checkUpdateBtn
   let searchHistoryContainer, searchHistoryList
+  let downloadSongModal, deleteConfirmModal, updateModal, searchSourceMenu
+  // 当前搜索关键词（供“返回搜索结果”按钮恢复搜索框内容）
+  let currentKeyword = ""
   let searchCache = new Map()
   let lyricsCache = new Map()
 
@@ -768,6 +788,10 @@
     confirmWebPlaylistImportBtn = document.getElementById(
       "confirmWebPlaylistImportBtn"
     )
+    downloadSongModal = document.getElementById("downloadSongModal")
+    deleteConfirmModal = document.getElementById("deleteConfirmModal")
+    updateModal = document.getElementById("updateModal")
+    searchSourceMenu = document.getElementById("searchSourceMenu")
   }
 
   // ========== 导出用户信息 ==========
@@ -911,7 +935,7 @@
         <div class="flex items-center justify-between gap-2">
           ${
             canDl
-              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${song.id}" ${selectedQueueIds.has(song.id) ? "checked" : ""} />`
+              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${escapeHtml(song.id)}" ${selectedQueueIds.has(song.id) ? "checked" : ""} />`
               : `<span class="w-4 flex-shrink-0"></span>`
           }
           <div class="flex-1 min-w-0">
@@ -919,13 +943,13 @@
             <div class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)}</div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
+            <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </button>
-            <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-            <button class="more-btn" data-song-id="${song.id}">
+            <button class="add-to-playlist" data-song-id="${escapeHtml(song.id)}">+</button>
+            <button class="more-btn" data-song-id="${escapeHtml(song.id)}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
@@ -969,7 +993,7 @@
       playlistList.appendChild(li)
     })
     syncPlaylistQueueSelectAllCheckbox()
-    window.ElectronAPI.savePlaylist(playQueue)
+    scheduleQueueSave()
     emitFeature("queuechange", playQueue.slice())
   }
 
@@ -988,8 +1012,8 @@
         playlist.songs[0].coverUrl !== ""
 
       li.innerHTML = `
-        ${hasCover ? `<img src="./DIYSongListPage/${playlist.coverPath}" class="w-8 h-8 rounded object-cover" />` : hasSongCover ? `<img src="${playlist.songs[0].coverUrl}" class="w-8 h-8 rounded object-cover" />` : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>`}
-        <span class="flex-1">${playlist.name}</span>
+        ${hasCover ? `<img src="./DIYSongListPage/${escapeHtml(playlist.coverPath)}" class="w-8 h-8 rounded object-cover" />` : hasSongCover ? `<img src="${escapeHtml(playlist.songs[0].coverUrl)}" class="w-8 h-8 rounded object-cover" />` : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 13c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>`}
+        <span class="flex-1">${escapeHtml(playlist.name)}</span>
         <span class="text-xs text-gray-400">${playlist.songs.length}</span>
       `
       li.dataset.index = index
@@ -1182,7 +1206,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               </div>
               <div>
-                <h3 class="font-medium dark:text-white">${artistName}</h3>
+                <h3 class="font-medium dark:text-white">${escapeHtml(artistName)}</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">双击搜索该歌手的歌曲</p>
               </div>
             </div>
@@ -1280,14 +1304,18 @@
   }
 
   function renderLyrics(lyrics, songId) {
-    if (lyricsCache.has(songId)) {
-      currentLyrics = lyricsCache.get(songId)
+    // songId 可能为 undefined（清空歌词场景），不得污染缓存键
+    const cacheKey = songId != null ? String(songId) : null
+    if (cacheKey && lyricsCache.has(cacheKey)) {
+      currentLyrics = lyricsCache.get(cacheKey)
     } else {
       currentLyrics = parseLyrics(lyrics)
-      lyricsCache.set(songId, currentLyrics)
-      if (lyricsCache.size > LYRICS_CACHE_MAX) {
-        const oldestKey = lyricsCache.keys().next().value
-        lyricsCache.delete(oldestKey)
+      if (cacheKey) {
+        lyricsCache.set(cacheKey, currentLyrics)
+        if (lyricsCache.size > LYRICS_CACHE_MAX) {
+          const oldestKey = lyricsCache.keys().next().value
+          lyricsCache.delete(oldestKey)
+        }
       }
     }
     if (!lyricsArea) return
@@ -1494,12 +1522,27 @@
     })
   }
 
+  // 歌词原始请求缓存：同一首歌重复播放不再重复走 IPC + 网络请求
+  const lyricFetchCache = new Map()
+  const LYRIC_FETCH_CACHE_MAX = 100
+
   async function loadLyricsWithStatus(song) {
     if (lyricsArea) {
       lyricsArea.innerHTML =
         '<div class="lyrics-loading">🎵 歌词加载中...</div>'
     }
+    const fetchKey = `${song.source || "default"}|${song.songId || song.id || ""}`
     try {
+      if (lyricFetchCache.has(fetchKey)) {
+        const lyrics = lyricFetchCache.get(fetchKey)
+        if (lyrics && (lyrics.lrc || lyrics.tlrc)) {
+          renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId || song.id)
+        } else if (lyricsArea) {
+          lyricsArea.innerHTML =
+            '<div class="lyrics-empty">🎵 暂无歌词，享受音乐吧~</div>'
+        }
+        return
+      }
       let lyrics
       // 检查歌曲是否来自自定义源
       if (song.source && song.source !== "default") {
@@ -1529,6 +1572,12 @@
           lyricsArea.innerHTML =
             '<div class="lyrics-empty">🎵 暂无歌词，享受音乐吧~</div>'
         }
+      }
+      // 缓存原始歌词结果（含“无歌词”场景），命中上限按插入序淘汰
+      lyricFetchCache.set(fetchKey, lyrics)
+      if (lyricFetchCache.size > LYRIC_FETCH_CACHE_MAX) {
+        const oldestKey = lyricFetchCache.keys().next().value
+        lyricFetchCache.delete(oldestKey)
       }
     } catch (err) {
       console.error("[歌词] 获取歌词失败:", err)
@@ -1753,7 +1802,7 @@
       card.innerHTML =
         '<div class="dg-cover">' +
         (cov
-          ? '<img src="' + cov + '" alt="" loading="lazy">'
+          ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
           : '<div class="dg-note"><svg viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3zm12-3c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3z"/></svg></div>') +
         '<button class="dg-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>' +
         "</div>" +
@@ -2221,7 +2270,7 @@
         <div class="flex items-center justify-between gap-2">
           ${
             canDl
-              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${song.id}" ${selectedSearchIds.has(song.id) ? "checked" : ""} />`
+              ? `<input type="checkbox" class="download-song-cb selection-sq-checkbox mt-1 h-4 w-4 flex-shrink-0" data-song-id="${escapeHtml(song.id)}" ${selectedSearchIds.has(song.id) ? "checked" : ""} />`
               : `<span class="w-4 flex-shrink-0"></span>`
           }
           <div class="flex-1 min-w-0">
@@ -2229,11 +2278,11 @@
             <p class="text-sm text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
+            <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
             </button>
-            <button class="add-to-playlist" data-song-id="${song.id}">+</button>
-            <button class="more-btn" data-song-id="${song.id}">
+            <button class="add-to-playlist" data-song-id="${escapeHtml(song.id)}">+</button>
+            <button class="more-btn" data-song-id="${escapeHtml(song.id)}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
             </button>
           </div>
@@ -2309,7 +2358,6 @@
     userIntentPause = true
     if (audioPlayer) audioPlayer.pause()
     renderPlaylist()
-    window.ElectronAPI.savePlaylist(playQueue)
     syncNowPlayingRows(null)
     if (songTitle) songTitle.textContent = "未播放歌曲"
     if (songArtist) songArtist.textContent = "--"
@@ -2994,6 +3042,8 @@
 
   // ========== 搜索功能 ==========
   async function loadSearchResults(keyword, offset) {
+    // 记录当前关键词，供“返回搜索结果”按钮恢复搜索框
+    currentKeyword = keyword
     if (offset === 0 && searchResultList) {
       searchResultList.innerHTML = `<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>`
     }
@@ -3044,46 +3094,24 @@
             console.log(`[搜索] go-music-dl API 响应状态：成功`)
 
             if (response && response.songs) {
-              console.log(
-                `[搜索] 成功获取 go-music-dl API 结果，数量：${response.songs.length}`
-              )
-              console.log(`[搜索] 原始响应数据示例：`, response.songs[0])
               songs = response.songs
                 .map((song) => enrichMusicDlSearchSong(song))
                 .filter(Boolean)
               console.log(
-                `[搜索] 补全 id/Meting 地址后有效条目：${songs.length}/${response.songs.length}`
+                `[搜索] go-music-dl 有效条目：${songs.length}/${response.songs.length}`
               )
-              if (songs[0]) {
-                console.log(
-                  `[搜索] 转换后示例：${JSON.stringify(songs[0])}`
-                )
-              }
             } else if (response && response.error) {
               // API 调用失败，回退到默认 API
-              console.log(`[搜索] go-music-dl API 调用失败：${response.error}`)
-              console.log(`[搜索] 回退到默认 API 搜索：${keyword}, ${offset}`)
+              console.log(`[搜索] go-music-dl API 调用失败：${response.error}，回退默认 API`)
               songs = await window.ElectronAPI.searchMusic(keyword, offset)
-              console.log(
-                `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
-              )
             } else {
-              console.log(`[搜索] go-music-dl API 未返回 songs 字段`)
-              console.log(`[搜索] 响应数据：`, response)
-              console.log(`[搜索] 回退到默认 API 搜索`)
+              console.log(`[搜索] go-music-dl API 未返回 songs 字段，回退默认 API`)
               songs = await window.ElectronAPI.searchMusic(keyword, offset)
-              console.log(
-                `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
-              )
             }
           } catch (error) {
             // 发生异常，回退到默认 API
-            console.error(`[搜索] go-music-dl API 调用异常：${error.message}`)
-            console.log(`[搜索] 回退到默认 API 搜索：${keyword}, ${offset}`)
+            console.error(`[搜索] go-music-dl API 调用异常：${error.message}，回退默认 API`)
             songs = await window.ElectronAPI.searchMusic(keyword, offset)
-            console.log(
-              `[搜索] 默认 API 响应：${JSON.stringify(songs[0])}... (共 ${songs.length} 条)`
-            )
           }
         } else {
           // 使用默认 API 搜索
@@ -4007,72 +4035,47 @@
     setupSidebarResize()
     updateBrandGreeting()
 
-    try {
-      const savedPlaylist = await window.ElectronAPI.readPlaylist()
-      if (savedPlaylist && savedPlaylist.length > 0) {
-        playQueue = savedPlaylist
-        renderPlaylist()
+    // 并行读取全部持久化数据：单项失败不影响其他项
+    const results = await Promise.allSettled([
+      window.ElectronAPI.readPlaylist(),
+      window.ElectronAPI.readLikedSongs(),
+      window.ElectronAPI.readFollowedArtists(),
+      window.ElectronAPI.readCustomPlaylists(),
+      window.ElectronAPI.readLatestPlayed(),
+      window.ElectronAPI.readDIYPlaylists(),
+      window.ElectronAPI.readSearchHistory(),
+      window.ElectronAPI.readLocalSongs(),
+    ])
+    const val = (i, fallback, label) => {
+      if (results[i].status === "fulfilled") return results[i].value || fallback
+      console.error(`${label}失败:`, results[i].reason)
+      return fallback
+    }
+
+    playQueue = val(0, [], "读取播放列表") || []
+    likedSongs = val(1, [], "读取我喜欢的歌曲") || []
+    followedArtists = val(2, [], "读取关注歌手列表") || []
+    customPlaylists = val(3, [], "读取自定义歌单") || []
+    latestPlayed = val(4, [], "读取最近播放") || []
+    diyPlaylists = val(5, [], "读取自建歌单") || []
+    searchHistory = val(6, [], "读取搜索历史") || []
+    localSongs = val(7, [], "读取本地歌曲") || []
+
+    if (playQueue.length > 0) {
+      renderPlaylist()
+      // 启动时的首次渲染并未修改队列，取消随之而来的无意义写盘
+      if (queueSaveTimer) {
+        clearTimeout(queueSaveTimer)
+        queueSaveTimer = null
       }
-    } catch (err) {
-      console.error("读取播放列表失败:", err)
     }
-
-    try {
-      likedSongs = (await window.ElectronAPI.readLikedSongs()) || []
-      if (likeCount) likeCount.textContent = likedSongs.length
-    } catch (err) {
-      console.error("读取我喜欢的歌曲失败:", err)
-      likedSongs = []
-    }
-
-    try {
-      followedArtists = (await window.ElectronAPI.readFollowedArtists()) || []
-      const followCountEl = document.getElementById("followCount")
-      if (followCountEl) followCountEl.textContent = followedArtists.length
-    } catch (err) {
-      console.error("读取关注歌手列表失败:", err)
-      followedArtists = []
-    }
-
-    try {
-      customPlaylists = (await window.ElectronAPI.readCustomPlaylists()) || []
-      renderPlaylistSidebar()
-    } catch (err) {
-      console.error("读取自定义歌单失败:", err)
-      customPlaylists = []
-    }
-
-    try {
-      latestPlayed = (await window.ElectronAPI.readLatestPlayed()) || []
-      if (recentCount) recentCount.textContent = latestPlayed.length
-    } catch (err) {
-      console.error("读取最近播放失败:", err)
-      latestPlayed = []
-    }
-
-    try {
-      diyPlaylists = (await window.ElectronAPI.readDIYPlaylists()) || []
-      renderPlaylistSidebar()
-    } catch (err) {
-      console.error("读取自建歌单失败:", err)
-      diyPlaylists = []
-    }
-
-    try {
-      searchHistory = (await window.ElectronAPI.readSearchHistory()) || []
-    } catch (err) {
-      console.error("读取搜索历史失败:", err)
-      searchHistory = []
-    }
-
-    try {
-      localSongs = (await window.ElectronAPI.readLocalSongs()) || []
-      const localCountEl = document.getElementById("localCount")
-      if (localCountEl) localCountEl.textContent = localSongs.length
-    } catch (err) {
-      console.error("读取本地歌曲失败:", err)
-      localSongs = []
-    }
+    if (likeCount) likeCount.textContent = likedSongs.length
+    const followCountEl = document.getElementById("followCount")
+    if (followCountEl) followCountEl.textContent = followedArtists.length
+    if (recentCount) recentCount.textContent = latestPlayed.length
+    const localCountEl = document.getElementById("localCount")
+    if (localCountEl) localCountEl.textContent = localSongs.length
+    renderPlaylistSidebar()
 
     async function checkUpdateOnStartup() {
       try {
@@ -4159,7 +4162,6 @@
       if (s && s.id) {
         playQueue.push(s)
         renderPlaylist()
-        window.ElectronAPI.savePlaylist(playQueue)
       }
     },
     clearQueue: () => clearQueue(),
@@ -4189,6 +4191,8 @@
       playlistDetailList.removeEventListener("click", handlePlaylistDetailClick)
     if (likedSaveTimer) clearTimeout(likedSaveTimer)
     if (recentSaveTimer) clearTimeout(recentSaveTimer)
+    // 关闭前把防抖窗口内未落盘的队列立即保存
+    flushQueueSave()
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
     if (audioPlayer) {
       audioPlayer.removeEventListener("timeupdate", updateLyricHighlight)
