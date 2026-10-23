@@ -1021,6 +1021,8 @@
     $("playlistDetailSection").classList.add("hidden")
     const home = $("homeSection")
     if (home) home.classList.add("hidden")
+    const mineSec = $("mineSection")
+    if (mineSec) mineSec.classList.add("hidden")
     sec.classList.remove("hidden")
 
     const entries = Object.values(stats.songs).sort((a, b) => b.count - a.count || b.seconds - a.seconds)
@@ -1694,7 +1696,8 @@
       const other =
         !$("searchResultsSection").classList.contains("hidden") ||
         !$("playlistDetailSection").classList.contains("hidden") ||
-        ($("statsSection") && !$("statsSection").classList.contains("hidden"))
+        ($("statsSection") && !$("statsSection").classList.contains("hidden")) ||
+        ($("mineSection") && !$("mineSection").classList.contains("hidden"))
       home.classList.toggle("hidden", other)
     }
     ;["searchResultsSection", "playlistDetailSection"].forEach((id) => {
@@ -1728,6 +1731,7 @@
         $("searchResultsSection").classList.add("hidden")
         $("playlistDetailSection").classList.add("hidden")
         if ($("statsSection")) $("statsSection").classList.add("hidden")
+        if ($("mineSection")) $("mineSection").classList.add("hidden")
         refreshHome()
       })
     }
@@ -2089,6 +2093,353 @@
     AudioEngine.applyEQ()
   }
 
+  // ============ 在线歌单（扫码登录 + 我的云歌单）============
+  const MINE_SOURCES = [
+    ["netease", "网易"],
+    ["qq", "QQ"],
+    ["kugou", "酷狗"],
+  ]
+  const mineState = {
+    source: "netease",
+    checked: {},
+    logged: {},
+    qr: null,
+    qrStatus: "",
+    polling: false,
+    playlists: {},
+    loadingLists: false,
+  }
+  function mineLabel(source) {
+    const hit = MINE_SOURCES.find(([id]) => id === source)
+    return hit ? hit[1] : source
+  }
+  function mineSectionEl() {
+    return $("mineSection")
+  }
+  function openMineSection() {
+    const content = $("contentScroll")
+    let sec = mineSectionEl()
+    if (!sec) {
+      sec = document.createElement("section")
+      sec.id = "mineSection"
+      sec.className = "content-section"
+      content.appendChild(sec)
+      const hideIfOther = () => {
+        if (
+          !$("searchResultsSection").classList.contains("hidden") ||
+          !$("playlistDetailSection").classList.contains("hidden")
+        ) {
+          sec.classList.add("hidden")
+        }
+      }
+      new MutationObserver(hideIfOther).observe($("searchResultsSection"), {
+        attributes: true,
+        attributeFilter: ["class"],
+      })
+      new MutationObserver(hideIfOther).observe($("playlistDetailSection"), {
+        attributes: true,
+        attributeFilter: ["class"],
+      })
+      sec.addEventListener("click", (e) => {
+        const tab = e.target.closest("[data-mine-src]")
+        if (tab) {
+          mineState.source = tab.dataset.mineSrc
+          renderMineSection()
+          afterMineSourceSwitch()
+          return
+        }
+        const refresh = e.target.closest("[data-mine-qrrefresh]")
+        if (refresh) {
+          startQrLogin(mineState.source)
+          return
+        }
+        const out = e.target.closest("[data-mine-logout]")
+        if (out) {
+          mineLogout(mineState.source)
+          return
+        }
+        const card = e.target.closest("[data-mine-idx]")
+        if (card) {
+          const lists = mineState.playlists[mineState.source] || []
+          const p = lists[Number(card.dataset.mineIdx)]
+          if (p) {
+            p.source = p.source || mineState.source
+            openMinePlaylist(p)
+          }
+        }
+      })
+    }
+    $("searchResultsSection").classList.add("hidden")
+    $("playlistDetailSection").classList.add("hidden")
+    const home = $("homeSection")
+    if (home) home.classList.add("hidden")
+    const statsSec = $("statsSection")
+    if (statsSec) statsSec.classList.add("hidden")
+    sec.classList.remove("hidden")
+    renderMineSection()
+    refreshMineStatuses()
+  }
+  function afterMineSourceSwitch() {
+    const src = mineState.source
+    if (!mineState.checked[src]) return
+    if (mineState.logged[src]) {
+      if (!mineState.playlists[src]) loadMinePlaylists(src)
+      return
+    }
+    // 未登录：当前无会话或会话属于其他源时，自动生成新二维码
+    if (!mineState.qr || mineState.qr.source !== src) {
+      startQrLogin(src)
+    }
+  }
+  async function refreshMineStatuses() {
+    await Promise.all(
+      MINE_SOURCES.map(async ([id]) => {
+        let logged = false
+        try {
+          const res = await window.ElectronAPI.musicDlLoginStatus(id)
+          logged = !!(res && res.logged_in)
+        } catch (e) {
+          logged = false
+        }
+        if (!logged) delete mineState.playlists[id]
+        if (mineState.logged[id] && !logged) mineState.qr = null
+        mineState.checked[id] = true
+        mineState.logged[id] = logged
+      })
+    )
+    const sec = mineSectionEl()
+    if (!sec || sec.classList.contains("hidden")) return
+    renderMineSection()
+    const src = mineState.source
+    if (mineState.logged[src]) {
+      if (!mineState.playlists[src]) loadMinePlaylists(src)
+    } else if (!mineState.qr || mineState.qr.source !== src) {
+      startQrLogin(src)
+    }
+  }
+  async function loadMinePlaylists(source) {
+    if (mineState.loadingLists) return
+    mineState.loadingLists = true
+    renderMineSection()
+    try {
+      const res = await window.ElectronAPI.musicDlUserPlaylists(source, 1, 100)
+      mineState.playlists[source] =
+        res && Array.isArray(res.playlists) ? res.playlists : []
+    } catch (e) {
+      mineState.playlists[source] = []
+    } finally {
+      mineState.loadingLists = false
+      const sec = mineSectionEl()
+      if (sec && !sec.classList.contains("hidden")) renderMineSection()
+    }
+  }
+  async function startQrLogin(source) {
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlQrCreate(source)
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !res.key || (!res.url && !res.image_url)) {
+      mineState.qrStatus =
+        "二维码创建失败：" + (res && res.error ? res.error : "未知错误")
+      renderMineSection()
+      return
+    }
+    let imgUrl = ""
+    if (res.image_url) {
+      // 部分源（如 QQ）直接返回 base64 二维码图
+      imgUrl = res.image_url
+    } else {
+      try {
+        imgUrl = await window.ElectronAPI.musicDlQrImageUrl(res.url, 240)
+      } catch (e) {
+        imgUrl = ""
+      }
+    }
+    if (!imgUrl) {
+      mineState.qrStatus = "二维码图片生成失败"
+      renderMineSection()
+      return
+    }
+    mineState.qr = { source, key: res.key, url: res.url || "", imgUrl }
+    mineState.qrStatus = "等待扫码"
+    renderMineSection()
+    if (!mineState.polling) pollQrLogin()
+  }
+  async function pollQrLogin() {
+    mineState.polling = true
+    const tick = async () => {
+      const qr = mineState.qr
+      const sec = mineSectionEl()
+      if (!qr || !sec || sec.classList.contains("hidden")) {
+        mineState.polling = false
+        return
+      }
+      let res
+      try {
+        res = await window.ElectronAPI.musicDlQrCheck(qr.source, qr.key)
+      } catch (e) {
+        res = null
+      }
+      if (!mineState.qr || mineState.qr.key !== qr.key) {
+        mineState.polling = false
+        return
+      }
+      const status = res && res.status ? String(res.status) : "failed"
+      if (status === "success") {
+        mineState.qr = null
+        mineState.qrStatus = ""
+        mineState.logged[qr.source] = true
+        delete mineState.playlists[qr.source]
+        Player.toast(mineLabel(qr.source) + "登录成功", "info")
+        renderMineSection()
+        loadMinePlaylists(qr.source)
+        mineState.polling = false
+        return
+      }
+      if (status === "expired" || status === "failed") {
+        mineState.qrStatus = "二维码已过期，正在刷新..."
+        renderMineSection()
+        startQrLogin(qr.source)
+        return
+      }
+      if (status === "scanned") mineState.qrStatus = "已扫码，请在手机上确认"
+      const statusEl = document.getElementById("mineQrStatus")
+      if (statusEl && mineState.qr) {
+        statusEl.textContent = mineState.qrStatus
+      }
+      setTimeout(tick, 2500)
+    }
+    setTimeout(tick, 2500)
+  }
+  async function mineLogout(source) {
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlLogout(source)
+    } catch (e) {
+      res = null
+    }
+    if (res && res.ok) {
+      mineState.logged[source] = false
+      mineState.qr = null
+      delete mineState.playlists[source]
+      Player.toast("已退出" + mineLabel(source) + "登录", "info")
+      renderMineSection()
+      startQrLogin(source)
+    } else {
+      Player.toast("退出登录失败", "info")
+    }
+  }
+  async function openMinePlaylist(p) {
+    if (!p || !p.id) return
+    Player.toast("正在加载歌单《" + p.name + "》", "info")
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlPlaylistDetail(
+        p.source,
+        String(p.id),
+        p.name
+      )
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.songs)) {
+      Player.toast("歌单加载失败：" + (res && res.error ? res.error : "未知错误"), "info")
+      return
+    }
+    const songs = res.songs
+      .map((s) =>
+        Player.enrichDlSong(Object.assign({}, s, { source: s.source || p.source }))
+      )
+      .filter(Boolean)
+    if (!songs.length) {
+      Player.toast("该歌单暂无可用歌曲", "info")
+      return
+    }
+    Player.openPlaylist(
+      "mine-" + p.source + "-" + p.id,
+      p.name,
+      songs,
+      p.description || ""
+    )
+  }
+  function renderMineSection() {
+    const sec = mineSectionEl()
+    if (!sec) return
+    const tabs = MINE_SOURCES.map(
+      ([id, label]) =>
+        '<button class="tl-tab' +
+        (id === mineState.source ? " active" : "") +
+        '" data-mine-src="' + id + '">' + label + "</button>"
+    ).join("")
+    const src = mineState.source
+    const logged = !!mineState.logged[src]
+    let body = ""
+    if (!mineState.checked[src]) {
+      body = '<div class="tl-empty">正在检查登录状态...</div>'
+    } else if (logged) {
+      const lists = mineState.playlists[src]
+      if (!lists) {
+        body =
+          '<div class="tl-empty">' +
+          (mineState.loadingLists ? "歌单加载中..." : " ") +
+          "</div>"
+      } else if (!lists.length) {
+        body = '<div class="tl-empty">该账号暂无歌单</div>'
+      } else {
+        body =
+          '<div class="rec-grid">' +
+          lists
+            .slice(0, 18)
+            .map((p, i) => {
+              const cov = p.cover || ""
+              return (
+                '<div class="rec-card" data-mine-idx="' + i + '" title="' + escapeHtml(p.name) + '">' +
+                '<div class="rec-card-cover">' +
+                (cov
+                  ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
+                  : '<div class="home-card-note">' + NOTE_SVG + "</div>") +
+                "</div>" +
+                '<div class="rec-card-name">' + escapeHtml(p.name) + "</div>" +
+                '<div class="rec-card-sub">' + escapeHtml(p.track_count ? p.track_count + "首" : "") + "</div>" +
+                "</div>"
+              )
+            })
+            .join("") +
+          "</div>"
+      }
+    } else {
+      const qr = mineState.qr && mineState.qr.source === src ? mineState.qr : null
+      body =
+        '<div class="mine-qr-panel">' +
+        (qr && qr.imgUrl
+          ? '<img id="mineQrImg" class="mine-qr-img" alt="扫码登录二维码" src="' + escapeHtml(qr.imgUrl) + '">'
+          : '<div class="mine-qr-img mine-qr-placeholder">' + NOTE_SVG + "</div>") +
+        '<div class="mine-qr-side">' +
+        '<div class="mine-qr-title">扫码登录' + mineLabel(src) + "账号</div>" +
+        '<div id="mineQrStatus" class="mine-qr-status">' +
+        escapeHtml(qr ? mineState.qrStatus : "点击下方按钮生成二维码") +
+        "</div>" +
+        '<div class="mine-qr-tip">打开' + mineLabel(src) + '音乐 App，使用扫一扫扫描二维码，登录后可查看你的云歌单</div>' +
+        '<button class="btn btn-ghost" data-mine-qrrefresh="1">' +
+        (qr ? "刷新二维码" : "生成二维码") +
+        "</button></div></div>"
+    }
+    sec.innerHTML =
+      '<div class="stats-head"><h2>在线歌单</h2>' +
+      (logged
+        ? '<button class="btn btn-ghost" data-mine-logout="1">退出' + mineLabel(src) + "登录</button>"
+        : "") +
+      "</div>" +
+      '<div class="home-block-head"><h3>我的云歌单</h3><div class="tl-tabs">' + tabs + "</div></div>" +
+      body
+  }
+  function initMinePlaylists() {
+    const btn = $("minePlaylistsBtn")
+    if (btn) btn.addEventListener("click", openMineSection)
+  }
+
   // ============ 播放/切歌统一副作用 ============
   function initReactions() {
     Player.on("songchange", (song) => {
@@ -2141,6 +2492,7 @@
     initStats()
     initSettings()
     initHomePage()
+    initMinePlaylists()
     initSmartPlaylists()
     initReactions()
     // 频谱依赖歌词页 DOM，延迟初始化

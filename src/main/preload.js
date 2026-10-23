@@ -73,6 +73,16 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
       page,
       limit
     ),
+  musicDlQrCreate: (source) => ipcRenderer.invoke("musicDlQrCreate", source),
+  musicDlQrCheck: (source, key) =>
+    ipcRenderer.invoke("musicDlQrCheck", source, key),
+  musicDlLoginStatus: (source) =>
+    ipcRenderer.invoke("musicDlLoginStatus", source),
+  musicDlLogout: (source) => ipcRenderer.invoke("musicDlLogout", source),
+  musicDlUserPlaylists: (source, page, limit) =>
+    ipcRenderer.invoke("musicDlUserPlaylists", source, page, limit),
+  musicDlQrImageUrl: (text, size) =>
+    ipcRenderer.invoke("musicDlQrImageUrl", text, size),
   musicDlPlaylistDetail: (source, id, name) =>
     ipcRenderer.invoke("musicDlPlaylistDetail", source, id, name),
   musicDlParse: (url) => ipcRenderer.invoke("musicDlParse", url),

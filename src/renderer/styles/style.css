@@ -779,6 +779,26 @@ body.mini-mode .dialog-layer { display: none !important; }
 .sq-cat.hot { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .sq-cat.active { background: var(--accent); border-color: var(--accent); color: #07130c; font-weight: 600; }
 
+/* ===== 在线歌单（扫码登录）===== */
+.mine-qr-panel {
+  display: flex; align-items: center; justify-content: center; gap: 36px;
+  padding: 48px 20px; flex-wrap: wrap;
+}
+.mine-qr-img {
+  width: 240px; height: 240px; border-radius: 12px;
+  background: #fff; padding: 12px; flex-shrink: 0;
+  box-shadow: 0 4px 18px rgba(0,0,0,.22);
+}
+.mine-qr-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-3); border: 1px dashed var(--line);
+}
+.mine-qr-placeholder svg { width: 44px; height: 44px; }
+.mine-qr-side { max-width: 320px; }
+.mine-qr-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.mine-qr-status { font-size: 14px; color: var(--accent); margin-bottom: 10px; min-height: 20px; }
+.mine-qr-tip { font-size: 12.5px; color: var(--text-3); line-height: 1.6; margin-bottom: 16px; }
+
 /* ===== 首页推荐歌单 ===== */
 .rec-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
 .rec-card { cursor: pointer; min-width: 0; }

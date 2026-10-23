@@ -1709,6 +1709,91 @@ function initIpcHandlers() {
     }
   )
 
+  // 扫码登录：创建会话
+  ipcMain.handle("musicDlQrCreate", async (event, source = "netease") => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/qr_create`,
+        { params: { source }, timeout: 30000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`创建扫码登录会话失败(${source}):`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  // 扫码登录：轮询状态
+  ipcMain.handle(
+    "musicDlQrCheck",
+    async (event, source, key = "") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/qr_check`,
+          { params: { source, key }, timeout: 30000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`查询扫码状态失败(${source}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // 扫码登录：登录状态查询/退出
+  ipcMain.handle(
+    "musicDlLoginStatus",
+    async (event, source = "netease") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/login_status`,
+          { params: { source }, timeout: 15000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`查询登录状态失败(${source}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  ipcMain.handle("musicDlLogout", async (event, source = "netease") => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/logout`,
+        { params: { source }, timeout: 15000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`退出登录失败(${source}):`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  // 已登录用户的歌单
+  ipcMain.handle(
+    "musicDlUserPlaylists",
+    async (event, source, page = 1, limit = 100) => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/user_playlists`,
+          { params: { source, page, limit }, timeout: 60000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取用户歌单失败(${source}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // QR 图片 URL（供渲染层 img.src 使用）
+  ipcMain.handle("musicDlQrImageUrl", async (event, text, size = 280) => {
+    return `${musicDlService.getBaseUrl()}/api/qr_image?text=${encodeURIComponent(
+      text
+    )}&size=${size}`
+  })
+
   // 推荐歌单（复用 go-music-dl 的推荐能力）
   ipcMain.handle("musicDlRecommend", async (event, source = "netease") => {
     try {
