@@ -227,9 +227,12 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 /* ============ 歌曲列表行（app.js 动态生成） ============ */
 .song-list { list-style: none; margin: 0; padding: 4px; display: flex; flex-direction: column; gap: 1px; }
 .song-list:empty::after {
-  content: "暂无歌曲，搜索后双击结果即可播放";
+  content: "暂无歌曲";
   display: block; text-align: center; padding: 48px 0;
   color: var(--text-3); font-size: 13px;
+}
+#searchResultList:empty::after {
+  content: "暂无歌曲，搜索后双击结果即可播放";
 }
 .song-item {
   display: flex; align-items: center;
