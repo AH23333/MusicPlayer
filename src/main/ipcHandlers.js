@@ -10,6 +10,7 @@ const {
   parseWebPlaylistUrl,
   WEB_PLAYLIST_PLATFORM_LABELS,
   buildDownloadUrlForSong,
+  metingServerFromSource,
 } = require("../../utils")
 const axios = require("axios")
 
@@ -107,12 +108,100 @@ function initIpcHandlers() {
     return null
   }
 
+  // ===== go-music-dl 链接解析兜底（支持酷狗/酷我/咪咕/B站等更多平台）=====
+  // 将 music-lib 的 Song 结构映射为播放器内部歌曲结构
+  function mapDlSongToPlayerSong(s, defaultSource) {
+    if (!s || s.id == null || s.id === "") return null
+    const sid = String(s.id)
+    const server = metingServerFromSource(s.source || defaultSource)
+    const pic = s.cover || ""
+    return {
+      id: sid,
+      songId: sid,
+      name: s.name || "未知歌曲",
+      artist: s.artist || "未知歌手",
+      album: s.album || "未知专辑",
+      coverUrl: String(pic).replace(/^http:/, "https:"),
+      duration: s.duration || 0,
+      url:
+        s.url && /^https?:\/\//i.test(s.url)
+          ? s.url
+          : `${API_CONFIGS.neteaseAudioUrl.url}?server=${server}&type=url&id=${encodeURIComponent(sid)}`,
+      source: server,
+    }
+  }
+
+  // 通过 /api/parse 解析任意平台链接，成功时返回与 fetch-web-playlist 一致的结构
+  async function parseViaMusicDl(rawUrl) {
+    const baseUrl = musicDlService.getBaseUrl()
+    try {
+      const response = await axios.get(`${baseUrl}/api/parse`, {
+        params: { url: rawUrl },
+        timeout: 60000,
+      })
+      const d = response.data
+      if (!d || d.error) return null
+      const rawSongs = Array.isArray(d.songs)
+        ? d.songs
+        : d.song
+          ? [d.song]
+          : []
+      if (!rawSongs.length) return null
+      const dlSource = d.source || ""
+      const songs = rawSongs
+        .map((s) => mapDlSongToPlayerSong(s, s.source || dlSource))
+        .filter(Boolean)
+      if (!songs.length) return null
+      const server = metingServerFromSource(dlSource)
+      const platLabel = WEB_PLAYLIST_PLATFORM_LABELS[server] || dlSource
+      const name =
+        (d.playlist && d.playlist.name) ||
+        (d.song && d.song.name) ||
+        `${platLabel}歌单`
+      logger.info(
+        `go-music-dl 链接解析成功：${d.type} ${dlSource}，共 ${songs.length} 首`
+      )
+      return {
+        success: true,
+        playlistId: String((d.playlist && d.playlist.id) || ""),
+        platform: server,
+        platformLabel: platLabel,
+        name,
+        songs,
+      }
+    } catch (e) {
+      logger.warn(`go-music-dl 链接解析失败: ${e.message}`)
+      return null
+    }
+  }
+
+  // 通用链接解析入口（渲染端可调用）
+  ipcMain.handle("musicDlParse", async (event, url) => {
+    const raw = String(url || "").trim()
+    if (!/^https?:\/\//i.test(raw)) {
+      return { success: false, error: "仅支持 http(s) 链接" }
+    }
+    const result = await parseViaMusicDl(raw)
+    if (!result) {
+      return { success: false, error: "无法解析该链接，请确认链接正确且歌单公开" }
+    }
+    return result
+  })
+
   // 从网易云 / QQ 音乐网页链接拉取歌单（Meting API）
   ipcMain.handle(
     "fetch-web-playlist",
     async (event, urlOrId, platform = "auto") => {
       const parsed = parseWebPlaylistUrl(urlOrId, platform)
+      const rawUrlForParse = /^https?:\/\//i.test(String(urlOrId || "").trim())
+        ? String(urlOrId).trim()
+        : null
       if (!parsed) {
+        // go-music-dl 解析兜底：支持酷狗/酷我/咪咕/B站等更多平台的链接
+        if (rawUrlForParse) {
+          const dlParsed = await parseViaMusicDl(rawUrlForParse)
+          if (dlParsed) return dlParsed
+        }
         return {
           success: false,
           error:
@@ -182,6 +271,11 @@ function initIpcHandlers() {
 
       if (songs.length === 0) {
         logger.warn(`网页歌单 ${metingServer}/${playlistId} 最终无可用曲目`)
+        // 最后兜底：go-music-dl 链接解析（Meting 与歌单接口都失败时）
+        if (rawUrlForParse) {
+          const dlParsed = await parseViaMusicDl(rawUrlForParse)
+          if (dlParsed) return dlParsed
+        }
         let errMsg
         if (metingErrMsg) {
           errMsg = `歌单接口返回：${metingErrMsg}。请确认歌单公开、链接未失效，或稍后重试。`
