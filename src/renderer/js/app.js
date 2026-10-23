@@ -940,7 +940,7 @@
           }
           <div class="flex-1 min-w-0">
             <div class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span></div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
@@ -1590,6 +1590,14 @@
   function showPlaylistDetail(playlist) {
     currentPlaylist = playlist
     selectedPlaylistDetailIds.clear()
+    // 非歌手页时隐藏专辑横条（歌手页由 renderArtistAlbumStrip 控制）
+    const artistStripEl = document.getElementById("artistAlbumStrip")
+    if (
+      artistStripEl &&
+      !String(playlist.id || "").startsWith("artist:")
+    ) {
+      artistStripEl.classList.add("hidden")
+    }
     if (backToSearchBtn) backToSearchBtn.classList.remove("hidden")
 
     if (
@@ -1740,11 +1748,11 @@
           }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
-            <p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span> - ${escapeHtml(song.album)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 1 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
             </button>
             <button class="add-to-playlist" data-song-id="${song.id}">+</button>
             <button class="more-btn" data-song-id="${song.id}">
@@ -1840,6 +1848,172 @@
     if (viewGridBtn) viewGridBtn.addEventListener("click", () => setDetailView("grid"))
     setDetailView(localStorage.getItem("mp-detail-view") === "grid" ? "grid" : "list")
   }
+
+  // ========== 歌手页（go-music-dl 多源搜索聚合 + 专辑浏览）==========
+  const SOURCE_LABELS = {
+    netease: "网易云音乐",
+    qq: "QQ音乐",
+    tencent: "QQ音乐",
+    kugou: "酷狗音乐",
+    kuwo: "酷我音乐",
+    migu: "咪咕音乐",
+    bilibili: "哔哩哔哩",
+    joox: "JOOX",
+    qianqian: "千千音乐",
+    apple: "Apple Music",
+    jamendo: "Jamendo",
+    fivesing: "5sing",
+    soda: "汽水音乐",
+  }
+
+  async function showArtistDetail(artist) {
+    const name = String(artist || "").trim()
+    if (!name) return
+    if (
+      !window.ElectronAPI ||
+      typeof window.ElectronAPI.musicDlSearch !== "function"
+    ) {
+      return
+    }
+    showToast(`正在加载「${name}」的歌手页…`, "info")
+    try {
+      const [songsRes, albumsRes] = await Promise.all([
+        window.ElectronAPI.musicDlSearch(name, "", 1, 60),
+        typeof window.ElectronAPI.musicDlAlbumSearch === "function"
+          ? window.ElectronAPI.musicDlAlbumSearch(name)
+          : Promise.resolve(null),
+      ])
+      const kw = name.toLowerCase()
+      const seen = new Set()
+      const songs = []
+      for (const s of (songsRes && songsRes.songs) || []) {
+        const enriched = enrichMusicDlSearchSong(s)
+        if (!enriched) continue
+        if (!String(enriched.artist || "").toLowerCase().includes(kw)) continue
+        const dkey = `${enriched.name}|${Math.round(Number(enriched.duration) || 0)}`
+        if (seen.has(dkey)) continue
+        seen.add(dkey)
+        songs.push(enriched)
+        if (songs.length >= 60) break
+      }
+      const albums = (albumsRes && albumsRes.albums) || []
+      if (!songs.length && !albums.length) {
+        showToastError(`未找到「${name}」的相关歌曲`)
+        return
+      }
+      showPlaylistDetail({
+        id: `artist:${name}`,
+        name,
+        songs,
+        description: songs.length
+          ? `热门歌曲（多平台聚合 ${songs.length} 首）`
+          : "暂无热门歌曲，可浏览下方专辑",
+      })
+      renderArtistAlbumStrip(albums)
+    } catch (e) {
+      showToastError("歌手页加载失败，请稍后重试")
+    }
+  }
+
+  function renderArtistAlbumStrip(albums) {
+    const strip = document.getElementById("artistAlbumStrip")
+    if (!strip) return
+    strip.innerHTML = ""
+    const seen = new Set()
+    const uniq = (albums || [])
+      .filter((a) => a && a.id && a.name)
+      .filter((a) => {
+        const key = `${a.name}|${a.source}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .slice(0, 20)
+    if (!uniq.length) {
+      strip.classList.add("hidden")
+      return
+    }
+    const title = document.createElement("div")
+    title.className = "strip-title"
+    title.textContent = "相关专辑"
+    const row = document.createElement("div")
+    row.className = "strip-row"
+    uniq.forEach((album) => {
+      const card = document.createElement("div")
+      card.className = "album-card"
+      card.innerHTML =
+        '<div class="album-cover">' +
+        (album.cover
+          ? '<img src="' + escapeHtml(album.cover) + '" alt="" loading="lazy">'
+          : '<svg viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3zm12-3c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 .895 3 3z"/></svg>') +
+        "</div>" +
+        '<div class="album-name" title="' +
+        escapeHtml(album.name) +
+        '">' +
+        escapeHtml(album.name) +
+        "</div>" +
+        '<div class="album-src">' +
+        escapeHtml(SOURCE_LABELS[album.source] || album.source || "") +
+        "</div>"
+      const img = card.querySelector("img")
+      if (img) {
+        img.addEventListener("error", () => {
+          img.style.display = "none"
+        })
+      }
+      card.addEventListener("click", () => openAlbumFromArtist(album))
+      row.appendChild(card)
+    })
+    strip.appendChild(title)
+    strip.appendChild(row)
+    strip.classList.remove("hidden")
+  }
+
+  async function openAlbumFromArtist(album) {
+    if (
+      !window.ElectronAPI ||
+      typeof window.ElectronAPI.musicDlAlbum !== "function"
+    ) {
+      return
+    }
+    showToast(`正在加载专辑《${album.name}》…`, "info")
+    try {
+      const res = await window.ElectronAPI.musicDlAlbum(
+        album.source,
+        album.id,
+        album.name
+      )
+      const songs = ((res && res.songs) || [])
+        .map((s) => enrichMusicDlSearchSong(s))
+        .filter(Boolean)
+      if (!songs.length) {
+        showToastError("专辑曲目加载失败")
+        return
+      }
+      showPlaylistDetail({
+        id: `album:${album.source}:${album.id}`,
+        name: album.name,
+        songs,
+        description: `专辑 · ${SOURCE_LABELS[album.source] || album.source || ""} · ${songs.length} 首`,
+      })
+    } catch (e) {
+      showToastError("专辑曲目加载失败")
+    }
+  }
+
+  // 捕获阶段拦截 .artist-link（歌手名）点击：不触发行选中/双击播放，直达歌手页
+  document.addEventListener(
+    "click",
+    (e) => {
+      const el =
+        e.target && e.target.closest ? e.target.closest(".artist-link") : null
+      if (!el || !el.dataset.artist) return
+      e.stopPropagation()
+      e.preventDefault()
+      showArtistDetail(el.dataset.artist)
+    },
+    true
+  )
   function removeFromCustomPlaylist(playlist, index) {
     const song = playlist.songs[index]
     playlist.songs.splice(index, 1)
@@ -2275,7 +2449,7 @@
           }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
-            <p class="text-sm text-gray-400 dark:text-gray-500 truncate">${escapeHtml(song.artist)} - ${escapeHtml(song.album)}</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span> - ${escapeHtml(song.album)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
@@ -2840,7 +3014,16 @@
         : song.url
     syncNowPlayingRows(song)
     if (songTitle) songTitle.textContent = song.name
-    if (songArtist) songArtist.textContent = song.artist
+    if (songArtist) {
+      songArtist.textContent = song.artist
+      if (song.artist) {
+        songArtist.classList.add("artist-link")
+        songArtist.dataset.artist = song.artist
+      } else {
+        songArtist.classList.remove("artist-link")
+        delete songArtist.dataset.artist
+      }
+    }
 
     if (song.coverUrl) {
       if (coverImg) coverImg.src = song.coverUrl
@@ -2860,7 +3043,16 @@
     }
 
     if (lyricsSongTitle) lyricsSongTitle.textContent = song.name
-    if (lyricsSongArtist) lyricsSongArtist.textContent = song.artist
+    if (lyricsSongArtist) {
+      lyricsSongArtist.textContent = song.artist
+      if (song.artist) {
+        lyricsSongArtist.classList.add("artist-link")
+        lyricsSongArtist.dataset.artist = song.artist
+      } else {
+        lyricsSongArtist.classList.remove("artist-link")
+        delete lyricsSongArtist.dataset.artist
+      }
+    }
 
     await loadLyricsWithStatus(song)
     if (myGeneration !== playGeneration) return
@@ -4229,6 +4421,8 @@
       showPlaylistDetail({ id, name, songs, description: description || "" }),
     // 将 go-music-dl 返回的歌曲归一化为播放器内部结构
     enrichDlSong: (s) => enrichMusicDlSearchSong(s),
+    // 歌手页（多源热门歌曲 + 专辑浏览）
+    showArtist: (name) => showArtistDetail(name),
     reorder: (from, to) => reorderQueue(from, to),
     seek: (t) => {
       if (audioPlayer && isFinite(t)) audioPlayer.currentTime = t

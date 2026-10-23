@@ -837,3 +837,36 @@ body.mini-mode .dialog-layer { display: none !important; }
 .sb-playlist-ic svg { width: 16px; height: 16px; }
 .sb-playlist-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+
+/* ===== 歌手页：可点击歌手名 + 专辑横条 ===== */
+.artist-link { cursor: pointer; }
+.artist-link:hover { text-decoration: underline; opacity: 0.9; }
+
+.album-strip { margin: 14px 0 4px; }
+.album-strip .strip-title {
+  font-size: 15px; font-weight: 700; margin-bottom: 10px;
+}
+.album-strip .strip-row {
+  display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+.album-strip .album-card {
+  flex: 0 0 auto; width: 108px; cursor: pointer; scroll-snap-align: start;
+}
+.album-strip .album-cover {
+  width: 108px; height: 108px; border-radius: 10px; overflow: hidden;
+  background: var(--bg-active); display: flex; align-items: center;
+  justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  transition: transform .15s ease;
+}
+.album-strip .album-card:hover .album-cover { transform: translateY(-2px); }
+.album-strip .album-cover img { width: 100%; height: 100%; object-fit: cover; }
+.album-strip .album-cover svg { width: 34px; height: 34px; color: var(--text-3); }
+.album-strip .album-name {
+  margin-top: 6px; font-size: 12px; line-height: 1.35; height: 32px;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.album-strip .album-src {
+  font-size: 11px; color: var(--text-3); margin-top: 2px;
+}

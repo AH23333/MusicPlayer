@@ -74,6 +74,10 @@ musicDlSwitchSource: (name, artist, current, duration) =>
     current,
     duration
   ),
+musicDlAlbumSearch: (keyword) =>
+  ipcRenderer.invoke("musicDlAlbumSearch", keyword),
+musicDlAlbum: (source, id, name) =>
+  ipcRenderer.invoke("musicDlAlbum", source, id, name),
   musicSongDetail: (server, id) =>
     ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>

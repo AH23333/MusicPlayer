@@ -1290,6 +1290,66 @@ function initIpcHandlers() {
       return candidate
     }
 
+    // music-dl 支持直链下载的源（ID 与源站接口一致）
+    const MUSIC_DL_DOWNLOAD_SOURCES = new Set([
+      "netease",
+      "tencent",
+      "qq",
+      "kugou",
+      "kuwo",
+      "migu",
+      "bilibili",
+    ])
+
+    // 经 go-music-dl /api/download 下载：源站最优音质 + ID3/FLAC 标签、封面、歌词嵌入
+    async function downloadViaMusicDl(song, base, onFileProgress) {
+      const params = new URLSearchParams()
+      params.set("id", String(song.songId || song.id || ""))
+      params.set("source", String(song.source || ""))
+      params.set("name", song.name || "")
+      params.set("artist", song.artist || "")
+      params.set("album", typeof song.album === "string" ? song.album : "")
+      params.set("cover", song.coverUrl || "")
+      const resp = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/download?${params.toString()}`,
+        {
+          responseType: "stream",
+          timeout: 300000,
+          validateStatus: (s) => s === 200,
+        }
+      )
+      const extRaw = String(resp.headers["x-audio-ext"] || "").replace(
+        /[^a-z0-9]/gi,
+        ""
+      )
+      const ext = extRaw ? "." + extRaw.toLowerCase() : ".mp3"
+      const destPath = uniqueDestPath(base, ext)
+      const totalBytes =
+        parseInt(resp.headers["content-length"] || "0", 10) || 0
+      try {
+        await new Promise((resolve, reject) => {
+          const ws = fsSync.createWriteStream(destPath)
+          let received = 0
+          resp.data.on("data", (c) => {
+            received += c.length
+            if (onFileProgress) onFileProgress(received, totalBytes)
+          })
+          resp.data.on("error", reject)
+          ws.on("error", reject)
+          ws.on("finish", resolve)
+          resp.data.pipe(ws)
+        })
+      } catch (err) {
+        try {
+          fsSync.unlinkSync(destPath)
+        } catch (e) {}
+        throw err
+      }
+      const warning = String(resp.headers["x-musicdl-warning"] || "")
+      if (warning) logger.warn(`下载元数据嵌入警告: ${warning}`)
+      return destPath
+    }
+
     const safeSend = (payload) => {
       try {
         if (event.sender && !event.sender.isDestroyed()) {
@@ -1306,6 +1366,61 @@ function initIpcHandlers() {
     try {
       for (let i = 0; i < songs.length; i++) {
         const song = songs[i]
+        const base = sanitizeDownloadFilename(
+          `${song.artist || "未知"} - ${song.name || "unknown"}`
+        )
+
+        const sendFileProgress = (received, totalBytes) => {
+          const filePct = totalBytes > 0 ? received / totalBytes : 0
+          const overall = (i + filePct) / songs.length
+          safeSend({
+            phase: "progress",
+            index: i + 1,
+            total: songs.length,
+            songName: song?.name || "",
+            overallPercent: Math.min(100, Math.round(overall * 100)),
+            filePercent: totalBytes > 0 ? Math.round(filePct * 100) : null,
+          })
+        }
+
+        // music-dl 元数据下载优先（标签/封面/歌词嵌入），失败回退 Meting 流程
+        if (
+          song &&
+          !song.local &&
+          MUSIC_DL_DOWNLOAD_SOURCES.has(String(song.source || "").toLowerCase())
+        ) {
+          try {
+            safeSend({
+              phase: "song",
+              index: i + 1,
+              total: songs.length,
+              songName: song?.name || "",
+              status: "downloading",
+              overallPercent: Math.round((i / songs.length) * 100),
+            })
+            const destPath = await downloadViaMusicDl(
+              song,
+              base,
+              sendFileProgress
+            )
+            results.ok++
+            logger.info(`下载完成(含元数据): ${path.basename(destPath)}`)
+            safeSend({
+              phase: "song",
+              index: i + 1,
+              total: songs.length,
+              songName: song?.name || "",
+              status: "ok",
+              overallPercent: Math.round(((i + 1) / songs.length) * 100),
+            })
+            continue
+          } catch (e) {
+            logger.warn(
+              `music-dl 下载失败 ${song?.name}: ${e.message}，回退 Meting 流程`
+            )
+          }
+        }
+
         let built = null
         try {
           built = buildDownloadUrlForSong(song, quality)
@@ -1358,23 +1473,6 @@ function initIpcHandlers() {
         let ext = ".mp3"
         if (/\.flac(\?|$)/i.test(streamUrl)) ext = ".flac"
         else if (/\.m4a(\?|$)/i.test(streamUrl)) ext = ".m4a"
-
-        const base = sanitizeDownloadFilename(
-          `${song.artist || "未知"} - ${song.name || "unknown"}`
-        )
-
-        const sendFileProgress = (received, totalBytes) => {
-          const filePct = totalBytes > 0 ? received / totalBytes : 0
-          const overall = (i + filePct) / songs.length
-          safeSend({
-            phase: "progress",
-            index: i + 1,
-            total: songs.length,
-            songName: song?.name || "",
-            overallPercent: Math.min(100, Math.round(overall * 100)),
-            filePercent: totalBytes > 0 ? Math.round(filePct * 100) : null,
-          })
-        }
 
         try {
           const destPath = uniqueDestPath(base, ext)
@@ -1600,6 +1698,39 @@ function initIpcHandlers() {
         return response.data
       } catch (error) {
         logger.error(`获取歌单曲目失败(${source}/${name}/${id}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // ===== 歌手页：多源专辑搜索 + 专辑详情（go-music-dl）=====
+
+  ipcMain.handle("musicDlAlbumSearch", async (event, keyword) => {
+    const kw = String(keyword || "").trim()
+    if (!kw) return { error: "missing keyword" }
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/album_search`,
+        { params: { q: kw }, timeout: 60000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`专辑搜索失败(${kw}):`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  ipcMain.handle(
+    "musicDlAlbum",
+    async (event, source, id, name = "") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/album`,
+          { params: { source, id, name }, timeout: 60000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取专辑曲目失败(${source}/${name}/${id}):`, error.message)
         return { error: error.message }
       }
     }
