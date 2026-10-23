@@ -14,7 +14,6 @@ exports.API_CONFIGS = {
 exports.fetchViaProxy = async (targetUrl) => {
   logger.info(`发起请求：${targetUrl}`)
   let text
-
   // 直连请求
   try {
     logger.info(`尝试直连请求：${targetUrl}`)
@@ -29,9 +28,8 @@ exports.fetchViaProxy = async (targetUrl) => {
     })
     if (response.status !== 200)
       throw new Error(`直连失败，状态码：${response.status}`)
-    text = JSON.stringify(response.data)
-    logger.info(`直连请求成功，返回数据长度：${text.length}`)
-    return JSON.parse(text)
+    logger.info(`直连请求成功，返回数据长度：${JSON.stringify(response.data).length}`)
+    return response.data
   } catch (directErr) {
     // 代理请求
     logger.warn(`直连失败（原因：${directErr.message}），尝试CORS代理`)

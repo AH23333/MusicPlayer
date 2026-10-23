@@ -212,25 +212,16 @@ function initIpcHandlers() {
     logger.info(`开始搜索，关键词：${keyword}，偏移量：${offset}`)
     if (!keyword) return []
 
-    // 直接使用Meting API（因为网易云API已失效）
-    logger.info("使用Meting API进行搜索")
     // Meting search 不支持 offset，通过一次多取（offset+PAGE_SIZE）再切片实现分页
     const fetchLimit = offset + PAGE_SIZE
-    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=${fetchLimit}&offset=${offset}`
+    const metingUrl = `${API_CONFIGS.metingFallback.url}?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=${fetchLimit}`
     const metingData = await fetchViaProxy(metingUrl)
 
-    logger.info(`Meting API返回数据类型: ${typeof metingData}`)
-    if (Array.isArray(metingData)) {
-      logger.info(`Meting API返回数组长度: ${metingData.length}`)
-      if (metingData.length > 0) {
-        logger.info(`第一个元素结构: ${JSON.stringify(metingData[0])}`)
-      }
-    } else if (metingData) {
-      logger.info(`Meting API返回数据: ${JSON.stringify(metingData)}`)
-    }
-
     if (metingData && Array.isArray(metingData)) {
-      const songs = metingData
+      logger.info(`Meting API返回 ${metingData.length} 条原始结果`)
+      // 先切出当前页再映射过滤，避免映射过程中丢弃条目造成页内索引偏移
+      const page = metingData.slice(offset, offset + PAGE_SIZE)
+      const songs = page
         .map((item) => {
           // 从url字段中提取歌曲ID
           let songId = item.id || item.songid || item.songId || ""
@@ -256,11 +247,7 @@ function initIpcHandlers() {
         })
         .filter((item) => item.id)
       logger.info(`解析后得到 ${songs.length} 条有效结果`)
-      if (songs.length > 0) {
-        logger.info(`第一个解析结果: ${JSON.stringify(songs[0])}`)
-      }
-      // 仅返回当前页（第 offset 起 PAGE_SIZE 条）
-      return songs.slice(offset, offset + PAGE_SIZE)
+      return songs
     }
 
     logger.warn("所有搜索API均无结果")
@@ -658,7 +645,6 @@ function initIpcHandlers() {
         
         if (supportedFormats.includes(extWithoutDot)) {
           const filePath = path.join(localDir, file)
-          const stats = await fs.stat(filePath)
 
           // 提取歌曲信息（简单处理，实际项目中可能需要更复杂的解析）
           const fileName = path.basename(file, path.extname(file))
@@ -1073,7 +1059,10 @@ function initIpcHandlers() {
     }
   }
 
-  async function downloadBinaryToFile(streamUrl, destPath, onProgress) {
+  async function downloadBinaryToFile(streamUrl, destPath, onProgress, depth = 0) {
+    if (depth > 5) {
+      throw new Error("音频地址重定向层级过深，已中止下载")
+    }
     const fsSync = require("fs")
     const referer = getRefererForMediaUrl(streamUrl)
 
@@ -1107,13 +1096,13 @@ function initIpcHandlers() {
       const body = Buffer.concat(chunks).toString("utf8").trim()
       const inner = extractUrlFromMetingPayload(body)
       if (inner && /^https?:\/\//i.test(inner)) {
-        return downloadBinaryToFile(inner, destPath, onProgress)
+        return downloadBinaryToFile(inner, destPath, onProgress, depth + 1)
       }
       try {
         const j = JSON.parse(body)
         const inner2 = extractUrlFromMetingPayload(j)
         if (inner2 && /^https?:\/\//i.test(inner2)) {
-          return downloadBinaryToFile(inner2, destPath, onProgress)
+          return downloadBinaryToFile(inner2, destPath, onProgress, depth + 1)
         }
         if (j && j.message) {
           throw new Error(String(j.message))
@@ -1363,17 +1352,12 @@ function initIpcHandlers() {
   ipcMain.handle(
     "musicDlSearch",
     async (event, keyword, sources = "netease", page = 1, limit = 10) => {
-      const requestData = { keyword, sources, page, limit }
-      logger.info(`音乐下载服务搜索请求：${JSON.stringify(requestData)}`)
+      logger.info(
+        `音乐下载服务搜索：q=${keyword}, sources=${sources}, page=${page}, limit=${limit}`
+      )
       try {
         const baseUrl = musicDlService.getBaseUrl()
-        logger.info(`音乐下载服务基础 URL：${baseUrl}`)
-        // 使用新的 API 路径 /api/search
         const apiUrl = `${baseUrl}/api/search`
-        logger.info(`音乐下载服务 API URL：${apiUrl}`)
-        logger.info(
-          `音乐下载服务请求参数：q=${keyword}, sources=${sources}, page=${page}, limit=${limit}`
-        )
 
         let response
         try {
@@ -1386,25 +1370,19 @@ function initIpcHandlers() {
             },
             timeout: 30000, // 30秒超时
           })
-          logger.info(`音乐下载服务响应状态：${response.status}`)
         } catch (error) {
-          logger.error("音乐下载服务搜索失败:", error)
-          logger.error(`错误详情：${error.message}`)
+          logger.error(`音乐下载服务搜索失败: ${error.message}`)
           if (error.response) {
             logger.error(`响应状态：${error.response.status}`)
-            logger.error(`响应数据：${JSON.stringify(error.response.data)}`)
           }
           return { error: error.message }
         }
 
-        const firstResult =
-          response.data && response.data.songs ? response.data.songs[0] : null
-        logger.info(
-          `音乐下载服务搜索返回：第一条结果 - ${JSON.stringify(firstResult)}`
-        )
-        logger.info(
-          `音乐下载服务搜索返回：总结果数 - ${response.data && response.data.songs ? response.data.songs.length : 0}`
-        )
+        const count =
+          response.data && Array.isArray(response.data.songs)
+            ? response.data.songs.length
+            : 0
+        logger.info(`音乐下载服务搜索返回 ${count} 条结果`)
         return response.data
       } catch (error) {
         logger.error("音乐下载服务搜索失败:", error)
