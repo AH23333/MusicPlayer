@@ -1169,6 +1169,112 @@
       t.update_frequency || t.description || ""
     )
   }
+  // ===== 为你推荐歌单（go-music-dl recommend 能力）=====
+  const REC_SOURCES = [
+    ["netease", "网易"],
+    ["qq", "QQ"],
+    ["kugou", "酷狗"],
+    ["kuwo", "酷我"],
+  ]
+  const recState = { source: "netease", lists: {}, loading: false }
+  async function loadRecommend(source) {
+    if (recState.loading) return
+    recState.loading = true
+    try {
+      const res = await window.ElectronAPI.musicDlRecommend(source)
+      if (res && Array.isArray(res.playlists)) {
+        recState.lists[source] = res.playlists
+      } else {
+        recState.lists[source] = []
+      }
+    } catch (e) {
+      recState.lists[source] = []
+    } finally {
+      recState.loading = false
+      if (recState.source === source) renderHome()
+    }
+  }
+  function switchRecommendSource(source) {
+    if (recState.source === source) return
+    recState.source = source
+    renderHome()
+    if (!recState.lists[source]) loadRecommend(source)
+  }
+  async function openRecommendPlaylist(p) {
+    if (!p || !p.id) return
+    Player.toast("正在加载歌单《" + p.name + "》", "info")
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlPlaylistDetail(
+        p.source || recState.source,
+        String(p.id),
+        p.name
+      )
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.songs)) {
+      Player.toast("歌单加载失败：" + (res && res.error ? res.error : "未知错误"), "info")
+      return
+    }
+    const songs = res.songs
+      .map((s) => Player.enrichDlSong(Object.assign({}, s, { source: s.source || p.source })))
+      .filter(Boolean)
+    if (!songs.length) {
+      Player.toast("该歌单暂无可用歌曲", "info")
+      return
+    }
+    Player.openPlaylist(
+      "rec-" + (p.source || recState.source) + "-" + p.id,
+      p.name,
+      songs,
+      p.description || ""
+    )
+  }
+  function recommendBlockHtml() {
+    const tabs = REC_SOURCES.map(
+      ([id, label]) =>
+        '<button class="tl-tab' +
+        (id === recState.source ? " active" : "") +
+        '" data-rec-src="' + id + '">' +
+        label +
+        "</button>"
+    ).join("")
+    const lists = recState.lists[recState.source]
+    let body
+    if (!lists) {
+      body = '<div class="tl-empty">' + (recState.loading ? "推荐加载中..." : " ") + "</div>"
+    } else if (!lists.length) {
+      body = '<div class="tl-empty">暂无推荐（搜索服务未启动或该源不可用）</div>'
+    } else {
+      body = lists.slice(0, 12).map((p, i) => {
+        const cov = p.cover || ""
+        const sub = p.play_count
+          ? p.play_count >= 10000
+            ? (p.play_count / 10000).toFixed(1) + "万播放"
+            : p.play_count + "播放"
+          : p.track_count
+            ? p.track_count + "首"
+            : ""
+        return (
+          '<div class="rec-card" data-rec-idx="' + i + '" title="' + escapeHtml(p.name) + '">' +
+          '<div class="rec-card-cover">' +
+          (cov
+            ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
+            : '<div class="home-card-note">' + NOTE_SVG + "</div>") +
+          "</div>" +
+          '<div class="rec-card-name">' + escapeHtml(p.name) + "</div>" +
+          '<div class="rec-card-sub">' + escapeHtml(sub) + "</div>" +
+          "</div>"
+        )
+      }).join("")
+    }
+    return (
+      '<div class="home-block"><div class="home-block-head"><h3>为你推荐</h3>' +
+      '<div class="tl-tabs">' + tabs + "</div></div>" +
+      '<div class="rec-grid">' + body + "</div></div>"
+    )
+  }
   function toplistBlockHtml() {
     const tabs = TL_SOURCES.map(
       ([id, label]) =>
@@ -1303,6 +1409,7 @@
       quickHtml +
       "</div>" +
       toplistBlockHtml() +
+      recommendBlockHtml() +
       block("最近播放", "recentPlayBtn", recent.slice(0, 6)) +
       block("我喜欢的音乐", "likeSongsBtn", liked.slice(0, 6)) +
       emptyHint
@@ -1311,6 +1418,23 @@
     const home = $("homeSection")
     if (!home) return
     home.addEventListener("click", (e) => {
+      const recTab = e.target.closest("[data-rec-src]")
+      if (recTab) {
+        e.stopPropagation()
+        switchRecommendSource(recTab.dataset.recSrc)
+        return
+      }
+      const recCard = e.target.closest("[data-rec-idx]")
+      if (recCard) {
+        e.stopPropagation()
+        const lists = recState.lists[recState.source] || []
+        const p = lists[Number(recCard.dataset.recIdx)]
+        if (p) {
+          p.source = p.source || recState.source
+          openRecommendPlaylist(p)
+        }
+        return
+      }
       const tlTab = e.target.closest("[data-tl-src]")
       if (tlTab) {
         e.stopPropagation()
@@ -1365,6 +1489,9 @@
       refreshHome()
       if (!toplistState.lists[toplistState.source]) {
         loadToplists(toplistState.source)
+      }
+      if (!recState.lists[recState.source]) {
+        loadRecommend(recState.source)
       }
     })
     Player.on("songchange", () => refreshHome())
