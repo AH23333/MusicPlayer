@@ -300,6 +300,11 @@ function registerMediaProtocol() {
 }
 
 function createWindow() {
+  // 应用图标：打包后位于 asar 内，路径对 dev / packaged 均成立
+  const appIcon = app.isPackaged
+    ? path.join(process.resourcesPath, "app", "assets", "icon.ico")
+    : path.join(__dirname, "..", "..", "assets", "icon.ico")
+
   mainWindow = new BrowserWindow({
     width: 1080,
     height: 720,
@@ -308,6 +313,7 @@ function createWindow() {
     frame: false,
     backgroundColor: "#0e0f13",
     autoHideMenuBar: true,
+    icon: appIcon,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

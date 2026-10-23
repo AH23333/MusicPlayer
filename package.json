@@ -29,6 +29,7 @@
       "packagerConfig": {
         "name": "MusicPlayer",
         "executableName": "MusicPlayer",
+        "icon": "assets/icon.ico",
         "extraResource": [
           "music-dl-api.exe"
         ]
@@ -40,7 +41,7 @@
             "name": "music_player",
             "authors": "AH23333",
             "description": "A simple music player",
-            "setupIcon": "",
+            "setupIcon": "assets/icon.ico",
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true
           }
