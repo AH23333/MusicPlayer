@@ -314,6 +314,22 @@
     )
   }
 
+  function wirePlaylistDetailSelectAll(on) {
+    if (!currentPlaylist) return
+    currentPlaylist.songs.forEach((s) => {
+      if (s.id && !isSongLocalPath(s)) {
+        if (on) selectedPlaylistDetailIds.add(s.id)
+        else selectedPlaylistDetailIds.delete(s.id)
+      }
+    })
+    if (playlistDetailList) {
+      playlistDetailList.querySelectorAll(".download-song-cb").forEach((box) => {
+        box.checked = on
+      })
+    }
+    syncPlaylistDetailSelectAllCheckbox()
+  }
+
   function syncPlaylistQueueSelectAllCheckbox() {
     const cb = document.getElementById("playlistQueueSelectAllCheckbox")
     if (!cb) return
@@ -1799,11 +1815,30 @@
       }
     }
 
+    // 修复：封面容器 innerHTML 重建会丢失其中的「全选」checkbox，这里补建并重新绑定
+    if (
+      !document.getElementById("playlistDetailSelectAllCheckbox") &&
+      playlistCoverContainer
+    ) {
+      const label = document.createElement("label")
+      label.className = "check-row mt-2"
+      label.innerHTML =
+        '<input type="checkbox" id="playlistDetailSelectAllCheckbox" class="selection-sq-checkbox"><span>全选</span>'
+      playlistCoverContainer.appendChild(label)
+      const restoredCb = label.querySelector("input")
+      restoredCb.addEventListener("change", () => {
+        wirePlaylistDetailSelectAll(restoredCb.checked)
+      })
+    }
+
     renderPlaylistDetail(playlist)
     updatePlaylistDetailDownloadActionsVisibility()
     syncDownloadQualitySelects()
     if (searchResultsSection) searchResultsSection.classList.add("hidden")
     if (playlistDetailSection) playlistDetailSection.classList.remove("hidden")
+    // 新开歌单回到顶部：避免沿用上一视图的滚动位置触发分批渲染级联加载
+    const contentScrollEl = document.getElementById("contentScroll")
+    if (contentScrollEl) contentScrollEl.scrollTop = 0
     if (playlistDetailSection) {
       playlistDetailSection.classList.remove("fade-in")
       void playlistDetailSection.offsetWidth
@@ -1814,12 +1849,113 @@
     }
   }
 
+  // ===== 歌单详情分批渲染：大歌单不再一次性渲染全部行（列表+网格都分批），避免卡顿 =====
+  const PD_RENDER_CHUNK = 100
+  let pdRenderedPlaylist = null
+  let pdListRendered = 0
+  let pdGridRendered = 0
+  let pdObserver = null
+
+  function pdDisconnectObserver() {
+    if (pdObserver) {
+      pdObserver.disconnect()
+      pdObserver = null
+    }
+  }
+
+  function pdRemoveSentinel(view) {
+    const el = document.getElementById(
+      view === "list" ? "pdListSentinel" : "pdGridSentinel"
+    )
+    if (el) el.remove()
+  }
+
+  // 在列表/网格尾部挂一个哨兵元素，滚到可视区附近时自动渲染下一批
+  function pdArmSentinel(view) {
+    pdDisconnectObserver()
+    pdRemoveSentinel(view === "list" ? "grid" : "list")
+    const container = view === "list" ? playlistDetailList : playlistDetailGrid
+    if (!container) return
+    const id = view === "list" ? "pdListSentinel" : "pdGridSentinel"
+    let el = document.getElementById(id)
+    if (!el) {
+      el = document.createElement(view === "list" ? "li" : "div")
+      el.id = id
+      el.className = "pd-sentinel"
+      el.innerHTML = "<span>下滑加载更多…</span>"
+      container.appendChild(el)
+    }
+    pdObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        pdDisconnectObserver()
+        pdEnsureChunk(view)
+      },
+      { rootMargin: "400px 0px" }
+    )
+    pdObserver.observe(el)
+  }
+
+  function pdActiveView() {
+    if (playlistDetailGrid && !playlistDetailGrid.classList.contains("hidden"))
+      return "grid"
+    return "list"
+  }
+
+  function pdEnsureChunk(view) {
+    const playlist = pdRenderedPlaylist
+    if (!playlist || !Array.isArray(playlist.songs)) return
+    const total = playlist.songs.length
+    if (view === "list") {
+      if (!playlistDetailList) return
+      if (pdListRendered >= total) {
+        pdRemoveSentinel("list")
+        return
+      }
+      const likedIdSet = new Set()
+      likedSongs.forEach((s) => {
+        if (s && s.id) likedIdSet.add(s.id)
+      })
+      const end = Math.min(total, pdListRendered + PD_RENDER_CHUNK)
+      appendPlaylistDetailRows(playlist, pdListRendered, end, likedIdSet)
+      pdListRendered = end
+      if (pdListRendered >= total) pdRemoveSentinel("list")
+      else pdArmSentinel("list")
+    } else {
+      if (!playlistDetailGrid) return
+      if (pdGridRendered >= total) {
+        pdRemoveSentinel("grid")
+        return
+      }
+      const end = Math.min(total, pdGridRendered + PD_RENDER_CHUNK)
+      appendPlaylistDetailGridCards(playlist, pdGridRendered, end)
+      pdGridRendered = end
+      if (pdGridRendered >= total) pdRemoveSentinel("grid")
+      else pdArmSentinel("grid")
+    }
+  }
+
   function renderPlaylistDetail(playlist) {
     if (!playlistDetailList) return
+    pdDisconnectObserver()
+    pdRemoveSentinel("list")
+    pdRemoveSentinel("grid")
+    pdRenderedPlaylist = playlist
+    pdListRendered = 0
+    pdGridRendered = 0
     playlistDetailList.innerHTML = ""
-    playlist.songs.forEach((song, index) => {
-      if (!song.id) return
-      const isLiked = likedSongs.some((item) => item.id === song.id)
+    if (playlistDetailGrid) playlistDetailGrid.innerHTML = ""
+    // 只渲染当前激活视图的首批，另一视图在切换时按需渲染
+    pdEnsureChunk(pdActiveView())
+    syncPlaylistDetailSelectAllCheckbox()
+  }
+
+  function appendPlaylistDetailRows(playlist, start, end, likedIdSet) {
+    const sentinel = document.getElementById("pdListSentinel")
+    for (let index = start; index < end; index++) {
+      const song = playlist.songs[index]
+      if (!song || !song.id) continue
+      const isLiked = likedIdSet.has(song.id)
       const canDl = !isSongLocalPath(song)
       const li = document.createElement("li")
       li.className = "song-item p-4"
@@ -1851,6 +1987,8 @@
       li.dataset.index = index
       li.dataset.songId = song.id
       li.dataset.list = "playlist-detail"
+      if (nowPlayingSongId && String(song.id) === nowPlayingSongId)
+        li.classList.add("now-playing")
       let lastClickTime = 0
       li.addEventListener("click", (e) => {
         if (e.target.closest(".download-song-cb")) return
@@ -1876,17 +2014,17 @@
           syncPlaylistDetailSelectAllCheckbox()
         })
       }
-      playlistDetailList.appendChild(li)
-    })
-    syncPlaylistDetailSelectAllCheckbox()
-    renderPlaylistDetailGrid(playlist)
+      if (sentinel) playlistDetailList.insertBefore(li, sentinel)
+      else playlistDetailList.appendChild(li)
+    }
   }
 
-  function renderPlaylistDetailGrid(playlist) {
+  function appendPlaylistDetailGridCards(playlist, start, end) {
     if (!playlistDetailGrid) return
-    playlistDetailGrid.innerHTML = ""
-    playlist.songs.forEach((song) => {
-      if (!song.id) return
+    const sentinel = document.getElementById("pdGridSentinel")
+    for (let index = start; index < end; index++) {
+      const song = playlist.songs[index]
+      if (!song || !song.id) continue
       const cov = song.coverUrl || song.cover || ""
       const card = document.createElement("div")
       card.className = "dg-card"
@@ -1915,8 +2053,9 @@
         e.preventDefault()
         showSongContextMenu(e, song, "playlist-detail")
       })
-      playlistDetailGrid.appendChild(card)
-    })
+      if (sentinel) playlistDetailGrid.insertBefore(card, sentinel)
+      else playlistDetailGrid.appendChild(card)
+    }
   }
 
   function setDetailView(mode) {
@@ -1926,6 +2065,22 @@
     if (viewListBtn) viewListBtn.classList.toggle("on", !grid)
     if (viewGridBtn) viewGridBtn.classList.toggle("on", grid)
     localStorage.setItem("mp-detail-view", grid ? "grid" : "list")
+    // 视图切换回到顶部：列表/网格内容高度不同，且避免底部位置触发级联全量加载
+    if (pdRenderedPlaylist) {
+      const sc = document.getElementById("contentScroll")
+      if (sc) sc.scrollTop = 0
+    }
+    // 分批渲染：切到尚未渲染的视图时补首批；已渲染过但未渲染完时恢复滚动加载
+    if (pdRenderedPlaylist && Array.isArray(pdRenderedPlaylist.songs)) {
+      const total = pdRenderedPlaylist.songs.length
+      if (grid) {
+        if (pdGridRendered === 0 && total > 0) pdEnsureChunk("grid")
+        else if (pdGridRendered > 0 && pdGridRendered < total) pdArmSentinel("grid")
+      } else {
+        if (pdListRendered === 0 && total > 0) pdEnsureChunk("list")
+        else if (pdListRendered > 0 && pdListRendered < total) pdArmSentinel("list")
+      }
+    }
   }
   function initDetailViewToggle() {
     if (viewListBtn) viewListBtn.addEventListener("click", () => setDetailView("list"))
@@ -3009,8 +3164,10 @@
   }
 
   // 同步“当前播放行”高亮到搜索结果 / 歌单详情列表（队列由 renderPlaylist 处理）
+  let nowPlayingSongId = null
   function syncNowPlayingRows(song) {
     const id = song ? String(song.id) : null
+    nowPlayingSongId = id
     ;[searchResultList, playlistDetailList].forEach((c) => {
       if (!c) return
       c.querySelectorAll("li.song-item").forEach((li) => {
@@ -4874,22 +5031,6 @@
     const downloadManagerBtn = document.getElementById("downloadManagerBtn")
     if (downloadManagerBtn) {
       downloadManagerBtn.addEventListener("click", openDownloadManager)
-    }
-
-    function wirePlaylistDetailSelectAll(on) {
-      if (!currentPlaylist) return
-      currentPlaylist.songs.forEach((s) => {
-        if (s.id && !isSongLocalPath(s)) {
-          if (on) selectedPlaylistDetailIds.add(s.id)
-          else selectedPlaylistDetailIds.delete(s.id)
-        }
-      })
-      if (playlistDetailList) {
-        playlistDetailList.querySelectorAll(".download-song-cb").forEach((box) => {
-          box.checked = on
-        })
-      }
-      syncPlaylistDetailSelectAllCheckbox()
     }
 
     const playlistDetailSelectAllCheckbox = document.getElementById(

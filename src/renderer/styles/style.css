@@ -860,6 +860,13 @@ body.mini-mode .dialog-layer { display: none !important; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 18px;
 }
+/* 歌单详情分批加载哨兵（大歌单滚动时增量渲染） */
+.pd-sentinel {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 12px; font-size: 12px;
+  color: var(--text-3); user-select: none;
+}
+#pdGridSentinel { grid-column: 1 / -1; }
 .dg-card { cursor: pointer; min-width: 0; }
 .dg-cover {
   position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
