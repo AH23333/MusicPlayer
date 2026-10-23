@@ -586,6 +586,7 @@ function initIpcHandlers() {
         diyPlaylists: [],
         searchHistory: [],
         latestPlayed: [],
+        playQueue: [],
         local: null,
       }
 
@@ -603,6 +604,9 @@ function initIpcHandlers() {
 
       // 读取最近播放
       userData.latestPlayed = await storage.readJSON("Latest.json")
+
+      // 读取当前播放队列
+      userData.playQueue = await storage.readJSON("PlayList.json")
 
       // 附带 renderer 端 localStorage 数据（设置 / 统计 / 音量等）
       userData.local = localData && typeof localData === "object" ? localData : null
@@ -682,6 +686,11 @@ function initIpcHandlers() {
           // 保存最近播放
           if (Array.isArray(userData.latestPlayed)) {
             await storage.writeJSON("Latest.json", userData.latestPlayed)
+          }
+
+          // 保存当前播放队列
+          if (Array.isArray(userData.playQueue)) {
+            await storage.writeJSON("PlayList.json", userData.playQueue)
           }
 
           logger.info(`用户信息导入成功：${importPath}`)

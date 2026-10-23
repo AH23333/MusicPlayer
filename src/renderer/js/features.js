@@ -1865,6 +1865,7 @@
   const BACKUP_LOCAL_KEYS = [
     "mp-settings", "mp-stats", "mp-volume", "mp-playmode",
     "mp-session", "selected-search-sources", "theme-mode",
+    "searchHistory", "mp-lyric-offset", "dlSizeIdx", "mp-detail-view",
   ]
   function collectLocalData() {
     const out = {}
