@@ -1278,21 +1278,59 @@
     const lines = lrcText.split("\n")
     const timeRegex = /\[(\d{1,2}):(\d{2})(?:[:.](\d{2,3}))?\]/g
 
+    const toTime = (match) => {
+      const minutes = parseInt(match[1])
+      const seconds = parseInt(match[2])
+      const milliseconds = match[3]
+        ? parseInt(match[3].padEnd(3, "0"))
+        : 0
+      return minutes * 60 + seconds + milliseconds / 1000
+    }
+
     lines.forEach((line) => {
+      timeRegex.lastIndex = 0
       const matches = [...line.matchAll(timeRegex)]
-      if (matches.length > 0) {
+      if (matches.length === 0) return
+      const first = matches[0]
+
+      if (matches.length === 1) {
+        // 普通行：单个时间标签 + 整行文本
+        const text = line.slice(first.index + first[0].length).trim()
+        if (text) lyrics.push({ time: toTime(first), text })
+        return
+      }
+
+      // 多时间标签：判断是「行首重复标签」还是「逐字 karaoke」
+      let karaoke = false
+      for (let i = 0; i < matches.length - 1; i++) {
+        const gap = line.slice(
+          matches[i].index + matches[i][0].length,
+          matches[i + 1].index
+        )
+        if (gap.trim() !== "") {
+          karaoke = true
+          break
+        }
+      }
+
+      if (!karaoke) {
+        // 经典多标签：同一句歌词对应多个时间点，各保留一条
         const text = line.replace(timeRegex, "").trim()
         if (text) {
           matches.forEach((match) => {
-            const minutes = parseInt(match[1])
-            const seconds = parseInt(match[2])
-            const milliseconds = match[3]
-              ? parseInt(match[3].padEnd(3, "0"))
-              : 0
-            const time = minutes * 60 + seconds + milliseconds / 1000
-            lyrics.push({ time, text })
+            lyrics.push({ time: toTime(match), text })
           })
         }
+      } else {
+        // 逐字 karaoke：每字一个时间戳，合并为一条行级歌词，取首个时间戳
+        let text = ""
+        matches.forEach((match, i) => {
+          const end =
+            i + 1 < matches.length ? matches[i + 1].index : line.length
+          text += line.slice(match.index + match[0].length, end)
+        })
+        text = text.trim()
+        if (text) lyrics.push({ time: toTime(first), text })
       }
     })
 
