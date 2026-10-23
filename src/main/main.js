@@ -39,6 +39,8 @@ let desktopLyricsWin = null
 let desktopLyricsOpacity = 0.92
 let savedBounds = null
 let isQuitting = false
+// 通知图标缓存：避免每次切歌都重新生成 64px PNG
+let notifyIconCache = null
 
 // 生成绿色音符托盘图标（无需外部资源）
 function createTrayIcon(size = 22) {
@@ -311,7 +313,6 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
       preload: path.join(__dirname, "preload.js"),
-      webSecurity: false,
     },
   })
 
@@ -368,7 +369,7 @@ function createWindow() {
         const n = new Notification({
           title: info.title,
           body: info.artist || "",
-          icon: createTrayIcon(64),
+          icon: notifyIconCache || (notifyIconCache = createTrayIcon(64)),
           silent: true,
         })
         n.on("click", () => restoreMainWindow())
@@ -421,5 +422,12 @@ app.on("before-quit", () => {
 app.on("will-quit", () => {
   try {
     globalShortcut.unregisterAll()
+  } catch (e) {}
+  // 刷盘日志缓冲，终止 music-dl-api.exe 子进程，避免孤儿进程残留
+  try {
+    logger.flushSync()
+  } catch (e) {}
+  try {
+    musicDlService.stop()
   } catch (e) {}
 })

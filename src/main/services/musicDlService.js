@@ -67,9 +67,24 @@ class MusicDlService {
           this.process = null
         })
 
-        setTimeout(() => {
+        // 轮询本地端口直到服务可响应（任何 HTTP 状态都说明已就绪），比固定等待更快也更可靠
+        const deadline = Date.now() + 5000
+        const poll = async () => {
+          while (Date.now() < deadline) {
+            try {
+              await fetch(`http://localhost:${this.port}/`, {
+                signal: AbortSignal.timeout(400),
+              })
+              resolve()
+              return
+            } catch (e) {
+              await new Promise((r) => setTimeout(r, 150))
+            }
+          }
+          logger.warn("音乐下载服务在超时时间内未响应，搜索将回退到 Meting")
           resolve()
-        }, 3000)
+        }
+        poll()
       } catch (error) {
         logger.error("启动音乐下载服务时出错:", error)
         reject(error)
