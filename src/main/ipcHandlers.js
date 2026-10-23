@@ -1416,6 +1416,68 @@ function initIpcHandlers() {
     }
   })
 
+  // 排行榜列表（复用 go-music-dl 的 toplist 能力）
+  ipcMain.handle("musicDlToplists", async (event, source = "netease") => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/toplists`,
+        { params: { source }, timeout: 30000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`获取排行榜失败(${source}):`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  // 榜单内歌曲
+  ipcMain.handle(
+    "musicDlToplistSongs",
+    async (event, source, id, name = "") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/toplist_songs`,
+          { params: { source, id }, timeout: 60000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取榜单歌曲失败(${source}/${name}/${id}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // 推荐歌单（复用 go-music-dl 的推荐能力）
+  ipcMain.handle("musicDlRecommend", async (event, source = "netease") => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/recommend`,
+        { params: { source }, timeout: 30000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`获取推荐歌单失败(${source}):`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  // 歌单内曲目（按源+歌单ID拉取，含推荐歌单/搜索到的歌单）
+  ipcMain.handle(
+    "musicDlPlaylistDetail",
+    async (event, source, id, name = "") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/playlist`,
+          { params: { source, id }, timeout: 60000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取歌单曲目失败(${source}/${name}/${id}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
   // 按歌曲 id 解析在线歌曲详情（名称/歌手/真实封面/歌词），用于补全封面与歌词页沉浸背景
   ipcMain.handle("music-song-detail", async (event, server, id) => {
     const srv = String(server || "netease")

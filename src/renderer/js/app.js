@@ -4167,6 +4167,11 @@
     clearQueue: () => clearQueue(),
     openSmartPlaylist: (id, name, songs) =>
       showPlaylistDetail({ id, name, songs, description: "根据你的收听习惯自动生成" }),
+    // 通用歌单详情入口（排行榜/在线歌单等）
+    openPlaylist: (id, name, songs, description) =>
+      showPlaylistDetail({ id, name, songs, description: description || "" }),
+    // 将 go-music-dl 返回的歌曲归一化为播放器内部结构
+    enrichDlSong: (s) => enrichMusicDlSearchSong(s),
     reorder: (from, to) => reorderQueue(from, to),
     seek: (t) => {
       if (audioPlayer && isFinite(t)) audioPlayer.currentTime = t

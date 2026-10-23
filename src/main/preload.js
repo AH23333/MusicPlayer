@@ -59,6 +59,12 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),
   musicDlLyric: (id, source) => ipcRenderer.invoke("musicDlLyric", id, source),
   musicDlStatus: () => ipcRenderer.invoke("musicDlStatus"),
+  musicDlToplists: (source) => ipcRenderer.invoke("musicDlToplists", source),
+  musicDlToplistSongs: (source, id, name) =>
+    ipcRenderer.invoke("musicDlToplistSongs", source, id, name),
+  musicDlRecommend: (source) => ipcRenderer.invoke("musicDlRecommend", source),
+  musicDlPlaylistDetail: (source, id, name) =>
+    ipcRenderer.invoke("musicDlPlaylistDetail", source, id, name),
   musicSongDetail: (server, id) =>
     ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>
