@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("musicDlUserPlaylists", source, page, limit),
   musicDlQrImageUrl: (text, size) =>
     ipcRenderer.invoke("musicDlQrImageUrl", text, size),
+  musicDlDownloadLyric: (song) =>
+    ipcRenderer.invoke("musicDlDownloadLyric", song),
   musicDlPlaylistDetail: (source, id, name) =>
     ipcRenderer.invoke("musicDlPlaylistDetail", source, id, name),
   musicDlParse: (url) => ipcRenderer.invoke("musicDlParse", url),

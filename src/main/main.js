@@ -17,6 +17,32 @@ const logger = require("./services/logger")
 const { initIpcHandlers } = require("./ipcHandlers")
 const musicDlService = require("./services/musicDlService")
 
+// EPIPE 守卫：stdout/stderr 接的管道（如终端会话）关闭后，再有 console 输出会抛
+// EPIPE。Windows 下管道写是同步的，必须包住 console 调用本身才能拦住同步 throw。
+for (const stream of [process.stdout, process.stderr]) {
+  if (stream && typeof stream.on === "function") {
+    stream.on("error", (err) => {
+      if (err && (err.code === "EPIPE" || err.code === "ERR_STREAM_DESTROYED")) {
+        return
+      }
+      throw err
+    })
+  }
+}
+for (const name of ["log", "info", "warn", "error"]) {
+  const orig = typeof console[name] === "function" ? console[name].bind(console) : null
+  if (orig) {
+    console[name] = (...args) => {
+      try {
+        orig(...args)
+      } catch (err) {
+        if (err && err.code === "EPIPE") return
+        throw err
+      }
+    }
+  }
+}
+
 // 注册同源媒体代理协议（必须在 app.ready 前）：
 // 让跨域音频经 mpmedia:// 代理，避免 createMediaElementSource（频谱/均衡器）时被 CORS 污染为静音。
 protocol.registerSchemesAsPrivileged([

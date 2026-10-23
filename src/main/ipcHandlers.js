@@ -1794,6 +1794,64 @@ function initIpcHandlers() {
     )}&size=${size}`
   })
 
+  // 导出当前歌曲歌词为 .lrc 文件
+  ipcMain.handle(
+    "musicDlDownloadLyric",
+    async (event, song) => {
+      const win = event.sender.getOwnerBrowserWindow()
+      try {
+        if (!song || !song.id || !song.source) {
+          return { error: "缺少歌曲信息" }
+        }
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/download_lyric`,
+          {
+            params: {
+              id: String(song.id),
+              source: song.source,
+              name: song.name || "",
+              artist: song.artist || "",
+              album: song.album || "",
+            },
+            timeout: 30000,
+            responseType: "text",
+            transformResponse: [(data) => data],
+          }
+        )
+        const artist = String(song.artist || "").trim()
+        const name = String(song.name || "").trim() || String(song.id)
+        const defaultName = (artist ? artist + " - " + name : name) + ".lrc"
+        const result = await dialog.showSaveDialog(win, {
+          title: "导出歌词",
+          defaultPath: defaultName,
+          filters: [{ name: "LRC 歌词", extensions: ["lrc"] }],
+        })
+        if (result.canceled || !result.filePath) {
+          return { canceled: true }
+        }
+        const fs = require("fs").promises
+        await fs.writeFile(result.filePath, String(response.data), "utf8")
+        logger.info(`歌词导出成功：${result.filePath}`)
+        return { ok: true, path: result.filePath }
+      } catch (error) {
+        const status = error.response && error.response.status
+        let msg = error.message
+        if (status === 404) {
+          msg = "未找到歌词"
+        } else if (
+          error.response &&
+          typeof error.response.data === "object" &&
+          error.response.data &&
+          error.response.data.error
+        ) {
+          msg = error.response.data.error
+        }
+        logger.error(`导出歌词失败: ${msg}`)
+        return { error: msg }
+      }
+    }
+  )
+
   // 推荐歌单（复用 go-music-dl 的推荐能力）
   ipcMain.handle("musicDlRecommend", async (event, source = "netease") => {
     try {

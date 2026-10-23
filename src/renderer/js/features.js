@@ -2440,6 +2440,40 @@
     if (btn) btn.addEventListener("click", openMineSection)
   }
 
+  // ============ 歌词导出（.lrc 文件）============
+  function initExportLyric() {
+    const btn = $("exportLyricBtn")
+    if (!btn) return
+    btn.addEventListener("click", async () => {
+      const song = Player.getCurrentSong()
+      if (!song || !song.id || !song.source) {
+        Player.toast("当前歌曲不支持导出歌词", "info")
+        return
+      }
+      btn.disabled = true
+      try {
+        const res = await window.ElectronAPI.musicDlDownloadLyric({
+          id: String(song.id),
+          source: song.source,
+          name: song.name || "",
+          artist: song.artist || "",
+          album: song.album || "",
+        })
+        if (res && res.ok) {
+          Player.toast("歌词已导出：" + res.path, "info")
+        } else if (res && res.canceled) {
+          // 用户取消
+        } else {
+          Player.toast("导出失败：" + (res && res.error ? res.error : "未知错误"), "info")
+        }
+      } catch (e) {
+        Player.toast("导出失败：未知错误", "info")
+      } finally {
+        btn.disabled = false
+      }
+    })
+  }
+
   // ============ 播放/切歌统一副作用 ============
   function initReactions() {
     Player.on("songchange", (song) => {
@@ -2493,6 +2527,7 @@
     initSettings()
     initHomePage()
     initMinePlaylists()
+    initExportLyric()
     initSmartPlaylists()
     initReactions()
     // 频谱依赖歌词页 DOM，延迟初始化
