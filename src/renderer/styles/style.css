@@ -532,7 +532,14 @@ div.absolute[class*="dark:bg-gray-800"] > div[class*="text-gray"] {
   border-radius: var(--radius); box-shadow: var(--shadow);
   display: flex; flex-direction: column;
   animation: fp-pop 0.14s var(--ease);
+  /* 弹层常落在标题栏/迷你条 drag region 上方：不带显式 no-drag 会被
+     拖拽区吞掉鼠标事件，菜单点不到 */
+  -webkit-app-region: no-drag;
 }
+/* 弹层打开期间取消标题栏/迷你条 drag region：
+   drag 区域内点击不产生 DOM 事件，导致“点其他区域关闭菜单”失效 */
+body.fp-menu-open .titlebar,
+body.fp-menu-open #miniBar { -webkit-app-region: no-drag; }
 @keyframes fp-pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .fp-menu-item {
   text-align: left; padding: 8px 12px; font-size: 13px;

@@ -395,7 +395,7 @@ function createDesktopLyricsWindow() {
   })
 }
 
-// 桌面歌词锁定：鼠标点击穿透（forward 保留 hover），从托盘菜单解锁
+// 桌面歌词锁定：鼠标点击穿透（forward 保留 hover）；可从渲染层徽标/托盘菜单解锁
 function setDesktopLyricsLock(locked) {
   desktopLyricsLocked = !!locked
   saveDlState()
@@ -557,8 +557,14 @@ function createWindow() {
     if (action === "toggle" || action === "prev" || action === "next")
       sendControl(action)
   })
-  // 桌面歌词锁定（点击穿透，托盘菜单解锁）
+  // 桌面歌词锁定（点击穿透；锁定后渲染层悬停徽标/工具条可临时恢复交互解锁）
   ipcMain.on("desktop-lyrics-lock", (_e, locked) => setDesktopLyricsLock(locked))
+  // 仅在锁定状态下生效：悬停非穿透入口时收回穿透，移开恢复穿透
+  ipcMain.on("desktop-lyrics-set-interactive", (_e, interactive) => {
+    if (!desktopLyricsWin || desktopLyricsWin.isDestroyed() || !desktopLyricsLocked) return
+    if (interactive) desktopLyricsWin.setIgnoreMouseEvents(false)
+    else desktopLyricsWin.setIgnoreMouseEvents(true, { forward: true })
+  })
   // 桌面歌词手动拖拽（去掉 drag region 后由渲染层 pointer 事件驱动：
   // 渲染层按事件 screen 坐标算 delta 传来，主进程按 delta 移动窗口）
   let dlDragBase = null

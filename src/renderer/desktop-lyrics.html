@@ -108,7 +108,10 @@
       transition: opacity .15s;
       pointer-events: none;
     }
-    body.locked #dlLockedBadge { opacity: 1; }
+    /* 锁定（点击穿透）时徽标是唯一常驻的非穿透入口：
+       悬停经 forward 事件触发 → 临时恢复窗口鼠标交互 → 点击解锁 */
+    body.locked #dlLockedBadge { opacity: 1; pointer-events: auto; cursor: pointer; }
+    body.locked #dlLockedBadge:hover { background: var(--dl-accent, #1db954); color: #fff; }
     #dlOpa {
       position: fixed;
       bottom: 2px; right: 10px;
@@ -189,7 +192,7 @@
     <div class="dl-near" id="dlPrev"></div>
     <div id="dlLine">♪</div>
     <div class="dl-near" id="dlNext"></div>
-    <span id="dlLockedBadge">🔒 已锁定</span>
+    <span id="dlLockedBadge" title="点击解锁（恢复桌面歌词的鼠标交互）">🔒 已锁定 · 点击解锁</span>
     <div id="dlTools">
       <button id="dlPrevBtn" title="上一首">⏮</button>
       <button id="dlPlayBtn" title="播放 / 暂停">▶</button>
@@ -201,7 +204,7 @@
       <button id="dlLinesBtn" title="单行 / 双行（显示上下行）">≡</button>
       <button id="dlBgBtn" title="背景衬底开关">▢</button>
       <span class="dl-sep"></span>
-      <button id="dlLockBtn" title="锁定（点击穿透，需从托盘菜单解锁）">🔒</button>
+      <button id="dlLockBtn" title="锁定（点击穿透，锁定后可点左上角徽标或悬停工具条解锁）">🔒</button>
       <button id="dlClose" title="关闭桌面歌词">✕</button>
     </div>
     <span id="dlOpa"></span>
@@ -372,8 +375,19 @@
     })
 
     // ===== 锁定（点击穿透）=====
+    // 锁定后整窗点击穿透（forward 保留悬停）。左上角“已锁定”徽标与工具条
+    // 悬停时临时恢复窗口鼠标交互，因此锁定后仍可点击解锁，无需进托盘菜单。
+    const lockedBadge = document.getElementById("dlLockedBadge")
+    function setWinInteractive(v) {
+      if (
+        document.body.classList.contains("locked") &&
+        api.desktopLyricsSetInteractive
+      )
+        api.desktopLyricsSetInteractive(v)
+    }
     lockBtn.addEventListener("click", () => {
-      if (api.desktopLyricsLock) api.desktopLyricsLock(true)
+      if (api.desktopLyricsLock)
+        api.desktopLyricsLock(!document.body.classList.contains("locked"))
     })
     if (api.onDesktopLyricsLockState) {
       api.onDesktopLyricsLockState((locked) => {
@@ -381,6 +395,14 @@
         lockBtn.classList.toggle("on", !!locked)
       })
     }
+    lockedBadge.addEventListener("mouseenter", () => setWinInteractive(true))
+    lockedBadge.addEventListener("mouseleave", () => setWinInteractive(false))
+    lockedBadge.addEventListener("click", () => {
+      if (api.desktopLyricsLock) api.desktopLyricsLock(false)
+    })
+    const toolsBar = document.getElementById("dlTools")
+    toolsBar.addEventListener("mouseenter", () => setWinInteractive(true))
+    toolsBar.addEventListener("mouseleave", () => setWinInteractive(false))
     // 双击歌词：切换锁定
     wrap.addEventListener("dblclick", () => {
       if (api.desktopLyricsLock)
@@ -393,8 +415,13 @@
     let dragStartScreen = null
     wrap.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return
-      // 工具条 / 菜单内的按下不进入拖拽
-      if (e.target.closest("#dlTools") || e.target.closest("#dlMenu")) return
+      // 工具条 / 菜单 / 锁定徽标内的按下不进入拖拽
+      if (
+        e.target.closest("#dlTools") ||
+        e.target.closest("#dlMenu") ||
+        e.target.closest("#dlLockedBadge")
+      )
+        return
       if (menu.classList.contains("open")) return
       dragPid = e.pointerId
       dragStartScreen = { x: e.screenX, y: e.screenY }

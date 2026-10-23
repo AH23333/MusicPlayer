@@ -167,21 +167,36 @@
   }
 
   // ============ 通用小弹层（睡眠菜单）============
-  function popupAt(anchor, items) {
+  // drag region（标题栏/迷你条）会吞掉区域内的鼠标事件（不产生 DOM click），
+  // 因此弹层打开期间用 body.fp-menu-open 取消 drag region（见 style.css），
+  // 保证菜单项可点击、点弹层外任意区域能关闭。
+  function syncFpMenuOpen() {
+    document.body.classList.toggle("fp-menu-open", !!document.querySelector(".fp-menu"))
+  }
+  function closeFpMenus() {
     document.querySelectorAll(".fp-menu").forEach((m) => m.remove())
+    syncFpMenuOpen()
+  }
+  function popupAt(anchor, items) {
+    closeFpMenus()
     const menu = document.createElement("div")
     menu.className = "fp-menu"
+    const dismiss = () => {
+      menu.remove()
+      syncFpMenuOpen()
+    }
     items.forEach((it) => {
       const b = document.createElement("button")
       b.className = "fp-menu-item" + (it.active ? " active" : "")
       b.textContent = it.label
       b.addEventListener("click", () => {
-        menu.remove()
+        dismiss()
         it.onClick && it.onClick()
       })
       menu.appendChild(b)
     })
     document.body.appendChild(menu)
+    syncFpMenuOpen()
     const r = anchor.getBoundingClientRect()
     const mr = menu.getBoundingClientRect()
     let left = r.left + r.width / 2 - mr.width / 2
@@ -192,20 +207,35 @@
     top = Math.max(4, Math.min(top, window.innerHeight - mr.height - 4))
     menu.style.top = top + "px"
     setTimeout(() => {
+      const detach = () => {
+        document.removeEventListener("click", close)
+        document.removeEventListener("keydown", onKey)
+      }
       const close = (e) => {
+        // 菜单已被其他路径移除（二次点击/新弹层）：清掉监听即可
+        if (!menu.isConnected) {
+          detach()
+          return
+        }
         if (!menu.contains(e.target)) {
-          menu.remove()
-          document.removeEventListener("click", close)
+          dismiss()
+          detach()
         }
       }
+      const onKey = (e) => {
+        if (e.key !== "Escape" || !menu.isConnected) return
+        dismiss()
+        detach()
+      }
       document.addEventListener("click", close)
+      document.addEventListener("keydown", onKey)
     }, 0)
     return menu
   }
 
   // 通用小输入弹窗（用于睡眠自定义分钟等）
   function popupInput(anchor, title, onOk, placeholder) {
-    document.querySelectorAll(".fp-menu").forEach((m) => m.remove())
+    closeFpMenus()
     const menu = document.createElement("div")
     menu.className = "fp-menu fp-form"
     const head = document.createElement("div")
@@ -223,22 +253,27 @@
     row.appendChild(cancel); row.appendChild(ok)
     menu.appendChild(head); menu.appendChild(input); menu.appendChild(row)
     document.body.appendChild(menu)
+    syncFpMenuOpen()
     const r = anchor.getBoundingClientRect(), mr = menu.getBoundingClientRect()
     let left = r.left + r.width / 2 - mr.width / 2
     left = Math.max(8, Math.min(window.innerWidth - mr.width - 8, left))
     menu.style.left = left + "px"
     menu.style.top = r.top - mr.height - 8 + "px"
     setTimeout(() => input.focus(), 60)
+    const dismissForm = () => {
+      menu.remove()
+      syncFpMenuOpen()
+    }
     const done = () => {
       const v = parseInt(input.value, 10)
       if (!isFinite(v) || v < 1) { input.focus(); return }
-      menu.remove(); onOk(v)
+      dismissForm(); onOk(v)
     }
-    cancel.addEventListener("click", () => menu.remove())
+    cancel.addEventListener("click", dismissForm)
     ok.addEventListener("click", done)
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); done() }
-      if (e.key === "Escape") menu.remove()
+      if (e.key === "Escape") dismissForm()
     })
     return menu
   }
@@ -626,6 +661,11 @@
     if (API.onDesktopLyricsState) API.onDesktopLyricsState((open) => (dlOpen = !!open))
     $("miniMenu").addEventListener("click", (e) => {
       e.stopPropagation()
+      // 二次点击收起菜单
+      if (document.body.classList.contains("fp-menu-open")) {
+        closeFpMenus()
+        return
+      }
       popupAt($("miniMenu"), [
         {
           label: dlOpen ? "隐藏桌面歌词" : "显示桌面歌词",

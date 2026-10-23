@@ -152,6 +152,9 @@ musicDlAlbum: (source, id, name) =>
     ipcRenderer.send("desktop-lyrics-player-ctl", action),
   desktopLyricsLock: (locked) =>
     ipcRenderer.send("desktop-lyrics-lock", !!locked),
+  // 锁定期间悬停徽标/工具条时临时恢复窗口鼠标交互（用于点击解锁）
+  desktopLyricsSetInteractive: (interactive) =>
+    ipcRenderer.send("desktop-lyrics-set-interactive", !!interactive),
   desktopLyricsResetSize: () => ipcRenderer.send("desktop-lyrics-reset-size"),
   desktopLyricsMenuSize: (h) => ipcRenderer.send("desktop-lyrics-menu-size", h),
   desktopLyricsDragStart: () => ipcRenderer.send("desktop-lyrics-drag-start"),
