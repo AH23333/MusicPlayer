@@ -1231,6 +1231,203 @@
       p.description || ""
     )
   }
+  // ===== 歌单广场（go-music-dl 分类浏览能力）=====
+  const SQ_SOURCES = [
+    ["netease", "网易"],
+    ["qq", "QQ"],
+    ["kugou", "酷狗"],
+  ]
+  const sqState = {
+    source: "netease",
+    cats: {},
+    catId: {},
+    lists: {},
+    loadingCats: false,
+    loadingList: false,
+  }
+  function sqCatKey(source, catId) {
+    return source + "|" + (catId || "")
+  }
+  function sqDefaultCatId(cats) {
+    if (!Array.isArray(cats) || !cats.length) return ""
+    const all = cats.find((c) => !c.id && c.name)
+    if (all) return ""
+    const hot = cats.find((c) => c.id && c.hot)
+    if (hot) return hot.id
+    const first = cats.find((c) => c.id)
+    return first ? first.id : ""
+  }
+  async function loadSquareCategories(source) {
+    if (sqState.loadingCats) return
+    sqState.loadingCats = true
+    try {
+      const res = await window.ElectronAPI.musicDlPlaylistCategories(source)
+      if (res && Array.isArray(res.categories)) {
+        sqState.cats[source] = res.categories
+        if (sqState.catId[source] === undefined) {
+          sqState.catId[source] = sqDefaultCatId(res.categories)
+        }
+      } else {
+        sqState.cats[source] = []
+      }
+    } catch (e) {
+      sqState.cats[source] = []
+    } finally {
+      sqState.loadingCats = false
+      if (sqState.source === source) {
+        renderHome()
+        loadSquarePlaylists(source, sqState.catId[source])
+      }
+    }
+  }
+  async function loadSquarePlaylists(source, catId) {
+    if (sqState.loadingList) return
+    sqState.loadingList = true
+    const key = sqCatKey(source, catId)
+    try {
+      const res = await window.ElectronAPI.musicDlCategoryPlaylists(
+        source,
+        catId,
+        1,
+        60
+      )
+      if (res && Array.isArray(res.playlists)) {
+        sqState.lists[key] = res.playlists
+      } else {
+        sqState.lists[key] = []
+      }
+    } catch (e) {
+      sqState.lists[key] = []
+    } finally {
+      sqState.loadingList = false
+      if (sqState.source === source && sqState.catId[source] === catId) {
+        renderHome()
+      }
+    }
+  }
+  function switchSquareSource(source) {
+    if (sqState.source === source) return
+    sqState.source = source
+    renderHome()
+    if (!sqState.cats[source]) {
+      loadSquareCategories(source)
+      return
+    }
+    const catId = sqState.catId[source]
+    const key = sqCatKey(source, catId)
+    if (!sqState.lists[key]) loadSquarePlaylists(source, catId)
+  }
+  function switchSquareCategory(catId) {
+    const source = sqState.source
+    if (sqState.catId[source] === catId) return
+    sqState.catId[source] = catId
+    renderHome()
+    const key = sqCatKey(source, catId)
+    if (!sqState.lists[key]) loadSquarePlaylists(source, catId)
+  }
+  async function openSquarePlaylist(p) {
+    if (!p || !p.id) return
+    Player.toast("正在加载歌单《" + p.name + "》", "info")
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlPlaylistDetail(
+        p.source || sqState.source,
+        String(p.id),
+        p.name
+      )
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.songs)) {
+      Player.toast("歌单加载失败：" + (res && res.error ? res.error : "未知错误"), "info")
+      return
+    }
+    const songs = res.songs
+      .map((s) => Player.enrichDlSong(Object.assign({}, s, { source: s.source || p.source })))
+      .filter(Boolean)
+    if (!songs.length) {
+      Player.toast("该歌单暂无可用歌曲", "info")
+      return
+    }
+    Player.openPlaylist(
+      "sq-" + (p.source || sqState.source) + "-" + p.id,
+      p.name,
+      songs,
+      p.description || ""
+    )
+  }
+  function squareBlockHtml() {
+    const tabs = SQ_SOURCES.map(
+      ([id, label]) =>
+        '<button class="tl-tab' +
+        (id === sqState.source ? " active" : "") +
+        '" data-sq-src="' + id + '">' + label + "</button>"
+    ).join("")
+    const cats = sqState.cats[sqState.source]
+    let catHtml = ""
+    if (!cats) {
+      catHtml = '<div class="tl-empty">' + (sqState.loadingCats ? "分类加载中..." : " ") + "</div>"
+    } else if (cats.length) {
+      const cur = sqState.catId[sqState.source] || ""
+      const sorted = cats.slice().sort((a, b) => {
+        const av = a.id ? 1 : 0
+        const bv = b.id ? 1 : 0
+        if (av !== bv) return av - bv
+        if (!!a.hot !== !!b.hot) return a.hot ? -1 : 1
+        return 0
+      })
+      catHtml =
+        '<div class="sq-cats">' +
+        sorted.slice(0, 30).map((c) => {
+          const active = (c.id || "") === cur && (cur === "" || !!c.id)
+          return (
+            '<button class="sq-cat' + (active ? " active" : "") + (c.hot ? " hot" : "") +
+            '" data-sq-cat="' + escapeHtml(c.id || "") + '" title="' + escapeHtml(c.name) + '">' +
+            escapeHtml(c.name) + "</button>"
+          )
+        }).join("") +
+        "</div>"
+    } else {
+      catHtml = '<div class="tl-empty">该源暂无歌单分类</div>'
+    }
+    const catId = sqState.catId[sqState.source] || ""
+    const key = sqCatKey(sqState.source, catId)
+    const lists = sqState.lists[key]
+    let body
+    if (!lists) {
+      body = '<div class="tl-empty">' + (sqState.loadingList ? "歌单加载中..." : " ") + "</div>"
+    } else if (!lists.length) {
+      body = '<div class="tl-empty">该分类暂无歌单（搜索服务未启动或该分类不可用）</div>'
+    } else {
+      body = lists.slice(0, 12).map((p, i) => {
+        const cov = p.cover || ""
+        const sub = p.play_count
+          ? p.play_count >= 10000
+            ? (p.play_count / 10000).toFixed(1) + "万播放"
+            : p.play_count + "播放"
+          : p.track_count
+            ? p.track_count + "首"
+            : ""
+        return (
+          '<div class="rec-card" data-sq-idx="' + i + '" title="' + escapeHtml(p.name) + '">' +
+          '<div class="rec-card-cover">' +
+          (cov
+            ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
+            : '<div class="home-card-note">' + NOTE_SVG + "</div>") +
+          "</div>" +
+          '<div class="rec-card-name">' + escapeHtml(p.name) + "</div>" +
+          '<div class="rec-card-sub">' + escapeHtml(sub) + "</div>" +
+          "</div>"
+        )
+      }).join("")
+    }
+    return (
+      '<div class="home-block"><div class="home-block-head"><h3>歌单广场</h3>' +
+      '<div class="tl-tabs">' + tabs + "</div></div>" +
+      catHtml +
+      '<div class="rec-grid">' + body + "</div></div>"
+    )
+  }
   function recommendBlockHtml() {
     const tabs = REC_SOURCES.map(
       ([id, label]) =>
@@ -1410,6 +1607,7 @@
       "</div>" +
       toplistBlockHtml() +
       recommendBlockHtml() +
+      squareBlockHtml() +
       block("最近播放", "recentPlayBtn", recent.slice(0, 6)) +
       block("我喜欢的音乐", "likeSongsBtn", liked.slice(0, 6)) +
       emptyHint
@@ -1449,6 +1647,30 @@
         if (t) {
           t.source = t.source || toplistState.source
           openToplist(t)
+        }
+        return
+      }
+      const sqTab = e.target.closest("[data-sq-src]")
+      if (sqTab) {
+        e.stopPropagation()
+        switchSquareSource(sqTab.dataset.sqSrc)
+        return
+      }
+      const sqCat = e.target.closest("[data-sq-cat]")
+      if (sqCat) {
+        e.stopPropagation()
+        switchSquareCategory(sqCat.dataset.sqCat)
+        return
+      }
+      const sqCard = e.target.closest("[data-sq-idx]")
+      if (sqCard) {
+        e.stopPropagation()
+        const catId = sqState.catId[sqState.source] || ""
+        const lists = sqState.lists[sqCatKey(sqState.source, catId)] || []
+        const p = lists[Number(sqCard.dataset.sqIdx)]
+        if (p) {
+          p.source = p.source || sqState.source
+          openSquarePlaylist(p)
         }
         return
       }
@@ -1492,6 +1714,9 @@
       }
       if (!recState.lists[recState.source]) {
         loadRecommend(recState.source)
+      }
+      if (!sqState.cats[sqState.source]) {
+        loadSquareCategories(sqState.source)
       }
     })
     Player.on("songchange", () => refreshHome())

@@ -1672,6 +1672,43 @@ function initIpcHandlers() {
     }
   )
 
+  // 歌单广场：分类列表
+  ipcMain.handle(
+    "musicDlPlaylistCategories",
+    async (event, source = "netease") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/playlist_categories`,
+          { params: { source }, timeout: 30000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取歌单分类失败(${source}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // 歌单广场：分类下歌单列表
+  ipcMain.handle(
+    "musicDlCategoryPlaylists",
+    async (event, source, categoryId, page = 1, limit = 60) => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/category_playlists`,
+          { params: { source, category_id: categoryId, page, limit }, timeout: 60000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(
+          `获取分类歌单失败(${source}/${categoryId}):`,
+          error.message
+        )
+        return { error: error.message }
+      }
+    }
+  )
+
   // 推荐歌单（复用 go-music-dl 的推荐能力）
   ipcMain.handle("musicDlRecommend", async (event, source = "netease") => {
     try {
