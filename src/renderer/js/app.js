@@ -2707,9 +2707,66 @@
 
   // 歌曲加载/解码失败兜底：CDN 偶发挂起或链接失效时自动跳过，避免永久卡在加载态。
   // 连续失败超过上限则停止，防止全队列失效时死循环。
-  function handlePlaybackFailure() {
+  // 在线歌曲失败时优先尝试跨平台换源（go-music-dl /api/switch_source），
+  // 换源成功则以新音源原地续播；失败或无替代再走跳过逻辑。
+  const sourceSwitchTried = new Set() // 同一逻辑歌曲（name|artist）仅换源一次，避免链式换源死循环
+
+  async function attemptSourceSwitch(song) {
+    const key = `${String(song.name)}|${String(song.artist || "")}`
+    if (sourceSwitchTried.has(key)) return null
+    sourceSwitchTried.add(key)
+    let dur = Number(song.duration) || 0
+    if (dur > 7200) dur = Math.round(dur / 1000) // 兼容毫秒时长的歌曲结构
+    showToast(`正在为《${song.name}》寻找其他音源…`, "info")
+    try {
+      const res = await window.ElectronAPI.musicDlSwitchSource(
+        song.name,
+        song.artist || "",
+        song.source || "",
+        dur
+      )
+      if (!res || !res.success || !res.song || !res.song.url) return null
+      const switched = enrichMusicDlSearchSong(res.song)
+      if (!switched || !/^https?:\/\//i.test(switched.url)) return null
+      return switched
+    } catch (e) {
+      return null
+    }
+  }
+
+  async function handlePlaybackFailure() {
     const n = playQueue.length
     if (n === 0) return
+
+    // 先尝试换源：链接失效但其他平台可能有同名可播曲目
+    const failedSong = playQueue[currentSongIndex]
+    if (
+      failedSong &&
+      failedSong.name &&
+      !isSongLocalPath(failedSong) &&
+      window.ElectronAPI &&
+      typeof window.ElectronAPI.musicDlSwitchSource === "function"
+    ) {
+      const myGeneration = playGeneration
+      loadingSong = true // 换源期间看护不干预
+      const switched = await attemptSourceSwitch(failedSong)
+      if (myGeneration !== playGeneration) {
+        loadingSong = false // 用户已切歌，放弃本次换源
+        return
+      }
+      if (switched) {
+        playQueue[currentSongIndex] = switched
+        recoverTries = 0
+        stallTicks = 0
+        consecutiveFailCount = 0
+        renderPlaylist()
+        showToast(`已切换至 ${switched.source} 音源继续播放`, "success")
+        playCurrentSong()
+        return
+      }
+      loadingSong = false
+    }
+
     if (consecutiveFailCount >= 3) {
       userIntentPause = true
       if (audioPlayer) audioPlayer.pause()

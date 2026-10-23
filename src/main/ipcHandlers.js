@@ -175,6 +175,39 @@ function initIpcHandlers() {
     }
   }
 
+  // ===== 换源播放：歌曲链接失效时跨平台找回同名可播曲目（go-music-dl /api/switch_source）=====
+  ipcMain.handle(
+    "musicDlSwitchSource",
+    async (event, name, artist, current, duration) => {
+      const baseUrl = musicDlService.getBaseUrl()
+      try {
+        const response = await axios.get(`${baseUrl}/api/switch_source`, {
+          params: {
+            name: String(name || "").trim(),
+            artist: String(artist || "").trim(),
+            current: String(current || "").trim(),
+            duration: Number(duration) || 0,
+          },
+          timeout: 90000, // 跨源搜索 + 并行可播探测耗时较长
+        })
+        const d = response.data
+        if (!d || d.error || !d.song || !d.song.url) {
+          return {
+            success: false,
+            error: (d && d.error) || "未找到可播放的替代音源",
+          }
+        }
+        logger.info(
+          `换源成功：${d.source}《${d.song.name}》score=${d.score}`
+        )
+        return { success: true, song: d.song, source: d.source, score: d.score }
+      } catch (e) {
+        logger.warn(`换源失败: ${e.message}`)
+        return { success: false, error: "换源服务不可用" }
+      }
+    }
+  )
+
   // 通用链接解析入口（渲染端可调用）
   ipcMain.handle("musicDlParse", async (event, url) => {
     const raw = String(url || "").trim()

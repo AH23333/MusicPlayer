@@ -66,6 +66,14 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   musicDlPlaylistDetail: (source, id, name) =>
     ipcRenderer.invoke("musicDlPlaylistDetail", source, id, name),
   musicDlParse: (url) => ipcRenderer.invoke("musicDlParse", url),
+musicDlSwitchSource: (name, artist, current, duration) =>
+  ipcRenderer.invoke(
+    "musicDlSwitchSource",
+    name,
+    artist,
+    current,
+    duration
+  ),
   musicSongDetail: (server, id) =>
     ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>
