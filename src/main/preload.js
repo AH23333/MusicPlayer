@@ -87,6 +87,8 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("musicDlDownloadLyric", song),
   musicDlPlaylistDetail: (source, id, name) =>
     ipcRenderer.invoke("musicDlPlaylistDetail", source, id, name),
+  musicDlPlaylistSearch: (keyword, sources) =>
+    ipcRenderer.invoke("musicDlPlaylistSearch", keyword, sources),
   musicDlParse: (url) => ipcRenderer.invoke("musicDlParse", url),
 musicDlSwitchSource: (name, artist, current, duration) =>
   ipcRenderer.invoke(

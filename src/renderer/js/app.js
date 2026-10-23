@@ -58,6 +58,11 @@
   let selectedSongIndex = -1
   let selectedSongList = null
   let isSearching = false
+  // 搜索类型："song" 单曲 / "playlist" 歌单
+  let searchType = "song"
+  let playlistSearchResults = []
+  const playlistSearchCache = new Map()
+  const PLAYLIST_SEARCH_CACHE_MAX = 30
   let lastActiveIndex = -1
   let animationFrameId = null
   // 歌词时间轴偏移（秒）：正值歌词提前，负值歌词延后
@@ -1132,7 +1137,11 @@
           if (searchResultList)
             searchResultList.innerHTML =
               '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
-          await loadSearchResults(keyword, searchOffset)
+          if (searchType === "playlist") {
+            await loadPlaylistSearchResults(keyword)
+          } else {
+            await loadSearchResults(keyword, searchOffset)
+          }
           await updateSearchHistory(keyword)
           if (searchResultsSection) {
             searchResultsSection.classList.remove("fade-in")
@@ -1238,6 +1247,8 @@
           // 设置标题为"搜索结果"
           const titleEl = document.querySelector("#searchResultsSection h2")
           if (titleEl) titleEl.textContent = "搜索结果"
+          // 歌手搜索固定为单曲模式
+          setSearchTypeUi("song")
           // 执行搜索
           await loadSearchResults(artistName, 0)
           // 更新搜索历史
@@ -2410,6 +2421,19 @@
     if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
     if (searchResultsSection) searchResultsSection.classList.remove("hidden")
     if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
+    if (searchType === "playlist") {
+      // 歌单搜索模式：恢复歌单搜索结果
+      renderPlaylistSearchResults()
+      const titleElement = document.querySelector("#searchResultsSection h2")
+      if (titleElement) titleElement.textContent = "搜索结果"
+      if (searchInput) searchInput.value = currentKeyword
+      if (searchResultsSection) {
+        searchResultsSection.classList.remove("fade-in")
+        void searchResultsSection.offsetWidth
+        searchResultsSection.classList.add("fade-in")
+      }
+      return
+    }
     if (searchResults.length > 0) {
       if (searchResultList) {
         searchResultList.innerHTML = ""
@@ -3530,7 +3554,11 @@
       if (searchResultList)
         searchResultList.innerHTML =
           '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
-      await loadSearchResults(keyword, searchOffset)
+      if (searchType === "playlist") {
+        await loadPlaylistSearchResults(keyword)
+      } else {
+        await loadSearchResults(keyword, searchOffset)
+      }
       await updateSearchHistory(keyword)
       initSearchState()
       if (searchResultsSection) {
@@ -3540,6 +3568,160 @@
       }
     } finally {
       isSearching = false
+    }
+  }
+
+  // ========== 歌单搜索（go-music-dl /api/playlist_search）==========
+  function getSelectedSearchSourcesString() {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("selected-search-sources") || "[]"
+      )
+      if (Array.isArray(saved) && saved.length) return saved.join(",")
+    } catch (e) {}
+    return ""
+  }
+
+  async function loadPlaylistSearchResults(keyword) {
+    if (searchResultList) {
+      searchResultList.classList.remove("pl-grid")
+      searchResultList.innerHTML =
+        '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索歌单中...</p></div>'
+    }
+    setLoadMoreVisible(false)
+
+    let playlists = null
+    const cacheKey = keyword
+    if (playlistSearchCache.has(cacheKey)) {
+      playlists = playlistSearchCache.get(cacheKey)
+    } else {
+      const res = await window.ElectronAPI.musicDlPlaylistSearch(
+        keyword,
+        getSelectedSearchSourcesString()
+      )
+      if (res && Array.isArray(res.playlists)) {
+        playlists = res.playlists.filter((p) => p && p.id && p.name)
+        playlistSearchCache.set(cacheKey, playlists)
+        if (playlistSearchCache.size > PLAYLIST_SEARCH_CACHE_MAX) {
+          const oldestKey = playlistSearchCache.keys().next().value
+          playlistSearchCache.delete(oldestKey)
+        }
+      } else {
+        if (searchResultList)
+          searchResultList.innerHTML =
+            '<div class="p-10 text-center text-red-500 dark:text-red-400">歌单搜索失败：' +
+            escapeHtml(res && res.error ? res.error : "未知错误") +
+            "</div>"
+        return
+      }
+    }
+    playlistSearchResults = playlists
+    renderPlaylistSearchResults()
+  }
+
+  function renderPlaylistSearchResults() {
+    if (!searchResultList) return
+    searchResultList.classList.add("pl-grid")
+    searchResultList.innerHTML = ""
+    if (!playlistSearchResults.length) {
+      searchResultList.classList.remove("pl-grid")
+      searchResultList.innerHTML =
+        '<div class="p-10 text-center text-gray-500 dark:text-gray-400">未找到相关歌单</div>'
+      return
+    }
+    playlistSearchResults.forEach((p, idx) => {
+      const li = document.createElement("li")
+      li.className = "search-pl-card"
+      li.dataset.plIdx = String(idx)
+      const subParts = []
+      if (p.play_count > 0) {
+        subParts.push(
+          p.play_count >= 10000
+            ? (p.play_count / 10000).toFixed(1) + "万播放"
+            : p.play_count + "播放"
+        )
+      }
+      if (p.track_count > 0) subParts.push(p.track_count + "首")
+      const srcLabel = SOURCE_LABELS[p.source] || p.source || ""
+      if (srcLabel) subParts.push(srcLabel)
+      const cover = p.cover || (p.extra && p.extra.cover) || ""
+      li.innerHTML =
+        '<div class="pl-cover">' +
+        (cover
+          ? '<img src="' + escapeHtml(cover) + '" alt="" loading="lazy">'
+          : "") +
+        "</div>" +
+        '<div class="pl-name">' + escapeHtml(p.name) + "</div>" +
+        '<div class="pl-sub">' + escapeHtml(subParts.join(" · ")) + "</div>"
+      li.addEventListener("click", () => openSearchedPlaylist(p))
+      searchResultList.appendChild(li)
+    })
+  }
+
+  async function openSearchedPlaylist(p) {
+    if (!p || !p.id) return
+    window.MusicPlayer.toast("正在加载歌单《" + p.name + "》", "info")
+    let res = null
+    try {
+      res = await window.ElectronAPI.musicDlPlaylistDetail(
+        p.source || "",
+        String(p.id),
+        p.name || ""
+      )
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.songs)) {
+      showToastError("歌单加载失败：" + (res && res.error ? res.error : "未知错误"))
+      return
+    }
+    const songs = res.songs
+      .map((s) =>
+        enrichMusicDlSearchSong(Object.assign({}, s, { source: s.source || p.source }))
+      )
+      .filter(Boolean)
+    if (!songs.length) {
+      showToastWarning("该歌单暂无可用歌曲")
+      return
+    }
+    window.MusicPlayer.openPlaylist(
+      "search-pl-" + (p.source || "web") + "-" + p.id,
+      p.name,
+      songs,
+      p.description || ""
+    )
+  }
+
+  // 仅同步搜索类型 UI（不触发重新搜索）
+  function setSearchTypeUi(type) {
+    searchType = type
+    const tabSongs = document.getElementById("searchTabSongs")
+    const tabPlaylists = document.getElementById("searchTabPlaylists")
+    if (tabSongs) tabSongs.classList.toggle("active", type === "song")
+    if (tabPlaylists) tabPlaylists.classList.toggle("active", type === "playlist")
+    const toolbar = document.getElementById("searchDownloadToolbar")
+    if (toolbar) toolbar.style.display = type === "playlist" ? "none" : ""
+    if (type === "song" && searchResultList)
+      searchResultList.classList.remove("pl-grid")
+  }
+
+  // 切换搜索类型 tab；有关键词时自动切换结果
+  function setSearchType(type) {
+    if (type !== "song" && type !== "playlist") return
+    if (searchType === type) return
+    setSearchTypeUi(type)
+    if (currentKeyword && !isSearching) {
+      performSearch(currentKeyword)
+    } else if (!currentKeyword) {
+      // 无关键词：显示对应空态提示
+      if (searchResultList) {
+        searchResultList.classList.remove("pl-grid")
+        searchResultList.innerHTML =
+          '<div class="p-10 text-center text-gray-500 dark:text-gray-400">输入关键词后回车搜索' +
+          (type === "playlist" ? "歌单" : "歌曲") +
+          "</div>"
+      }
+      setLoadMoreVisible(false)
     }
   }
 
@@ -4198,6 +4380,14 @@
         performSearch(keyword)
       })
     }
+
+    // 搜索类型 tab：单曲 / 歌单
+    const searchTabSongsEl = document.getElementById("searchTabSongs")
+    const searchTabPlaylistsEl = document.getElementById("searchTabPlaylists")
+    if (searchTabSongsEl)
+      searchTabSongsEl.addEventListener("click", () => setSearchType("song"))
+    if (searchTabPlaylistsEl)
+      searchTabPlaylistsEl.addEventListener("click", () => setSearchType("playlist"))
 
     if (searchInput) {
       searchInput.addEventListener("keypress", (e) => {

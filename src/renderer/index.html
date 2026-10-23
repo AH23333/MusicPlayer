@@ -202,7 +202,13 @@
 
         <!-- 搜索结果 -->
         <section id="searchResultsSection" class="hidden">
-          <h2 class="sec-title">搜索结果</h2>
+          <div class="sec-head-row">
+            <h2 class="sec-title">搜索结果</h2>
+            <div class="tl-tabs" id="searchTypeTabs">
+              <button type="button" id="searchTabSongs" class="tl-tab active">单曲</button>
+              <button type="button" id="searchTabPlaylists" class="tl-tab">歌单</button>
+            </div>
+          </div>
           <div id="searchDownloadToolbar" class="toolbar">
             <label class="check-row"><input type="checkbox" id="searchSelectAllCheckbox" class="selection-sq-checkbox"><span>全选本页</span></label>
             <button type="button" id="refreshSearchBtn" class="btn btn-ghost btn-sm" style="margin-left:auto">

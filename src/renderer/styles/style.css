@@ -815,6 +815,31 @@ body.mini-mode .dialog-layer { display: none !important; }
 .rec-card-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 8px; }
 .rec-card-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ===== 搜索页：类型 tab + 歌单搜索结果 ===== */
+.sec-head-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.sec-head-row .sec-title { margin: 0; }
+.song-list.pl-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px; padding: 10px; align-items: stretch;
+}
+.search-pl-card {
+  display: flex; flex-direction: column; cursor: pointer; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background: var(--bg-card, var(--bg-2)); padding: 8px;
+  transition: border-color .15s var(--ease), transform .15s var(--ease);
+}
+.search-pl-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.search-pl-card .pl-cover {
+  position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius);
+  overflow: hidden; background: var(--bg-2); margin-bottom: 8px;
+}
+.search-pl-card .pl-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.search-pl-card .pl-name {
+  font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.search-pl-card .pl-sub { font-size: 11.5px; color: var(--text-3); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* ===== 视图切换 ===== */
 .view-toggle {
   display: inline-flex; background: var(--bg-2); border: 1px solid var(--line);

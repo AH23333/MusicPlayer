@@ -1883,6 +1883,28 @@ function initIpcHandlers() {
     }
   )
 
+  // 歌单搜索（go-music-dl /api/playlist_search，多源按关键词搜歌单）
+  ipcMain.handle(
+    "musicDlPlaylistSearch",
+    async (event, keyword, sources = "") => {
+      const kw = String(keyword || "").trim()
+      if (!kw) return { error: "missing keyword" }
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/playlist_search`,
+          {
+            params: { q: kw, sources: sources || undefined },
+            timeout: 30000,
+          }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`歌单搜索失败(${kw}):`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
   // ===== 歌手页：多源专辑搜索 + 专辑详情（go-music-dl）=====
 
   ipcMain.handle("musicDlAlbumSearch", async (event, keyword) => {
