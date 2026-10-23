@@ -13,6 +13,7 @@ const {
 } = require("electron")
 const path = require("path")
 const zlib = require("zlib")
+const fs = require("fs")
 const logger = require("./services/logger")
 const { initIpcHandlers } = require("./ipcHandlers")
 const musicDlService = require("./services/musicDlService")
@@ -229,14 +230,48 @@ function setMiniMode(enter) {
   }
 }
 
+// 桌面歌词位置记忆（userData/desktop-lyrics-bounds.json）
+function dlBoundsPath() {
+  return path.join(app.getPath("userData"), "desktop-lyrics-bounds.json")
+}
+function loadDlBounds() {
+  try {
+    const d = JSON.parse(fs.readFileSync(dlBoundsPath(), "utf8"))
+    if (d && isFinite(d.x) && isFinite(d.y) && isFinite(d.width)) return d
+  } catch (err) {}
+  return null
+}
+let dlBoundsSaveTimer = null
+function saveDlBoundsSoon() {
+  clearTimeout(dlBoundsSaveTimer)
+  dlBoundsSaveTimer = setTimeout(() => {
+    try {
+      if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
+      const b = desktopLyricsWin.getBounds()
+      fs.writeFileSync(
+        dlBoundsPath(),
+        JSON.stringify({ x: b.x, y: b.y, width: b.width })
+      )
+    } catch (err) {}
+  }, 800)
+}
+
 function createDesktopLyricsWindow() {
   const dm = screen.getPrimaryDisplay().workAreaSize
-  const w = Math.min(1000, dm.width - 40)
+  const saved = loadDlBounds()
+  const w = saved ? Math.max(400, Math.min(1400, saved.width)) : Math.min(1000, dm.width - 40)
+  const h = 140
+  const x = saved
+    ? Math.max(0, Math.min(saved.x, dm.width - w))
+    : Math.round((dm.width - w) / 2)
+  const y = saved
+    ? Math.max(0, Math.min(saved.y, dm.height - h))
+    : dm.height - 200
   desktopLyricsWin = new BrowserWindow({
     width: w,
-    height: 140,
-    x: Math.round((dm.width - w) / 2),
-    y: dm.height - 200,
+    height: h,
+    x,
+    y,
     frame: false,
     transparent: true,
     resizable: false,
@@ -258,6 +293,13 @@ function createDesktopLyricsWindow() {
   desktopLyricsWin.loadFile(
     path.join(__dirname, "..", "renderer", "desktop-lyrics.html")
   )
+  // 拖动后记忆位置
+  desktopLyricsWin.on("moved", saveDlBoundsSoon)
+  // 歌词窗口就绪后，让主窗口渲染进程推送一次主题色
+  desktopLyricsWin.webContents.once("did-finish-load", () => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send("desktop-lyrics-accent-request")
+  })
   desktopLyricsWin.on("closed", () => {
     desktopLyricsWin = null
     desktopLyricsLocked = false
@@ -418,6 +460,13 @@ function createWindow() {
   ipcMain.on("desktop-lyrics-player-state", (_e, playing) => {
     if (desktopLyricsWin && !desktopLyricsWin.isDestroyed())
       desktopLyricsWin.webContents.send("desktop-lyrics-player-state", !!playing)
+  })
+  // 主窗口 → 桌面歌词：主题色同步
+  ipcMain.on("desktop-lyrics-accent", (_e, hex) => {
+    if (typeof hex === "string" && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+      if (desktopLyricsWin && !desktopLyricsWin.isDestroyed())
+        desktopLyricsWin.webContents.send("desktop-lyrics-accent", hex)
+    }
   })
 
   // 切歌系统通知

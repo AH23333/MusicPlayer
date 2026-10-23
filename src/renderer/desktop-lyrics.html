@@ -22,7 +22,9 @@
       gap: 6px;
       padding: 10px 20px;
       cursor: move;
+      border-radius: 12px;
     }
+    #dlWrap.has-bg { background: rgba(0, 0, 0, 0.42); }
     .dl-near {
       font-size: 15px;
       line-height: 1.3;
@@ -33,6 +35,8 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    #dlWrap.single-line .dl-near { display: none; }
+    #dlWrap.single-line { gap: 0; }
     #dlLine {
       font-size: 27px;
       font-weight: 700;
@@ -40,14 +44,15 @@
       color: #ffffff;
       letter-spacing: 0.5px;
       text-align: center;
-      text-shadow: 0 0 2px rgba(0,0,0,.95), 0 2px 10px rgba(0,0,0,.85), 0 0 18px rgba(29,185,84,.35);
+      text-shadow: 0 0 2px rgba(0,0,0,.95), 0 2px 10px rgba(0,0,0,.85),
+        0 0 18px rgba(var(--dl-accent-rgb, 29,185,84), .35);
       white-space: nowrap;
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       transition: color .18s;
     }
-    #dlLine.active { color: #1ed760; }
+    #dlLine.active { color: var(--dl-accent, #1ed760); }
     #dlTools {
       -webkit-app-region: no-drag;
       position: fixed;
@@ -66,7 +71,7 @@
       border: none; border-radius: 50%;
       background: rgba(0,0,0,0.35);
       color: rgba(255,255,255,0.85);
-      font-size: 13px; line-height: 1;
+      font-size: 12px; line-height: 1;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       padding: 0;
@@ -74,8 +79,10 @@
     }
     #dlTools .dl-font-btn { width: auto; border-radius: 12px; padding: 0 7px; font-size: 11px; font-weight: 700; }
     #dlTools button:hover { background: rgba(255,255,255,0.22); color: #fff; }
-    #dlTools button.on { background: rgba(30,215,96,0.8); color: #04120a; }
+    #dlTools button.on { background: rgba(255,255,255,0.28); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset; }
     #dlClose:hover { background: rgba(246,78,91,0.85); color: #fff; }
+    #dlColorBtn { border: 1px solid rgba(255,255,255,0.45); }
+    .dl-sep { width: 1px; height: 14px; background: rgba(255,255,255,0.25); margin: 0 2px; }
     #dlLockedBadge {
       -webkit-app-region: no-drag;
       position: fixed;
@@ -114,8 +121,13 @@
       <button id="dlPrevBtn" title="上一首">⏮</button>
       <button id="dlPlayBtn" title="播放 / 暂停">▶</button>
       <button id="dlNextBtn" title="下一首">⏭</button>
+      <span class="dl-sep"></span>
       <button id="dlFontMinus" class="dl-font-btn" title="减小字号">A-</button>
       <button id="dlFontPlus" class="dl-font-btn" title="增大字号">A+</button>
+      <button id="dlColorBtn" title="歌词颜色：循环色板，首项跟随主题色"></button>
+      <button id="dlLinesBtn" title="单行 / 双行（显示上下行）">≡</button>
+      <button id="dlBgBtn" title="背景衬底开关">▢</button>
+      <span class="dl-sep"></span>
       <button id="dlLockBtn" title="锁定（点击穿透，需从托盘菜单解锁）">🔒</button>
       <button id="dlClose" title="关闭桌面歌词">✕</button>
     </div>
@@ -129,24 +141,28 @@
     const opaEl = document.getElementById("dlOpa")
     const playBtn = document.getElementById("dlPlayBtn")
     const lockBtn = document.getElementById("dlLockBtn")
+    const colorBtn = document.getElementById("dlColorBtn")
+    const linesBtn = document.getElementById("dlLinesBtn")
+    const bgBtn = document.getElementById("dlBgBtn")
     const wrap = document.getElementById("dlWrap")
     let opacity = 0.92
     let opaTimer = null
 
+    function store(k, v) { try { localStorage.setItem(k, v) } catch (e) {} }
+    function load(k) { try { return localStorage.getItem(k) } catch (e) { return null } }
+
     // ===== 字号（本地控制 + 记忆）=====
     const SIZES = [20, 24, 28, 32, 38, 44]
     let sizeIdx = 2
-    try {
-      const v = parseInt(localStorage.getItem("dlSizeIdx"), 10)
+    {
+      const v = parseInt(load("dlSizeIdx"), 10)
       if (v >= 0 && v < SIZES.length) sizeIdx = v
-    } catch (e) {}
+    }
     function applyFont(persist) {
       lineEl.style.fontSize = SIZES[sizeIdx] + "px"
       prevEl.style.fontSize = nextEl.style.fontSize =
         Math.round(SIZES[sizeIdx] * 0.55) + "px"
-      if (persist) {
-        try { localStorage.setItem("dlSizeIdx", String(sizeIdx)) } catch (e) {}
-      }
+      if (persist) store("dlSizeIdx", String(sizeIdx))
     }
     applyFont(false)
     document.getElementById("dlFontMinus").addEventListener("click", () => {
@@ -156,6 +172,74 @@
     document.getElementById("dlFontPlus").addEventListener("click", () => {
       sizeIdx = Math.min(SIZES.length - 1, sizeIdx + 1)
       applyFont(true)
+    })
+
+    // ===== 歌词颜色：跟随主题色 / 自定义色板 =====
+    const ACCENTS = ["#1db954", "#3b82f6", "#8b5cf6", "#ec4899", "#f97316", "#ef4444"]
+    let themeAccent = "#1db954" // 主窗口推送的主题色
+    let colorMode = load("dlColorMode") || "follow" // follow | #rrggbb
+    function hexToRgbTriplet(hex) {
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex || "")
+      if (!m) return "29,185,84"
+      const n = parseInt(m[1], 16)
+      return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255)
+    }
+    function activeColor() {
+      return colorMode === "follow" ? themeAccent : colorMode
+    }
+    function applyDlColor(hex) {
+      document.documentElement.style.setProperty("--dl-accent", hex)
+      document.documentElement.style.setProperty("--dl-accent-rgb", hexToRgbTriplet(hex))
+      colorBtn.style.background = hex
+    }
+    applyDlColor(activeColor())
+    if (api.onDesktopLyricsAccent) {
+      api.onDesktopLyricsAccent((hex) => {
+        if (typeof hex === "string" && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+          themeAccent = hex
+          if (colorMode === "follow") applyDlColor(themeAccent)
+        }
+      })
+    }
+    colorBtn.addEventListener("click", () => {
+      if (colorMode === "follow") {
+        colorMode = ACCENTS[0]
+      } else {
+        const i = ACCENTS.indexOf(colorMode)
+        colorMode = i >= 0 && i < ACCENTS.length - 1 ? ACCENTS[i + 1] : "follow"
+      }
+      store("dlColorMode", colorMode)
+      applyDlColor(activeColor())
+      colorBtn.title =
+        colorMode === "follow"
+          ? "歌词颜色：跟随主题色"
+          : "歌词颜色：" + colorMode + "（点击继续切换，循环后回到跟随主题）"
+    })
+
+    // ===== 单行 / 双行 =====
+    function applySingleLine(on) {
+      wrap.classList.toggle("single-line", on)
+      linesBtn.classList.toggle("on", on)
+      linesBtn.title = on ? "单行模式（点击恢复双行）" : "双行模式（点击切换单行）"
+    }
+    applySingleLine(load("dlSingleLine") === "1")
+    linesBtn.addEventListener("click", () => {
+      const on = !wrap.classList.contains("single-line")
+      applySingleLine(on)
+      store("dlSingleLine", on ? "1" : "0")
+    })
+
+    // ===== 背景衬底 =====
+    function applyBg(on) {
+      wrap.classList.toggle("has-bg", on)
+      bgBtn.classList.toggle("on", on)
+      bgBtn.title = on ? "背景衬底：开（点击关闭）" : "背景衬底：关（点击开启）"
+    }
+    applyBg(load("dlHasBg") === "1")
+    bgBtn.addEventListener("click", () => {
+      const on = !wrap.classList.contains("has-bg")
+      applyBg(on)
+      store("dlHasBg", on ? "1" : "0")
     })
 
     // ===== 歌词行 =====

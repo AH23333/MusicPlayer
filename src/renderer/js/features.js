@@ -51,6 +51,9 @@
     document.documentElement.style.setProperty("--accent", hex)
     // 派生亮色
     document.documentElement.style.setProperty("--accent-2", hex)
+    // 同步桌面歌词主题色
+    if (window.ElectronAPI && window.ElectronAPI.desktopLyricsAccent)
+      window.ElectronAPI.desktopLyricsAccent(hex)
   }
 
   // ============ 音频引擎（EQ / 频谱 / 淡入淡出）============
@@ -674,6 +677,13 @@
     }
     Player.on("play", sendDesktopLyricsPlayingState)
     Player.on("pause", sendDesktopLyricsPlayingState)
+    // 桌面歌词窗口就绪后请求推送主题色
+    if (API.onDesktopLyricsAccentRequest) {
+      API.onDesktopLyricsAccentRequest(() => {
+        if (API.desktopLyricsAccent)
+          API.desktopLyricsAccent(settings.accent || "#1db954")
+      })
+    }
     Player.on("songchange", () => {
       // 切歌无歌词时清空
       if (API.desktopLyricsLine) API.desktopLyricsLine({ text: "", prev: "", next: "" })

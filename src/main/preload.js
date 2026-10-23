@@ -144,6 +144,12 @@ musicDlAlbum: (source, id, name) =>
     ipcRenderer.send("desktop-lyrics-player-state", !!playing),
   onDesktopLyricsPlayerState: (cb) =>
     ipcRenderer.on("desktop-lyrics-player-state", (_e, playing) => cb(playing)),
+  desktopLyricsAccent: (hex) =>
+    ipcRenderer.send("desktop-lyrics-accent", hex),
+  onDesktopLyricsAccent: (cb) =>
+    ipcRenderer.on("desktop-lyrics-accent", (_e, hex) => cb(hex)),
+  onDesktopLyricsAccentRequest: (cb) =>
+    ipcRenderer.on("desktop-lyrics-accent-request", () => cb()),
   notifySong: (info) => ipcRenderer.send("notify-song", info),
 
   // 跨域音频经同源代理，避免 Web Audio（频谱/EQ）被 CORS 污染
