@@ -310,7 +310,7 @@ input[type="checkbox"].selection-sq-checkbox:indeterminate::after { content: "";
 
 /* ============ 弹窗 ============ */
 .dialog-layer {
-  position: fixed; inset: 0; z-index: 80;
+  position: fixed; inset: 0; z-index: 280;
   background: rgba(5, 7, 10, 0.6); backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }

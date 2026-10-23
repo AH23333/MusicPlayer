@@ -13,7 +13,9 @@
       user-select: none;
     }
     #dlWrap {
-      -webkit-app-region: drag;
+      /* 不用 -webkit-app-region: drag：Windows 下 drag 区域被系统当标题栏，
+         真实右键会弹出系统菜单（移动/大小/最小化/关闭），且鼠标事件到不了渲染层。
+         改为 pointer 事件手动拖拽（见下方脚本），右键菜单 / 边缘缩放即可用真实鼠标操作 */
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -23,6 +25,14 @@
       padding: 10px 20px;
       cursor: move;
       border-radius: 12px;
+      box-shadow: inset 0 0 0 1px transparent;
+      transition: box-shadow .15s;
+    }
+    /* 悬停时描出窗口边界：透明窗平时看不到区域，方便找到边缘缩放热区。
+       浅衬底 + 白描边：深浅桌面背景都能看清 */
+    #dlWrap:hover {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.12);
     }
     #dlWrap.has-bg { background: rgba(0, 0, 0, 0.42); }
     .dl-near {
@@ -160,15 +170,18 @@
     #dlmOpa { flex: 1; accent-color: var(--dl-accent, #1ed760); cursor: pointer; }
     /* ===== 边缘拖拽自定义调整大小（透明窗无原生缩放边框）===== */
     .dl-resize {
-      -webkit-app-region: no-drag;
       position: fixed;
       z-index: 900;
+      background: transparent;
+      transition: background .12s;
     }
-    .dl-resize.r { top: 0; right: 0; width: 7px; height: 100%; cursor: ew-resize; }
-    .dl-resize.l { top: 0; left: 0; width: 7px; height: 100%; cursor: ew-resize; }
-    .dl-resize.b { bottom: 0; left: 0; width: 100%; height: 7px; cursor: ns-resize; }
-    .dl-resize.br { right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; }
-    .dl-resize.bl { left: 0; bottom: 0; width: 16px; height: 16px; cursor: nesw-resize; }
+    /* 悬停高亮缩放热区，让不可见的边缘可被发现 */
+    .dl-resize:hover { background: rgba(255, 255, 255, 0.18); }
+    .dl-resize.r { top: 0; right: 0; width: 10px; height: 100%; cursor: ew-resize; }
+    .dl-resize.l { top: 0; left: 0; width: 10px; height: 100%; cursor: ew-resize; }
+    .dl-resize.b { bottom: 0; left: 0; width: 100%; height: 10px; cursor: ns-resize; }
+    .dl-resize.br { right: 0; bottom: 0; width: 20px; height: 20px; cursor: nwse-resize; }
+    .dl-resize.bl { left: 0; bottom: 0; width: 20px; height: 20px; cursor: nesw-resize; }
   </style>
 </head>
 <body>
@@ -373,6 +386,34 @@
       if (api.desktopLyricsLock)
         api.desktopLyricsLock(!document.body.classList.contains("locked"))
     })
+
+    // ===== 手动拖拽窗口（替代 -webkit-app-region: drag，见顶部注释）=====
+    // 渲染层用事件 screen 坐标算 delta，主进程按 delta 移动窗口
+    let dragPid = null
+    let dragStartScreen = null
+    wrap.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return
+      // 工具条 / 菜单内的按下不进入拖拽
+      if (e.target.closest("#dlTools") || e.target.closest("#dlMenu")) return
+      if (menu.classList.contains("open")) return
+      dragPid = e.pointerId
+      dragStartScreen = { x: e.screenX, y: e.screenY }
+      try { wrap.setPointerCapture(e.pointerId) } catch (err) {}
+      if (api.desktopLyricsDragStart) api.desktopLyricsDragStart()
+    })
+    wrap.addEventListener("pointermove", (e) => {
+      if (dragPid === null || e.pointerId !== dragPid) return
+      if (api.desktopLyricsDragMove)
+        api.desktopLyricsDragMove(e.screenX - dragStartScreen.x, e.screenY - dragStartScreen.y)
+    })
+    const endManualDrag = (e) => {
+      if (dragPid === null || e.pointerId !== dragPid) return
+      dragPid = null
+      dragStartScreen = null
+      if (api.desktopLyricsDragEnd) api.desktopLyricsDragEnd()
+    }
+    wrap.addEventListener("pointerup", endManualDrag)
+    wrap.addEventListener("pointercancel", endManualDrag)
 
     // ===== 透明度滚轮 =====
     if (api.setDesktopLyricsOpacity) {

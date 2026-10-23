@@ -1959,7 +1959,15 @@
   function initSettings() {
     const btn = $("settingsBtn")
     if (!btn) return
-    btn.addEventListener("click", openSettings)
+    // 二次点击关闭：已打开时点击按钮 → 收起弹窗
+    btn.addEventListener("click", () => {
+      const layer = $("settingsModal")
+      if (layer && !layer.classList.contains("hidden")) {
+        layer.classList.add("hidden")
+        return
+      }
+      openSettings()
+    })
     applyAccent(settings.accent)
   }
   // 通用确认弹窗

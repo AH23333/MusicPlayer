@@ -154,6 +154,10 @@ musicDlAlbum: (source, id, name) =>
     ipcRenderer.send("desktop-lyrics-lock", !!locked),
   desktopLyricsResetSize: () => ipcRenderer.send("desktop-lyrics-reset-size"),
   desktopLyricsMenuSize: (h) => ipcRenderer.send("desktop-lyrics-menu-size", h),
+  desktopLyricsDragStart: () => ipcRenderer.send("desktop-lyrics-drag-start"),
+  desktopLyricsDragMove: (dx, dy) =>
+    ipcRenderer.send("desktop-lyrics-drag-move", Number(dx) || 0, Number(dy) || 0),
+  desktopLyricsDragEnd: () => ipcRenderer.send("desktop-lyrics-drag-end"),
   onDesktopLyricsLockState: (cb) =>
     ipcRenderer.on("desktop-lyrics-lock-state", (_e, locked) => cb(locked)),
   desktopLyricsPlayerState: (playing) =>

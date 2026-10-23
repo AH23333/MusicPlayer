@@ -559,6 +559,23 @@ function createWindow() {
   })
   // 桌面歌词锁定（点击穿透，托盘菜单解锁）
   ipcMain.on("desktop-lyrics-lock", (_e, locked) => setDesktopLyricsLock(locked))
+  // 桌面歌词手动拖拽（去掉 drag region 后由渲染层 pointer 事件驱动：
+  // 渲染层按事件 screen 坐标算 delta 传来，主进程按 delta 移动窗口）
+  let dlDragBase = null
+  ipcMain.on("desktop-lyrics-drag-start", () => {
+    if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
+    dlDragBase = { win: desktopLyricsWin.getPosition() }
+  })
+  ipcMain.on("desktop-lyrics-drag-move", (_e, dx, dy) => {
+    if (!desktopLyricsWin || desktopLyricsWin.isDestroyed() || !dlDragBase) return
+    if (!isFinite(dx) || !isFinite(dy)) return
+    desktopLyricsWin.setPosition(Math.round(dlDragBase.win[0] + dx), Math.round(dlDragBase.win[1] + dy))
+  })
+  ipcMain.on("desktop-lyrics-drag-end", () => {
+    if (!dlDragBase) return
+    dlDragBase = null
+    saveDlBoundsSoon()
+  })
   // 桌面歌词重置窗口大小（右键菜单，底边固定）
   ipcMain.on("desktop-lyrics-reset-size", () => {
     if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
