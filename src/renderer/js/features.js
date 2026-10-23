@@ -187,7 +187,10 @@
     let left = r.left + r.width / 2 - mr.width / 2
     left = Math.max(8, Math.min(window.innerWidth - mr.width - 8, left))
     menu.style.left = left + "px"
-    menu.style.top = r.top - mr.height - 8 + "px"
+    let top = r.top - mr.height - 8
+    // 弹层须完整落在窗口内（迷你模式窗口很小）
+    top = Math.max(4, Math.min(top, window.innerHeight - mr.height - 4))
+    menu.style.top = top + "px"
     setTimeout(() => {
       const close = (e) => {
         if (!menu.contains(e.target)) {
@@ -402,6 +405,13 @@
     v = Math.max(0, Math.min(1, v))
     if (audio) audio.volume = v
     if (slider) slider.value = v
+    const miniSlider = $("miniVolume")
+    if (miniSlider) miniSlider.value = v
+    const miniIcon = $("miniVolIcon")
+    if (miniIcon)
+      miniIcon
+        .querySelector("path")
+        .setAttribute("d", v <= 0.001 ? ICON_MUTE : v < 0.5 ? ICON_LOW : ICON_HIGH)
     localStorage.setItem(VOLUME_KEY, v)
     syncVolumeIcon(v)
   }
@@ -573,19 +583,67 @@
       <div class="mini-meta">
         <div id="miniTitle" class="mini-title">未播放歌曲</div>
         <div id="miniArtist" class="mini-artist">--</div>
+        <div class="mini-vol">
+          <svg id="miniVolIcon" viewBox="0 0 24 24"><path d="${ICON_HIGH}"/></svg>
+          <input type="range" id="miniVolume" min="0" max="1" step="0.01" value="0.8">
+        </div>
       </div>
       <div class="mini-ctl">
         <button id="miniPrev" class="mini-btn" title="上一首"><svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
         <button id="miniPlay" class="mini-btn mini-play" title="播放/暂停"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
         <button id="miniNext" class="mini-btn" title="下一首"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
-      <button id="miniRestore" class="mini-btn" title="还原"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7"/></svg></button>
+      <div class="mini-side">
+        <button id="miniMenu" class="mini-btn" title="菜单"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <button id="miniRestore" class="mini-btn" title="还原"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7"/></svg></button>
+      </div>
     `
     document.body.appendChild(miniBar)
     $("miniPrev").addEventListener("click", () => Player.prev())
     $("miniNext").addEventListener("click", () => Player.next())
     $("miniPlay").addEventListener("click", () => Player.toggle())
     $("miniRestore").addEventListener("click", () => setMini(false))
+
+    // 迷你模式音量条：与主界面音量逻辑互通
+    const miniVol = $("miniVolume")
+    if (miniVol) {
+      const savedVol = parseFloat(localStorage.getItem(VOLUME_KEY) || "0.8")
+      const audio = getAudioEl()
+      miniVol.value = isFinite(savedVol) ? savedVol : audio ? audio.volume : 0.8
+      miniVol.addEventListener("input", () => setVolume(parseFloat(miniVol.value)))
+      const icon = $("miniVolIcon")
+      if (icon) icon.addEventListener("click", toggleMute)
+      const volWrap = miniBar.querySelector(".mini-vol")
+      if (volWrap)
+        volWrap.addEventListener("wheel", (e) => {
+          e.preventDefault()
+          adjustVolume(e.deltaY < 0 ? 0.05 : -0.05)
+        }, { passive: false })
+    }
+
+    // 迷你模式 ☰ 菜单
+    let dlOpen = false
+    if (API.onDesktopLyricsState) API.onDesktopLyricsState((open) => (dlOpen = !!open))
+    $("miniMenu").addEventListener("click", (e) => {
+      e.stopPropagation()
+      popupAt($("miniMenu"), [
+        {
+          label: dlOpen ? "隐藏桌面歌词" : "显示桌面歌词",
+          onClick: () => API.toggleDesktopLyrics && API.toggleDesktopLyrics(),
+        },
+        {
+          label: "打开设置",
+          onClick: () => {
+            setMini(false)
+            setTimeout(() => {
+              const b = $("settingsBtn")
+              if (b) b.click()
+            }, 150)
+          },
+        },
+        { label: "退出迷你模式", onClick: () => setMini(false) },
+      ])
+    })
 
     const btn = $("miniBtn")
     if (btn) btn.addEventListener("click", () => setMini(!document.body.classList.contains("mini-mode")))

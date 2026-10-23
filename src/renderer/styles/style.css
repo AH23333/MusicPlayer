@@ -525,9 +525,9 @@ div.absolute[class*="dark:bg-gray-800"] > div[class*="text-gray"] {
 /* 功能按钮激活态 */
 .ctl-btn.feature-on { color: var(--accent); background: var(--bg-active); }
 
-/* 通用弹出菜单（睡眠定时等） */
+/* 通用弹出菜单（睡眠定时等；须盖过迷你条 z150） */
 .fp-menu {
-  position: fixed; z-index: 120; min-width: 172px; padding: 5px;
+  position: fixed; z-index: 160; min-width: 172px; padding: 5px;
   background: var(--bg-2); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
   display: flex; flex-direction: column;
@@ -541,6 +541,9 @@ div.absolute[class*="dark:bg-gray-800"] > div[class*="text-gray"] {
 }
 .fp-menu-item:hover { background: var(--bg-hover); color: var(--text); }
 .fp-menu-item.active { color: var(--accent); }
+/* 迷你模式窗口仅 116px 高：紧凑菜单确保完整可见 */
+body.mini-mode .fp-menu { padding: 4px; }
+body.mini-mode .fp-menu-item { padding: 6px 12px; font-size: 12px; }
 .fp-form { min-width: 220px; padding: 12px; gap: 9px; }
 .fp-form-title { font-size: 13px; font-weight: 600; color: var(--text); }
 .fp-input { width: 100%; box-sizing: border-box; background: var(--bg-3); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px; outline: none; }
@@ -559,17 +562,24 @@ body.mini-mode .dialog-layer { display: none !important; }
   position: fixed; inset: 0; z-index: 150;
   background: var(--bg); display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
+  -webkit-app-region: drag;
 }
 #miniBar.hidden { display: none; }
-.mini-cover { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.mini-meta { flex: 1; min-width: 0; }
+#miniBar button, #miniBar input { -webkit-app-region: no-drag; }
+.mini-cover { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.mini-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mini-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-artist { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mini-ctl { display: flex; align-items: center; gap: 4px; }
-.mini-btn { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--bg-hover); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.mini-btn svg { width: 16px; height: 16px; }
+.mini-vol { display: flex; align-items: center; gap: 6px; color: var(--text-3); margin-top: 3px; -webkit-app-region: no-drag; }
+.mini-vol svg { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+.mini-vol input[type="range"] { -webkit-appearance: none; width: 100%; max-width: 110px; min-width: 50px; height: 4px; border-radius: 999px; background: var(--bg-hover); cursor: pointer; outline: none; }
+.mini-vol input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.mini-ctl { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.mini-side { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.mini-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg-hover); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.mini-btn svg { width: 15px; height: 15px; }
 .mini-btn:hover { background: var(--bg-3); }
-.mini-play { width: 38px; height: 38px; background: var(--accent); color: #fff; }
+.mini-play { width: 36px; height: 36px; background: var(--accent); color: #fff; }
 .mini-play:hover { background: var(--accent-2); }
 
 /* ============ 设置面板 ============ */

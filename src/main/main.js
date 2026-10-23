@@ -212,8 +212,8 @@ function setMiniMode(enter) {
     miniModeActive = true
     mainWindow.setResizable(false)
     mainWindow.setAlwaysOnTop(true, "floating")
-    const w = 320,
-      h = 118
+    const w = 400,
+      h = 116
     const wa = screen.getPrimaryDisplay().workAreaSize
     mainWindow.setBounds({
       width: w,
@@ -221,7 +221,7 @@ function setMiniMode(enter) {
       x: Math.round(wa.width - w - 24),
       y: Math.round(wa.height - h - 24),
     })
-    mainWindow.setMinimumSize(320, 118)
+    mainWindow.setMinimumSize(400, 116)
     mainWindow.show()
   } else {
     miniModeActive = false
