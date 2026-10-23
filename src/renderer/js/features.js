@@ -273,6 +273,8 @@
   // ============ 切歌通知 ============
   function notifySong(song) {
     if (!settings.notifySong || !song || !API.notifySong) return
+    // 仅在实际播放时通知：启动恢复上次会话（未自动播放）不应弹系统通知
+    if (!Player.isPlaying()) return
     API.notifySong({ title: song.name, artist: song.artist, cover: song.coverUrl })
   }
 
@@ -286,9 +288,14 @@
       if (volSlider) volSlider.value = vol
     }
     if (volSlider) {
-      volSlider.addEventListener("input", () =>
-        localStorage.setItem(VOLUME_KEY, volSlider.value)
-      )
+      // 拖动滑块高频触发 input，防抖后再写 localStorage
+      let volSaveTimer = 0
+      volSlider.addEventListener("input", () => {
+        clearTimeout(volSaveTimer)
+        volSaveTimer = setTimeout(() => {
+          localStorage.setItem(VOLUME_KEY, volSlider.value)
+        }, 300)
+      })
     }
     const mode = localStorage.getItem(MODE_KEY)
     if (mode) {
@@ -697,23 +704,34 @@
       }
     }
     window.addEventListener("resize", resize)
-    // 歌词页从隐藏切换为可见时，重新计算画布尺寸
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    function ensureLoop() {
+      if (raf) return
+      raf = requestAnimationFrame(step)
+    }
+    // 歌词页从隐藏切换为可见时，重算画布尺寸并恢复绘制循环
     new MutationObserver(() => {
-      if (!lyrics.classList.contains("hidden")) resize()
+      if (!lyrics.classList.contains("hidden")) {
+        resize()
+        ensureLoop()
+      }
     }).observe(lyrics, { attributes: true, attributeFilter: ["class"] })
-    function draw() {
-      raf = requestAnimationFrame(draw)
+    function step() {
+      raf = 0
+      // 不可见 / 未在播放时停止循环，避免空转 rAF 常驻占 CPU
       if (lyrics.classList.contains("hidden") || !AudioEngine.analyser) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        clearCanvas()
+        return
+      }
+      const audio = getAudioEl()
+      if (!audio || audio.paused) {
+        clearCanvas()
         return
       }
       if (canvas.width === 0) resize()
       if (canvas.width === 0) return
-      const audio = getAudioEl()
-      if (!audio || audio.paused) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        return
-      }
       AudioEngine.analyser.getByteFrequencyData(AudioEngine.freq)
       const w = canvas.width,
         h = canvas.height
@@ -743,9 +761,13 @@
         else ctx.rect(x, y, bw, bh)
         ctx.fill()
       }
+      // 继续下一帧
+      raf = requestAnimationFrame(step)
     }
+    // 开始/恢复播放时确保绘制循环在跑（隐藏或暂停时循环会自行停下）
+    Player.on("play", ensureLoop)
     resize()
-    draw()
+    ensureLoop()
   }
 
   // ============ 淡入淡出（监听播放/时间更新）============
@@ -823,7 +845,8 @@
       })
     }
     makeDraggable()
-    Player.on("queuechange", () => setTimeout(makeDraggable, 0))
+    // renderPlaylist 每次重建列表都会触发 childList 变更，
+    // 仅用 MutationObserver 一条通道绑定，避免与 queuechange 重复执行
     new MutationObserver(makeDraggable).observe(list, { childList: true })
 
     list.addEventListener("dragstart", (e) => {
@@ -904,9 +927,23 @@
       return { songs: {}, totalSeconds: 0, playCount: 0 }
     }
   }
+  // 统计条目上限：超出时保留最常听的前若干条，防止 localStorage 无限膨胀
+  const MAX_STAT_SONGS = 400
+  function pruneStats() {
+    const entries = Object.values(stats.songs || {})
+    if (entries.length <= MAX_STAT_SONGS) return
+    entries.sort((a, b) => b.count - a.count || b.seconds - a.seconds)
+    const keep = new Set(
+      entries.slice(0, MAX_STAT_SONGS).map((e) => String(e.id))
+    )
+    Object.keys(stats.songs).forEach((k) => {
+      if (!keep.has(String(k))) delete stats.songs[k]
+    })
+  }
   function saveStatsDebounced() {
     clearTimeout(saveStatsDebounced.t)
     saveStatsDebounced.t = setTimeout(() => {
+      pruneStats()
       localStorage.setItem(STATS_KEY, JSON.stringify(stats))
     }, 800)
   }
@@ -1096,10 +1133,10 @@
     homeSongMap.set(key, s)
     const cov = s.coverUrl || s.cover || ""
     return (
-      '<div class="home-card" data-song-key="' + key + '">' +
+      '<div class="home-card" data-song-key="' + escapeHtml(key) + '">' +
       '<div class="home-card-cover">' +
       (cov
-        ? '<img src="' + cov + '" alt="" loading="lazy">'
+        ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
         : '<div class="home-card-note">' + NOTE_SVG + "</div>") +
       '<button class="home-card-play" data-home-play="' + key + '" title="播放">' +
       PLAY_SVG +
