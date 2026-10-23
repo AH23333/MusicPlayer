@@ -309,7 +309,9 @@
     Player.on("songchange", () => {
       const i = Player.getCurrentIndex()
       const s = Player.getCurrentSong()
-      if (s) localStorage.setItem(SESSION_KEY, JSON.stringify({ index: i, id: s.id, time: 0 }))
+      // 恢复会话期间的 songchange 不覆盖待恢复的 session（time/playing）
+      if (s && !restoringSession)
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ index: i, id: s.id, time: 0, playing: true }))
       AudioEngine.applyPlaybackRate()
       resetAB()
     })
@@ -322,15 +324,35 @@
         if (s && !audio.paused) {
           localStorage.setItem(
             SESSION_KEY,
-            JSON.stringify({ index: Player.getCurrentIndex(), id: s.id, time: audio.currentTime })
+            JSON.stringify({
+              index: Player.getCurrentIndex(),
+              id: s.id,
+              time: audio.currentTime,
+              playing: true,
+            })
           )
         }
       }
     })
+    // 播放/暂停即时记录：保证退出前的真实播放状态被记住
+    const saveSessionPlaying = (playing) => {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY)
+        if (!raw) return
+        const sess = JSON.parse(raw)
+        if (sess && typeof sess === "object") {
+          sess.playing = !!playing
+          localStorage.setItem(SESSION_KEY, JSON.stringify(sess))
+        }
+      } catch (e) {}
+    }
+    audio.addEventListener("play", () => saveSessionPlaying(true))
+    audio.addEventListener("pause", () => saveSessionPlaying(false))
     Player.on("app-ready", () => {
       restoreSession()
     })
   }
+  let restoringSession = false
   async function restoreSession() {
     // 确保队列已加载
     let queue = Player.getQueue()
@@ -350,7 +372,18 @@
     let idx = queue.findIndex((s) => s.id === sess.id)
     if (idx === -1 && sess.index >= 0 && sess.index < queue.length) idx = sess.index
     if (idx >= 0) {
-      await Player.playAt(idx, { autoplay: false, startTime: sess.time || 0 })
+      restoringSession = true
+      try {
+        await Player.playAt(idx, { autoplay: false, startTime: sess.time || 0 })
+      } finally {
+        restoringSession = false
+      }
+      // 上次退出时正在播放 → 继续播放
+      if (sess.playing) {
+        try {
+          await getAudioEl().play()
+        } catch (e) {}
+      }
     }
   }
 

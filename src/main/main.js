@@ -67,6 +67,7 @@ let desktopLyricsOpacity = 0.92
 let desktopLyricsLocked = false
 let savedBounds = null
 let isQuitting = false
+let miniModeActive = false
 // 通知图标缓存：避免每次切歌都重新生成 64px PNG
 let notifyIconCache = null
 
@@ -208,6 +209,7 @@ function setMiniMode(enter) {
   if (!mainWindow) return
   if (enter) {
     if (!savedBounds) savedBounds = mainWindow.getBounds()
+    miniModeActive = true
     mainWindow.setResizable(false)
     mainWindow.setAlwaysOnTop(true, "floating")
     const w = 320,
@@ -222,11 +224,13 @@ function setMiniMode(enter) {
     mainWindow.setMinimumSize(320, 118)
     mainWindow.show()
   } else {
+    miniModeActive = false
     mainWindow.setResizable(true)
     mainWindow.setAlwaysOnTop(false)
     mainWindow.setMinimumSize(900, 600)
     if (savedBounds) mainWindow.setBounds(savedBounds)
     else mainWindow.setSize(1080, 720)
+    saveMainWindowStateNow()
   }
 }
 
@@ -254,6 +258,75 @@ function saveDlBoundsSoon() {
       )
     } catch (err) {}
   }, 800)
+}
+
+// 桌面歌词状态记忆：透明度 / 锁定（userData/desktop-lyrics-state.json）
+function dlStatePath() {
+  return path.join(app.getPath("userData"), "desktop-lyrics-state.json")
+}
+function loadDlState() {
+  try {
+    const d = JSON.parse(fs.readFileSync(dlStatePath(), "utf8"))
+    if (d && typeof d === "object") {
+      if (isFinite(d.opacity)) desktopLyricsOpacity = Math.min(1, Math.max(0.1, d.opacity))
+      if (typeof d.locked === "boolean") desktopLyricsLocked = d.locked
+    }
+  } catch (err) {}
+}
+function saveDlState() {
+  try {
+    fs.writeFileSync(
+      dlStatePath(),
+      JSON.stringify({ opacity: desktopLyricsOpacity, locked: desktopLyricsLocked })
+    )
+  } catch (err) {}
+}
+
+// 主窗口位置尺寸记忆（userData/main-window-state.json）
+function mainWindowStatePath() {
+  return path.join(app.getPath("userData"), "main-window-state.json")
+}
+function loadMainWindowState() {
+  try {
+    const d = JSON.parse(fs.readFileSync(mainWindowStatePath(), "utf8"))
+    if (!d || !isFinite(d.x) || !isFinite(d.y) || !isFinite(d.width) || !isFinite(d.height)) return null
+    // 校验：窗口矩形须与至少一块屏幕工作区有交集（防止显示器拔除后窗口跑到屏幕外）
+    const rect = { x: d.x, y: d.y, width: d.width, height: d.height }
+    const visible = screen
+      .getAllDisplays()
+      .some((disp) => {
+        const wa = disp.workArea
+        return (
+          rect.x < wa.x + wa.width &&
+          rect.x + rect.width > wa.x &&
+          rect.y < wa.y + wa.height &&
+          rect.y + rect.height > wa.y
+        )
+      })
+    if (!visible) return null
+    return d
+  } catch (err) {}
+  return null
+}
+let mainWindowStateTimer = null
+function saveMainWindowStateNow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed() || miniModeActive) return
+    const maximized = mainWindow.isMaximized()
+    const cur = mainWindow.getBounds()
+    let st = loadMainWindowState() || { x: cur.x, y: cur.y, width: cur.width, height: cur.height }
+    // 最大化时只记录标志，保留上次的普通 bounds 作为还原尺寸
+    if (!maximized) {
+      st = { x: cur.x, y: cur.y, width: cur.width, height: cur.height, maximized: false }
+    } else {
+      st.maximized = true
+    }
+    fs.writeFileSync(mainWindowStatePath(), JSON.stringify(st))
+  } catch (err) {}
+}
+function saveMainWindowStateSoon() {
+  clearTimeout(mainWindowStateTimer)
+  mainWindowStateTimer = setTimeout(saveMainWindowStateNow, 800)
 }
 
 function createDesktopLyricsWindow() {
@@ -299,6 +372,8 @@ function createDesktopLyricsWindow() {
   desktopLyricsWin.webContents.once("did-finish-load", () => {
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send("desktop-lyrics-accent-request")
+    // 恢复上次的锁定状态（点击穿透）
+    if (desktopLyricsLocked) setDesktopLyricsLock(true)
   })
   desktopLyricsWin.on("closed", () => {
     desktopLyricsWin = null
@@ -311,6 +386,7 @@ function createDesktopLyricsWindow() {
 // 桌面歌词锁定：鼠标点击穿透（forward 保留 hover），从托盘菜单解锁
 function setDesktopLyricsLock(locked) {
   desktopLyricsLocked = !!locked
+  saveDlState()
   if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
   desktopLyricsWin.setIgnoreMouseEvents(desktopLyricsLocked, { forward: true })
   desktopLyricsWin.webContents.send("desktop-lyrics-lock-state", desktopLyricsLocked)
@@ -385,9 +461,14 @@ function createWindow() {
     ? path.join(process.resourcesPath, "app", "assets", "icon.ico")
     : path.join(__dirname, "..", "..", "assets", "icon.ico")
 
+  // 恢复上次窗口位置尺寸
+  const savedWin = loadMainWindowState()
+  const useSaved = savedWin && !savedWin.maximized
   mainWindow = new BrowserWindow({
-    width: 1080,
-    height: 720,
+    width: useSaved ? Math.max(900, savedWin.width) : 1080,
+    height: useSaved ? Math.max(600, savedWin.height) : 720,
+    x: useSaved ? savedWin.x : undefined,
+    y: useSaved ? savedWin.y : undefined,
     minWidth: 900,
     minHeight: 600,
     frame: false,
@@ -403,6 +484,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
     },
   })
+  if (savedWin && savedWin.maximized) mainWindow.maximize()
 
   mainWindow.setMenu(null)
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"))
@@ -425,8 +507,16 @@ function createWindow() {
     if (!isQuitting) {
       e.preventDefault()
       mainWindow.hide()
+    } else {
+      saveMainWindowStateNow()
     }
   })
+
+  // 窗口位置尺寸记忆（迷你模式不记录）
+  mainWindow.on("resize", saveMainWindowStateSoon)
+  mainWindow.on("moved", saveMainWindowStateSoon)
+  mainWindow.on("maximize", saveMainWindowStateSoon)
+  mainWindow.on("unmaximize", saveMainWindowStateSoon)
 
   // 无边框窗口控制
   ipcMain.on("window-minimize", () => mainWindow.minimize())
@@ -447,6 +537,7 @@ function createWindow() {
   })
   ipcMain.on("desktop-lyrics-opacity", (_e, val) => {
     desktopLyricsOpacity = Math.min(1, Math.max(0.1, val))
+    saveDlState()
     if (desktopLyricsWin) desktopLyricsWin.setOpacity(desktopLyricsOpacity)
   })
   // 桌面歌词播放控制（复用托盘/媒体键控制通道）
@@ -509,6 +600,7 @@ app.whenReady().then(() => {
 
   initIpcHandlers()
   registerMediaProtocol()
+  loadDlState()
   createWindow()
   createTray()
 })
