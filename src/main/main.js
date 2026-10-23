@@ -246,7 +246,11 @@ function loadDlBounds() {
   return null
 }
 let dlBoundsSaveTimer = null
+// 右键菜单展开期间不持久化窗口高度（临时拉高透明窗以容纳菜单）
+let dlMenuExpanded = false
+let dlPreMenuHeight = 0
 function saveDlBoundsSoon() {
+  if (dlMenuExpanded) return
   clearTimeout(dlBoundsSaveTimer)
   dlBoundsSaveTimer = setTimeout(() => {
     try {
@@ -254,7 +258,7 @@ function saveDlBoundsSoon() {
       const b = desktopLyricsWin.getBounds()
       fs.writeFileSync(
         dlBoundsPath(),
-        JSON.stringify({ x: b.x, y: b.y, width: b.width })
+        JSON.stringify({ x: b.x, y: b.y, width: b.width, height: b.height })
       )
     } catch (err) {}
   }, 800)
@@ -333,7 +337,10 @@ function createDesktopLyricsWindow() {
   const dm = screen.getPrimaryDisplay().workAreaSize
   const saved = loadDlBounds()
   const w = saved ? Math.max(400, Math.min(1400, saved.width)) : Math.min(1000, dm.width - 40)
-  const h = 140
+  const h =
+    saved && isFinite(saved.height)
+      ? Math.max(90, Math.min(400, saved.height))
+      : 140
   const x = saved
     ? Math.max(0, Math.min(saved.x, dm.width - w))
     : Math.round((dm.width - w) / 2)
@@ -347,7 +354,10 @@ function createDesktopLyricsWindow() {
     y,
     frame: false,
     transparent: true,
-    resizable: false,
+    resizable: true,
+    minWidth: 360,
+    minHeight: 90,
+    maxHeight: 400,
     movable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
@@ -366,8 +376,10 @@ function createDesktopLyricsWindow() {
   desktopLyricsWin.loadFile(
     path.join(__dirname, "..", "renderer", "desktop-lyrics.html")
   )
-  // 拖动后记忆位置
+  // 拖动 / 缩放后记忆位置与大小（resize 持续触发，经防抖落盘）
   desktopLyricsWin.on("moved", saveDlBoundsSoon)
+  desktopLyricsWin.on("resized", saveDlBoundsSoon)
+  desktopLyricsWin.on("resize", saveDlBoundsSoon)
   // 歌词窗口就绪后，让主窗口渲染进程推送一次主题色
   desktopLyricsWin.webContents.once("did-finish-load", () => {
     if (mainWindow && !mainWindow.isDestroyed())
@@ -547,6 +559,39 @@ function createWindow() {
   })
   // 桌面歌词锁定（点击穿透，托盘菜单解锁）
   ipcMain.on("desktop-lyrics-lock", (_e, locked) => setDesktopLyricsLock(locked))
+  // 桌面歌词重置窗口大小（右键菜单，底边固定）
+  ipcMain.on("desktop-lyrics-reset-size", () => {
+    if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
+    const dm = screen.getPrimaryDisplay().workAreaSize
+    const w = Math.min(1000, dm.width - 40)
+    const cur = desktopLyricsWin.getBounds()
+    const bottom = cur.y + cur.height
+    dlMenuExpanded = false
+    desktopLyricsWin.setBounds({ x: cur.x, y: bottom - 140, width: w, height: 140 })
+    saveDlBoundsSoon()
+  })
+  // 桌面歌词右键菜单临时拉高窗口：菜单高于窗口时向上扩展（底边固定），关闭菜单后还原
+  ipcMain.on("desktop-lyrics-menu-size", (_e, neededH) => {
+    if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
+    if (neededH > 0) {
+      const cur = desktopLyricsWin.getBounds()
+      const wa = screen.getPrimaryDisplay().workArea
+      const bottom = cur.y + cur.height
+      const maxH = Math.min(400, bottom - wa.y)
+      const h = Math.max(cur.height, Math.min(neededH, maxH))
+      if (h > cur.height) {
+        dlMenuExpanded = true
+        dlPreMenuHeight = cur.height
+        desktopLyricsWin.setBounds({ x: cur.x, y: bottom - h, width: cur.width, height: h })
+      }
+    } else if (dlMenuExpanded) {
+      dlMenuExpanded = false
+      const cur = desktopLyricsWin.getBounds()
+      const bottom = cur.y + cur.height
+      const h = dlPreMenuHeight || 140
+      desktopLyricsWin.setBounds({ x: cur.x, y: bottom - h, width: cur.width, height: h })
+    }
+  })
   // 主窗口 → 桌面歌词：播放状态（控制条图标）
   ipcMain.on("desktop-lyrics-player-state", (_e, playing) => {
     if (desktopLyricsWin && !desktopLyricsWin.isDestroyed())

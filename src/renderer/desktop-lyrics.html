@@ -109,6 +109,66 @@
       transition: opacity .2s;
       pointer-events: none;
     }
+    /* ===== 右键菜单 ===== */
+    #dlMenu {
+      -webkit-app-region: no-drag;
+      position: fixed;
+      z-index: 999;
+      min-width: 196px;
+      background: rgba(20, 20, 26, 0.96);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      box-shadow: 0 10px 34px rgba(0,0,0,.55);
+      padding: 5px;
+      display: none;
+      cursor: default;
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      text-shadow: none;
+    }
+    #dlMenu.open { display: block; }
+    .dlm-item {
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .dlm-item:hover { background: rgba(255,255,255,0.1); }
+    .dlm-item .dlm-check { margin-left: auto; opacity: 0; font-size: 12px; color: var(--dl-accent, #1ed760); }
+    .dlm-item.checked .dlm-check { opacity: 1; }
+    .dlm-item.dlm-danger:hover { background: rgba(246,78,91,0.82); }
+    .dlm-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 5px 8px; }
+    .dlm-row { padding: 5px 10px; display: flex; align-items: center; gap: 8px; }
+    .dlm-row .dlm-row-label { color: rgba(255,255,255,0.6); font-size: 12px; }
+    .dlm-colors { display: flex; align-items: center; gap: 7px; padding: 5px 10px 7px; }
+    .dlm-swatch {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.25);
+      padding: 0;
+    }
+    .dlm-swatch:hover { border-color: rgba(255,255,255,0.7); }
+    .dlm-swatch.active { border-color: #fff; }
+    .dlm-swatch.follow {
+      background: conic-gradient(#1db954, #3b82f6, #8b5cf6, #ec4899, #f97316, #ef4444, #1db954);
+    }
+    #dlmOpa { flex: 1; accent-color: var(--dl-accent, #1ed760); cursor: pointer; }
+    /* ===== 边缘拖拽自定义调整大小（透明窗无原生缩放边框）===== */
+    .dl-resize {
+      -webkit-app-region: no-drag;
+      position: fixed;
+      z-index: 900;
+    }
+    .dl-resize.r { top: 0; right: 0; width: 7px; height: 100%; cursor: ew-resize; }
+    .dl-resize.l { top: 0; left: 0; width: 7px; height: 100%; cursor: ew-resize; }
+    .dl-resize.b { bottom: 0; left: 0; width: 100%; height: 7px; cursor: ns-resize; }
+    .dl-resize.br { right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; }
+    .dl-resize.bl { left: 0; bottom: 0; width: 16px; height: 16px; cursor: nesw-resize; }
   </style>
 </head>
 <body>
@@ -133,6 +193,28 @@
     </div>
     <span id="dlOpa"></span>
   </div>
+  <div id="dlMenu">
+    <div class="dlm-item" data-act="toggle"><span id="dlmPlayIcon">▶</span><span id="dlmPlayLabel">播放</span></div>
+    <div class="dlm-item" data-act="prev">⏮ 上一首</div>
+    <div class="dlm-item" data-act="next">⏭ 下一首</div>
+    <div class="dlm-sep"></div>
+    <div class="dlm-item" data-act="font-minus"><span style="font-weight:700">A−</span> 减小字号</div>
+    <div class="dlm-item" data-act="font-plus"><span style="font-weight:700">A+</span> 增大字号</div>
+    <div class="dlm-colors" id="dlmColors"></div>
+    <div class="dlm-sep"></div>
+    <div class="dlm-item" data-act="single-line">≡ 单行模式<span class="dlm-check">✓</span></div>
+    <div class="dlm-item" data-act="bg">▢ 背景衬底<span class="dlm-check">✓</span></div>
+    <div class="dlm-row"><span class="dlm-row-label">透明度</span><input type="range" id="dlmOpa" min="15" max="100" step="5"></div>
+    <div class="dlm-sep"></div>
+    <div class="dlm-item" data-act="reset-size">⤢ 重置窗口大小</div>
+    <div class="dlm-item" data-act="lock">🔒 锁定（点击穿透）<span class="dlm-check">✓</span></div>
+    <div class="dlm-item dlm-danger" data-act="close">✕ 关闭桌面歌词</div>
+  </div>
+  <div class="dl-resize l" data-dir="l"></div>
+  <div class="dl-resize r" data-dir="r"></div>
+  <div class="dl-resize b" data-dir="b"></div>
+  <div class="dl-resize bl" data-dir="bl"></div>
+  <div class="dl-resize br" data-dir="br"></div>
   <script>
     const api = window.ElectronAPI || {}
     const lineEl = document.getElementById("dlLine")
@@ -253,9 +335,13 @@
       })
     }
 
-    // ===== 播放状态（控制条图标）=====
+    // ===== 播放状态（控制条图标 + 右键菜单项同步）=====
     function renderPlayIcon(playing) {
       playBtn.textContent = playing ? "❚❚" : "▶"
+      const mi = document.getElementById("dlmPlayIcon")
+      const ml = document.getElementById("dlmPlayLabel")
+      if (mi) mi.textContent = playing ? "❚❚" : "▶"
+      if (ml) ml.textContent = playing ? "暂停" : "播放"
     }
     renderPlayIcon(false)
     if (api.onDesktopLyricsPlayerState)
@@ -303,6 +389,191 @@
 
     document.getElementById("dlClose").addEventListener("click", () => {
       if (api.desktopLyricsClose) api.desktopLyricsClose()
+    })
+
+    // ===== 右键菜单 =====
+    const menu = document.getElementById("dlMenu")
+    const menuOpa = document.getElementById("dlmOpa")
+    const colorsRow = document.getElementById("dlmColors")
+    let menuAnchored = false
+
+    // 色板：跟随主题 + 固定色
+    function buildColorSwatches() {
+      colorsRow.textContent = ""
+      const mk = (cls, title, active, onClick) => {
+        const b = document.createElement("button")
+        b.className = "dlm-swatch" + (cls ? " " + cls : "") + (active ? " active" : "")
+        b.title = title
+        b.addEventListener("click", (e) => {
+          e.stopPropagation()
+          onClick()
+          refreshMenu()
+        })
+        colorsRow.appendChild(b)
+      }
+      const setMode = (m) => {
+        colorMode = m
+        store("dlColorMode", colorMode)
+        applyDlColor(activeColor())
+      }
+      mk("follow", "跟随主题色", colorMode === "follow", () => setMode("follow"))
+      ACCENTS.forEach((c) => mk("", "歌词颜色：" + c, colorMode === c, () => setMode(c)))
+    }
+
+    function refreshMenu() {
+      menu.querySelectorAll(".dlm-item").forEach((el) => {
+        const act = el.getAttribute("data-act")
+        let checked = false
+        if (act === "single-line") checked = wrap.classList.contains("single-line")
+        else if (act === "bg") checked = wrap.classList.contains("has-bg")
+        else if (act === "lock") checked = document.body.classList.contains("locked")
+        el.classList.toggle("checked", checked)
+      })
+      menuOpa.value = String(Math.round(opacity * 100))
+      buildColorSwatches()
+    }
+
+    function showMenu(x, y) {
+      refreshMenu()
+      menu.classList.add("open")
+      const r = menu.getBoundingClientRect()
+      // 菜单高于窗口时，临时向上拉高透明窗口（底边固定）；
+      // 歌词内容锚定到原底部区域，视觉位置不变
+      const needH = r.height + 8
+      if (window.innerHeight < needH && api.desktopLyricsMenuSize) {
+        if (!menuAnchored) {
+          const preH = window.innerHeight
+          wrap.style.position = "fixed"
+          wrap.style.left = "0"
+          wrap.style.right = "0"
+          wrap.style.top = "auto"
+          wrap.style.bottom = "0"
+          wrap.style.height = preH + "px"
+          menuAnchored = true
+        }
+        api.desktopLyricsMenuSize(needH)
+      }
+      const availH = Math.max(window.innerHeight, Math.min(needH, 400))
+      menu.style.left = Math.max(4, Math.min(x, window.innerWidth - r.width - 4)) + "px"
+      menu.style.top = Math.max(4, Math.min(y, availH - r.height - 4)) + "px"
+    }
+    function hideMenu() {
+      menu.classList.remove("open")
+      if (api.desktopLyricsMenuSize) api.desktopLyricsMenuSize(0)
+      if (menuAnchored) {
+        menuAnchored = false
+        wrap.style.position = ""
+        wrap.style.left = ""
+        wrap.style.right = ""
+        wrap.style.top = ""
+        wrap.style.bottom = ""
+        wrap.style.height = ""
+      }
+    }
+
+    document.addEventListener("contextmenu", (e) => {
+      e.preventDefault()
+      showMenu(e.clientX, e.clientY)
+    })
+    // 左键点到菜单外关闭（右键会先触发 contextmenu 重新定位，不关闭）
+    document.addEventListener("mousedown", (e) => {
+      if (e.button === 0 && !menu.contains(e.target)) hideMenu()
+    })
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hideMenu()
+    })
+    window.addEventListener("blur", hideMenu)
+
+    menu.addEventListener("click", (e) => {
+      const item = e.target.closest(".dlm-item")
+      if (!item) return
+      const act = item.getAttribute("data-act")
+      switch (act) {
+        case "toggle":
+          if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("toggle")
+          break
+        case "prev":
+          if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("prev")
+          break
+        case "next":
+          if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("next")
+          break
+        case "font-minus":
+          document.getElementById("dlFontMinus").click()
+          break
+        case "font-plus":
+          document.getElementById("dlFontPlus").click()
+          break
+        case "single-line":
+          linesBtn.click()
+          break
+        case "bg":
+          bgBtn.click()
+          break
+        case "lock":
+          lockBtn.click()
+          break
+        case "reset-size":
+          if (api.desktopLyricsResetSize) api.desktopLyricsResetSize()
+          break
+        case "close":
+          if (api.desktopLyricsClose) api.desktopLyricsClose()
+          break
+      }
+      if (act !== "toggle") hideMenu()
+      else refreshMenu()
+    })
+
+    menuOpa.addEventListener("input", () => {
+      opacity = parseInt(menuOpa.value, 10) / 100
+      if (api.setDesktopLyricsOpacity) api.setDesktopLyricsOpacity(opacity)
+      opaEl.textContent = Math.round(opacity * 100) + "%"
+      opaEl.style.opacity = 1
+      clearTimeout(opaTimer)
+      opaTimer = setTimeout(() => (opaEl.style.opacity = 0), 900)
+    })
+    menuOpa.addEventListener("mousedown", (e) => e.stopPropagation())
+
+    // ===== 边缘拖拽调整大小（透明窗无原生缩放边框，用窗口边缘热区自绘）=====
+    document.querySelectorAll(".dl-resize").forEach((el) => {
+      const dir = el.getAttribute("data-dir")
+      el.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return
+        e.preventDefault()
+        hideMenu()
+        el.setPointerCapture(e.pointerId)
+        const startX = e.screenX
+        const startY = e.screenY
+        const startW = window.innerWidth
+        const startH = window.innerHeight
+        const minW = 360
+        const maxW = Math.min(1400, window.screen.availWidth || 1400)
+        const minH = 90
+        const maxH = 400
+        const onMove = (ev) => {
+          const dx = ev.screenX - startX
+          const dy = ev.screenY - startY
+          let w = startW
+          let h = startH
+          // 左边缘：宽度变化同时平移窗口，保持右边不动
+          if (dir === "l" || dir === "bl") w = Math.max(minW, Math.min(maxW, startW - dx))
+          // 右边缘：向右拉伸宽度
+          if (dir === "r" || dir === "br") w = Math.max(minW, Math.min(maxW, startW + dx))
+          // 下边缘：向下拉伸高度
+          if (dir === "b" || dir === "bl" || dir === "br")
+            h = Math.max(minH, Math.min(maxH, startH + dy))
+          if (w !== startW && (dir === "l" || dir === "bl")) window.moveBy(startW - w, 0)
+          if (w !== startW || h !== startH) window.resizeTo(w, h)
+        }
+        const onUp = () => {
+          el.removeEventListener("pointermove", onMove)
+          el.removeEventListener("pointerup", onUp)
+          el.removeEventListener("pointercancel", onUp)
+        }
+        el.addEventListener("pointermove", onMove)
+        el.addEventListener("pointerup", onUp)
+        el.addEventListener("pointercancel", onUp)
+      })
     })
   </script>
 </body>

@@ -152,6 +152,8 @@ musicDlAlbum: (source, id, name) =>
     ipcRenderer.send("desktop-lyrics-player-ctl", action),
   desktopLyricsLock: (locked) =>
     ipcRenderer.send("desktop-lyrics-lock", !!locked),
+  desktopLyricsResetSize: () => ipcRenderer.send("desktop-lyrics-reset-size"),
+  desktopLyricsMenuSize: (h) => ipcRenderer.send("desktop-lyrics-menu-size", h),
   onDesktopLyricsLockState: (cb) =>
     ipcRenderer.on("desktop-lyrics-lock-state", (_e, locked) => cb(locked)),
   desktopLyricsPlayerState: (playing) =>
