@@ -1106,6 +1106,105 @@
     Player.playAt(idx)
   }
   let homeData = { recent: [], liked: [] }
+  // ===== 热门榜单（go-music-dl toplist 能力）=====
+  const TL_SOURCES = [
+    ["netease", "网易"],
+    ["qq", "QQ"],
+    ["kugou", "酷狗"],
+    ["kuwo", "酷我"],
+    ["migu", "咪咕"],
+  ]
+  const toplistState = { source: "netease", lists: {}, loading: false }
+  async function loadToplists(source) {
+    if (toplistState.loading) return
+    toplistState.loading = true
+    try {
+      const res = await window.ElectronAPI.musicDlToplists(source)
+      if (res && Array.isArray(res.toplists)) {
+        toplistState.lists[source] = res.toplists
+      } else {
+        toplistState.lists[source] = []
+      }
+    } catch (e) {
+      toplistState.lists[source] = []
+    } finally {
+      toplistState.loading = false
+      if (toplistState.source === source) renderHome()
+    }
+  }
+  function switchToplistSource(source) {
+    if (toplistState.source === source) return
+    toplistState.source = source
+    renderHome()
+    if (!toplistState.lists[source]) loadToplists(source)
+  }
+  async function openToplist(t) {
+    if (!t || !t.id) return
+    Player.toast("正在加载榜单《" + t.name + "》", "info")
+    let res
+    try {
+      res = await window.ElectronAPI.musicDlToplistSongs(
+        t.source,
+        String(t.id),
+        t.name
+      )
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.songs)) {
+      Player.toast("榜单加载失败：" + (res && res.error ? res.error : "未知错误"), "info")
+      return
+    }
+    const songs = res.songs
+      .map((s) => Player.enrichDlSong(Object.assign({}, s, { source: s.source || t.source })))
+      .filter(Boolean)
+    if (!songs.length) {
+      Player.toast("该榜单暂无可用歌曲", "info")
+      return
+    }
+    Player.openPlaylist(
+      "toplist-" + t.source + "-" + t.id,
+      t.name,
+      songs,
+      t.update_frequency || t.description || ""
+    )
+  }
+  function toplistBlockHtml() {
+    const tabs = TL_SOURCES.map(
+      ([id, label]) =>
+        '<button class="tl-tab' +
+        (id === toplistState.source ? " active" : "") +
+        '" data-tl-src="' + id + '">' +
+        label +
+        "</button>"
+    ).join("")
+    const lists = toplistState.lists[toplistState.source]
+    let body
+    if (!lists) {
+      body = '<div class="tl-empty">' + (toplistState.loading ? "榜单加载中..." : " ") + "</div>"
+    } else if (!lists.length) {
+      body = '<div class="tl-empty">暂无榜单（搜索服务未启动或该源不可用）</div>'
+    } else {
+      body = lists.slice(0, 10).map((t, i) => {
+        const cov = t.cover || ""
+        return (
+          '<div class="tl-card" data-tl-idx="' + i + '" title="' + escapeHtml(t.name) + '">' +
+          (cov
+            ? '<img src="' + escapeHtml(cov) + '" alt="" loading="lazy">'
+            : '<div class="tl-card-note">' + NOTE_SVG + "</div>") +
+          '<div class="tl-card-veil"></div>' +
+          '<div class="tl-card-meta"><div class="tl-card-name">' + escapeHtml(t.name) + "</div>" +
+          '<div class="tl-card-freq">' + escapeHtml(t.update_frequency || (t.track_count ? t.track_count + "首" : "")) + "</div></div>" +
+          "</div>"
+        )
+      }).join("")
+    }
+    return (
+      '<div class="home-block"><div class="home-block-head"><h3>热门榜单</h3>' +
+      '<div class="tl-tabs">' + tabs + "</div></div>" +
+      '<div class="tl-grid">' + body + "</div></div>"
+    )
+  }
   async function loadHomeData() {
     try {
       const [recent, liked] = await Promise.all([
@@ -1203,6 +1302,7 @@
       '<div class="home-quick-grid">' +
       quickHtml +
       "</div>" +
+      toplistBlockHtml() +
       block("最近播放", "recentPlayBtn", recent.slice(0, 6)) +
       block("我喜欢的音乐", "likeSongsBtn", liked.slice(0, 6)) +
       emptyHint
@@ -1211,6 +1311,23 @@
     const home = $("homeSection")
     if (!home) return
     home.addEventListener("click", (e) => {
+      const tlTab = e.target.closest("[data-tl-src]")
+      if (tlTab) {
+        e.stopPropagation()
+        switchToplistSource(tlTab.dataset.tlSrc)
+        return
+      }
+      const tlCard = e.target.closest("[data-tl-idx]")
+      if (tlCard) {
+        e.stopPropagation()
+        const lists = toplistState.lists[toplistState.source] || []
+        const t = lists[Number(tlCard.dataset.tlIdx)]
+        if (t) {
+          t.source = t.source || toplistState.source
+          openToplist(t)
+        }
+        return
+      }
       const play = e.target.closest("[data-home-play]")
       if (play) {
         e.stopPropagation()
@@ -1244,7 +1361,12 @@
       await loadHomeData()
       renderHome()
     }
-    Player.on("app-ready", () => refreshHome())
+    Player.on("app-ready", () => {
+      refreshHome()
+      if (!toplistState.lists[toplistState.source]) {
+        loadToplists(toplistState.source)
+      }
+    })
     Player.on("songchange", () => refreshHome())
     // 点击品牌卡片回到首页
     const sbUser = document.querySelector(".sb-user")
