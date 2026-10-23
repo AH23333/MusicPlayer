@@ -1291,6 +1291,7 @@ function initIpcHandlers() {
     }
 
     // music-dl 支持直链下载的源（ID 与源站接口一致）
+    // 与 go core.GetDownloadFunc 支持的 12 源对齐（不含 local）
     const MUSIC_DL_DOWNLOAD_SOURCES = new Set([
       "netease",
       "tencent",
@@ -1298,7 +1299,13 @@ function initIpcHandlers() {
       "kugou",
       "kuwo",
       "migu",
+      "soda",
       "bilibili",
+      "fivesing",
+      "jamendo",
+      "joox",
+      "qianqian",
+      "apple",
     ])
 
     // 经 go-music-dl /api/download 下载：源站最优音质 + ID3/FLAC 标签、封面、歌词嵌入

@@ -1136,6 +1136,8 @@
     ["kugou", "酷狗"],
     ["kuwo", "酷我"],
     ["migu", "咪咕"],
+    ["soda", "汽水"],
+    ["apple", "Apple"],
   ]
   const toplistState = { source: "netease", lists: {}, loading: false }
   async function loadToplists(source) {
@@ -1259,6 +1261,12 @@
     ["netease", "网易"],
     ["qq", "QQ"],
     ["kugou", "酷狗"],
+    ["kuwo", "酷我"],
+    ["migu", "咪咕"],
+    ["qianqian", "千千"],
+    ["joox", "JOOX"],
+    ["soda", "汽水"],
+    ["apple", "Apple"],
   ]
   const sqState = {
     source: "netease",

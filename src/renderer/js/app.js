@@ -190,28 +190,33 @@
     return /^[a-zA-Z]:\\/.test(u) || u.startsWith("file:")
   }
 
-  /** 与主进程 utils.metingServerFromSource 一致，供搜索 go-music-dl 结果补全 Meting 播放/下载地址 */
+  /** 与主进程 utils.metingServerFromSource 对齐：返回 Meting 支持的 server 名，
+   *  不支持的源（soda/apple/joox/qianqian/jamendo/fivesing 等）返回 null，搜索结果保留原始 source */
   const METING_AUDIO_API_BASE = "https://api.qijieya.cn/meting/"
   function metingServerFromSourceForSearch(src) {
-    const s = String(src ?? "netease").toLowerCase().trim()
+    const s = String(src ?? "").toLowerCase().trim()
     if (s === "qq" || s === "tencent" || s === "tx") return "tencent"
     if (s === "kugou" || s === "kg") return "kugou"
     if (s === "kuwo" || s === "kw") return "kuwo"
     if (s === "migu" || s === "mg") return "migu"
     if (s === "bilibili" || s === "bili") return "bilibili"
-    return "netease"
+    if (s === "netease" || s === "" ) return "netease"
+    return null
   }
   function enrichMusicDlSearchSong(song) {
     if (!song) return null
     const rawId = song.id ?? song.songId ?? song.hash
     if (rawId == null || rawId === "") return null
     const id = String(rawId)
-    const source = metingServerFromSourceForSearch(
-      song.source || song.from || "netease"
-    )
+    // 保留 go-music-dl 原始源（下载/徽标用），Meting 仅作为可播回退
+    const rawSource =
+      String(song.source || song.from || "netease")
+        .toLowerCase()
+        .trim() || "netease"
+    const metingServer = metingServerFromSourceForSearch(rawSource)
     let url = (song.url || song.playUrl || song.play_url || "").trim()
-    if (!url || !/^https?:\/\//i.test(url)) {
-      url = `${METING_AUDIO_API_BASE}?server=${source}&type=url&id=${encodeURIComponent(id)}`
+    if ((!url || !/^https?:\/\//i.test(url)) && metingServer) {
+      url = `${METING_AUDIO_API_BASE}?server=${metingServer}&type=url&id=${encodeURIComponent(id)}`
     }
     const cover =
       song.coverUrl ||
@@ -222,7 +227,8 @@
       ...song,
       id,
       songId: id,
-      source,
+      source: rawSource,
+      metingServer: metingServer || "",
       url,
       coverUrl: cover,
       name: song.name || "未知歌曲",

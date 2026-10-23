@@ -257,7 +257,8 @@ exports.buildDownloadUrlForSong = (song, qualityKey = "high") => {
     (rawUrl.startsWith("http://") || rawUrl.startsWith("https://"))
 
   const src = song.source
-  const server = exports.metingServerFromSource(src)
+  // 优先使用 enrich 阶段记录的 Meting server（raw source 可能是 soda/apple 等 Meting 不支持的源）
+  const server = exports.metingServerFromSource(song.metingServer || src)
   const srcNorm = String(src ?? "").toLowerCase()
 
   if (hasHttp && (srcNorm === "kugou" || srcNorm === "kuwo")) return rawUrl
