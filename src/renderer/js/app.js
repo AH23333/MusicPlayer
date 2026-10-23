@@ -940,7 +940,7 @@
           }
           <div class="flex-1 min-w-0">
             <div class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span></div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span>${sourceBadgeHtml(song)}</div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
@@ -1748,7 +1748,7 @@
           }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
-            <p class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span> - ${escapeHtml(song.album)}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span>${sourceBadgeHtml(song)} - ${escapeHtml(song.album)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
@@ -1964,6 +1964,22 @@
       card.addEventListener("click", () => openAlbumFromArtist(album))
       row.appendChild(card)
     })
+    // 滚轮在专辑条上直接横向滚动，无需拖动滚动条
+    row.addEventListener(
+      "wheel",
+      (e) => {
+        if (e.deltaY === 0 && e.deltaX === 0) return
+        const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX
+        if (
+          (delta > 0 && row.scrollLeft + row.clientWidth < row.scrollWidth - 1) ||
+          (delta < 0 && row.scrollLeft > 1)
+        ) {
+          e.preventDefault()
+          row.scrollLeft += delta
+        }
+      },
+      { passive: false }
+    )
     strip.appendChild(title)
     strip.appendChild(row)
     strip.classList.remove("hidden")
@@ -2014,6 +2030,33 @@
     },
     true
   )
+
+  // 平台短标签（列表行徽章用）
+  const SOURCE_BADGES = {
+    netease: "网易",
+    qq: "QQ",
+    tencent: "QQ",
+    kugou: "酷狗",
+    kuwo: "酷我",
+    migu: "咪咕",
+    bilibili: "B站",
+    joox: "JOOX",
+    qianqian: "千千",
+    apple: "Apple",
+    jamendo: "Jamendo",
+    fivesing: "5sing",
+    soda: "汽水",
+  }
+
+  // 多源歌曲行的平台徽章（本地歌曲无徽章）
+  function sourceBadgeHtml(song) {
+    if (!song || song.local) return ""
+    const src = String(song.source || "").toLowerCase()
+    if (!src) return ""
+    const badge = SOURCE_BADGES[src]
+    if (!badge) return ""
+    return ` <span class="src-badge">${badge}</span>`
+  }
   function removeFromCustomPlaylist(playlist, index) {
     const song = playlist.songs[index]
     playlist.songs.splice(index, 1)
@@ -2449,7 +2492,7 @@
           }
           <div class="flex-1 min-w-0">
             <h3 class="font-medium dark:text-white truncate">${escapeHtml(song.name)}</h3>
-            <p class="text-sm text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span> - ${escapeHtml(song.album)}</p>
+            <p class="text-sm text-gray-400 dark:text-gray-500 truncate"><span class="artist-link" data-artist="${escapeHtml(song.artist)}">${escapeHtml(song.artist)}</span>${sourceBadgeHtml(song)} - ${escapeHtml(song.album)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${escapeHtml(song.id)}">
@@ -3019,9 +3062,11 @@
       if (song.artist) {
         songArtist.classList.add("artist-link")
         songArtist.dataset.artist = song.artist
+        songArtist.title = "查看歌手：" + song.artist
       } else {
         songArtist.classList.remove("artist-link")
         delete songArtist.dataset.artist
+        songArtist.removeAttribute("title")
       }
     }
 
@@ -3048,9 +3093,11 @@
       if (song.artist) {
         lyricsSongArtist.classList.add("artist-link")
         lyricsSongArtist.dataset.artist = song.artist
+        lyricsSongArtist.title = "查看歌手：" + song.artist
       } else {
         lyricsSongArtist.classList.remove("artist-link")
         delete lyricsSongArtist.dataset.artist
+        lyricsSongArtist.removeAttribute("title")
       }
     }
 

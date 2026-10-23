@@ -842,6 +842,14 @@ body.mini-mode .dialog-layer { display: none !important; }
 .artist-link { cursor: pointer; }
 .artist-link:hover { text-decoration: underline; opacity: 0.9; }
 
+/* 多源列表行的平台徽章 */
+.src-badge {
+  display: inline-block; vertical-align: 1px; margin-left: 5px;
+  padding: 0 5px; font-size: 10px; line-height: 15px; border-radius: 4px;
+  background: rgba(29, 185, 84, 0.12); color: var(--accent);
+  white-space: nowrap; user-select: none;
+}
+
 .album-strip { margin: 14px 0 4px; }
 .album-strip .strip-title {
   font-size: 15px; font-weight: 700; margin-bottom: 10px;
@@ -850,6 +858,9 @@ body.mini-mode .dialog-layer { display: none !important; }
   display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px;
   scroll-snap-type: x proximity;
 }
+.album-strip .strip-row::-webkit-scrollbar { height: 6px; }
+.album-strip .strip-row::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 3px; }
+.album-strip .strip-row::-webkit-scrollbar-track { background: transparent; }
 .album-strip .album-card {
   flex: 0 0 auto; width: 108px; cursor: pointer; scroll-snap-align: start;
 }
