@@ -946,3 +946,43 @@ body.mini-mode .dialog-layer { display: none !important; }
 .album-strip .album-src {
   font-size: 11px; color: var(--text-3); margin-top: 2px;
 }
+
+/* ===== 下载管理（go-music-dl 下载队列 / 下载记录）===== */
+.dm-list { list-style: none; padding: 4px 0; margin: 0; }
+.dm-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 14px; border-bottom: 1px solid var(--bg-active);
+}
+.dm-row:last-child { border-bottom: none; }
+.dm-row:hover { background: var(--bg-hover); }
+.dm-info { flex: 1; min-width: 0; }
+.dm-name {
+  font-size: 13.5px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-sub {
+  font-size: 12px; color: var(--text-3); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dm-chip {
+  display: inline-block; padding: 0 8px; font-size: 11px; line-height: 18px;
+  border-radius: 9px; white-space: nowrap; user-select: none;
+  background: var(--bg-active); color: var(--text-2);
+}
+.dm-st-waiting { background: rgba(250, 173, 20, 0.14); color: #d48806; }
+.dm-st-downloading { background: rgba(29, 185, 84, 0.14); color: var(--accent); }
+.dm-st-success { background: rgba(29, 185, 84, 0.14); color: var(--accent); }
+.dm-st-skipped { background: rgba(120, 120, 130, 0.16); color: var(--text-2); }
+.dm-st-failed { background: rgba(235, 87, 87, 0.14); color: #eb5757; }
+.dm-st-canceled { background: rgba(120, 120, 130, 0.16); color: var(--text-2); }
+.dm-error { color: #eb5757; }
+.dm-warning { color: #d48806; }
+.dm-path { color: var(--text-3); }
+.dm-foot { justify-content: space-between; }
+.dm-summary { font-size: 12px; color: var(--text-3); }
+.dm-time { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.dm-empty {
+  padding: 28px 14px; text-align: center; color: var(--text-3); font-size: 13px;
+}
+.dm-empty p { margin-top: 10px; }

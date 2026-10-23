@@ -1912,6 +1912,130 @@ function initIpcHandlers() {
     }
   )
 
+  // ===== go-music-dl 下载队列 / 下载记录（持久化队列：去重+后台下载）=====
+
+  const DM_QUEUE_TIMEOUT = 15000
+
+  ipcMain.handle(
+    "musicDlDownloadQueueList",
+    async (event, page = 1, limit = 50, status = "") => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/download_queue`,
+          { params: { page, limit, status }, timeout: DM_QUEUE_TIMEOUT }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取下载队列失败:`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  // 批量入队：默认下载到播放器本地库目录（ImportLocalSongs），完成后可导入
+  ipcMain.handle(
+    "musicDlDownloadQueueEnqueue",
+    async (event, requestId, songs, options = {}) => {
+      const rid = String(requestId || "").trim()
+      if (!rid) return { error: "missing request id" }
+      const list = Array.isArray(songs) ? songs : []
+      if (!list.length) return { error: "no songs" }
+      const path = require("path")
+      const directory =
+        (options && typeof options.directory === "string" && options.directory.trim()) ||
+        path.join(storage.ROOT_DIR, "ImportLocalSongs")
+      const payload = {
+        request_id: rid,
+        directory,
+        songs: list.map((s) => ({
+          id: String(s.songId || s.id || ""),
+          source: String(s.source || ""),
+          name: s.name || "",
+          artist: s.artist || "",
+          album: typeof s.album === "string" ? s.album : "",
+          cover: s.coverUrl || s.cover || "",
+        })),
+      }
+      try {
+        const response = await axios.post(
+          `${musicDlService.getBaseUrl()}/api/download_queue`,
+          payload,
+          { timeout: 30000 }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`下载队列入队失败:`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    "musicDlDownloadQueueAction",
+    async (event, id, action) => {
+      try {
+        const response = await axios.post(
+          `${musicDlService.getBaseUrl()}/api/download_queue_action`,
+          null,
+          {
+            params: { id, action },
+            timeout: DM_QUEUE_TIMEOUT,
+          }
+        )
+        return response.data
+      } catch (error) {
+        const msg =
+          error.response && error.response.data && error.response.data.error
+            ? error.response.data.error
+            : error.message
+        logger.error(`下载队列操作失败(${id}/${action}):`, msg)
+        return { error: msg }
+      }
+    }
+  )
+
+  ipcMain.handle("musicDlDownloadQueueClear", async () => {
+    try {
+      const response = await axios.delete(
+        `${musicDlService.getBaseUrl()}/api/download_queue`,
+        { timeout: DM_QUEUE_TIMEOUT }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`清空下载队列失败:`, error.message)
+      return { error: error.message }
+    }
+  })
+
+  ipcMain.handle(
+    "musicDlDownloadRecordsList",
+    async (event, page = 1, pageSize = 20) => {
+      try {
+        const response = await axios.get(
+          `${musicDlService.getBaseUrl()}/api/download_records`,
+          { params: { page, page_size: pageSize }, timeout: DM_QUEUE_TIMEOUT }
+        )
+        return response.data
+      } catch (error) {
+        logger.error(`获取下载记录失败:`, error.message)
+        return { error: error.message }
+      }
+    }
+  )
+
+  ipcMain.handle("musicDlDownloadRecordsClear", async () => {
+    try {
+      const response = await axios.delete(
+        `${musicDlService.getBaseUrl()}/api/download_records`,
+        { timeout: DM_QUEUE_TIMEOUT }
+      )
+      return response.data
+    } catch (error) {
+      logger.error(`清空下载记录失败:`, error.message)
+      return { error: error.message }
+    }
+  })
+
   // ===== 歌手页：多源专辑搜索 + 专辑详情（go-music-dl）=====
 
   ipcMain.handle("musicDlAlbumSearch", async (event, keyword) => {

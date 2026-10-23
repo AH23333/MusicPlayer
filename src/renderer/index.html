@@ -96,6 +96,10 @@
           <span class="nav-ic"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></span>
           <span class="nav-label">听歌统计</span>
         </button>
+        <button id="downloadManagerBtn" class="nav-item">
+          <span class="nav-ic"><svg viewBox="0 0 24 24"><path d="M12 3v10m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></span>
+          <span class="nav-label">下载管理</span>
+        </button>
         <button id="minePlaylistsBtn" class="nav-item">
           <span class="nav-ic"><svg viewBox="0 0 24 24"><path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 103 16.3"/><path d="M16 16l-4-4-4 4M12 12v9"/></svg></span>
           <span class="nav-label">在线歌单</span>
@@ -220,6 +224,10 @@
               <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
               下载
             </button>
+            <button type="button" id="queueDownloadSearchToolbarBtn" class="btn btn-ghost btn-sm" title="加入 go-music-dl 后台下载队列（去重 + 元数据嵌入）">
+              <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h8"/><path d="M16 18l4 0m0 0l-2-2m2 2l-2 2"/></svg>
+              队列下载
+            </button>
           </div>
           <div class="card">
             <ul id="searchResultList" class="song-list"></ul>
@@ -260,6 +268,9 @@
                 <div id="playlistDetailDownloadGroup" class="flex flex-wrap gap-2">
                   <button type="button" id="downloadPlaylistDetailBtn" class="btn btn-ghost btn-sm">
                     <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>下载
+                  </button>
+                  <button type="button" id="queueDownloadPlaylistDetailBtn" class="btn btn-ghost btn-sm" title="加入 go-music-dl 后台下载队列（去重 + 元数据嵌入）">
+                    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h8"/><path d="M16 18l4 0m0 0l-2-2m2 2l-2 2"/></svg>队列下载
                   </button>
                 </div>
                 <button id="exportPlaylistBtn" class="btn btn-ghost btn-sm">

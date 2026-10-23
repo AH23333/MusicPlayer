@@ -102,6 +102,18 @@ musicDlAlbumSearch: (keyword) =>
   ipcRenderer.invoke("musicDlAlbumSearch", keyword),
 musicDlAlbum: (source, id, name) =>
   ipcRenderer.invoke("musicDlAlbum", source, id, name),
+  musicDlDownloadQueueList: (page, limit, status) =>
+    ipcRenderer.invoke("musicDlDownloadQueueList", page, limit, status),
+  musicDlDownloadQueueEnqueue: (requestId, songs, options) =>
+    ipcRenderer.invoke("musicDlDownloadQueueEnqueue", requestId, songs, options),
+  musicDlDownloadQueueAction: (id, action) =>
+    ipcRenderer.invoke("musicDlDownloadQueueAction", id, action),
+  musicDlDownloadQueueClear: () =>
+    ipcRenderer.invoke("musicDlDownloadQueueClear"),
+  musicDlDownloadRecordsList: (page, pageSize) =>
+    ipcRenderer.invoke("musicDlDownloadRecordsList", page, pageSize),
+  musicDlDownloadRecordsClear: () =>
+    ipcRenderer.invoke("musicDlDownloadRecordsClear"),
   musicSongDetail: (server, id) =>
     ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>

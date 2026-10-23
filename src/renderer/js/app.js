@@ -62,6 +62,14 @@
   let searchType = "song"
   let playlistSearchResults = []
   const playlistSearchCache = new Map()
+  // 下载管理（go-music-dl 下载队列 / 下载记录）
+  let dmSection = null
+  let dmTab = "queue"
+  let dmQueueTimer = null
+  let dmQueueData = null
+  let dmRecordsData = null
+  let dmRecordsPage = 1
+  let dmLoading = false
   const PLAYLIST_SEARCH_CACHE_MAX = 30
   let lastActiveIndex = -1
   let animationFrameId = null
@@ -3698,6 +3706,391 @@
     )
   }
 
+  // ========== 下载管理（go-music-dl 持久化下载队列 / 下载记录）==========
+  const DM_TASK_STATUS = {
+    waiting: ["等待中", "dm-st-waiting"],
+    downloading: ["下载中", "dm-st-downloading"],
+    success: ["已完成", "dm-st-success"],
+    skipped: ["已跳过", "dm-st-skipped"],
+    failed: ["失败", "dm-st-failed"],
+    canceled: ["已取消", "dm-st-canceled"],
+  }
+
+  function dmStatusChip(status) {
+    const conf = DM_TASK_STATUS[status] || [status || "未知", "dm-st-waiting"]
+    return `<span class="dm-chip ${conf[1]}">${conf[0]}</span>`
+  }
+
+  function dmSourceBadge(source) {
+    const src = String(source || "").toLowerCase()
+    if (!src) return ""
+    const badge = SOURCE_BADGES[src] || src
+    return ` <span class="src-badge">${badge}</span>`
+  }
+
+  function ensureDownloadManagerSection() {
+    if (dmSection) return dmSection
+    dmSection = document.createElement("section")
+    dmSection.id = "downloadManagerSection"
+    dmSection.className = "content-section hidden"
+    const contentScroll = document.getElementById("contentScroll")
+    if (!contentScroll) return null
+    contentScroll.appendChild(dmSection)
+    // 其他视图显示时自动隐藏下载管理
+    const hideIfOtherVisible = () => {
+      const ids = ["searchResultsSection", "playlistDetailSection", "statsSection", "mineSection"]
+      const other = ids.some((id) => {
+        const el = document.getElementById(id)
+        return el && !el.classList.contains("hidden")
+      })
+      if (other) {
+        dmSection.classList.add("hidden")
+        stopDmQueuePolling()
+      }
+    }
+    const observeClass = (el) => {
+      new MutationObserver(hideIfOtherVisible).observe(el, {
+        attributes: true,
+        attributeFilter: ["class"],
+      })
+    }
+    ;["searchResultsSection", "playlistDetailSection"].forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) observeClass(el)
+    })
+    // statsSection / mineSection 为懒创建，动态挂观察器
+    new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (
+            node.nodeType === 1 &&
+            (node.id === "statsSection" || node.id === "mineSection")
+          ) {
+            observeClass(node)
+            hideIfOtherVisible()
+          }
+        }
+      }
+    }).observe(contentScroll, { childList: true })
+    return dmSection
+  }
+
+  function openDownloadManager() {
+    const sec = ensureDownloadManagerSection()
+    if (!sec) return
+    // 隐藏其他视图
+    ;[
+      "searchResultsSection",
+      "playlistDetailSection",
+      "homeSection",
+      "statsSection",
+      "mineSection",
+    ].forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) el.classList.add("hidden")
+    })
+    sec.classList.remove("hidden")
+    renderDownloadManager()
+    refreshDmQueue(true)
+    refreshDmRecords(true)
+    startDmQueuePolling()
+  }
+
+  function startDmQueuePolling() {
+    stopDmQueuePolling()
+    dmQueueTimer = setInterval(() => {
+      if (!dmSection || dmSection.classList.contains("hidden")) {
+        stopDmQueuePolling()
+        return
+      }
+      if (dmTab === "queue") refreshDmQueue(false)
+    }, 2000)
+  }
+
+  function stopDmQueuePolling() {
+    if (dmQueueTimer) {
+      clearInterval(dmQueueTimer)
+      dmQueueTimer = null
+    }
+  }
+
+  function renderDownloadManager() {
+    if (!dmSection) return
+    dmSection.innerHTML = `
+      <div class="sec-head-row">
+        <h2 class="sec-title">下载管理</h2>
+        <div class="tl-tabs" id="dmTabs">
+          <button type="button" class="tl-tab${dmTab === "queue" ? " active" : ""}" id="dmTabQueue">下载队列</button>
+          <button type="button" class="tl-tab${dmTab === "records" ? " active" : ""}" id="dmTabRecords">下载记录</button>
+        </div>
+      </div>
+      <div id="dmQueuePane" class="${dmTab === "queue" ? "" : "hidden"}"></div>
+      <div id="dmRecordsPane" class="${dmTab === "records" ? "" : "hidden"}"></div>
+    `
+    const tabQueue = document.getElementById("dmTabQueue")
+    const tabRecords = document.getElementById("dmTabRecords")
+    if (tabQueue)
+      tabQueue.addEventListener("click", () => switchDmTab("queue"))
+    if (tabRecords)
+      tabRecords.addEventListener("click", () => switchDmTab("records"))
+    renderDmQueuePane()
+    renderDmRecordsPane()
+  }
+
+  function switchDmTab(tab) {
+    if (dmTab === tab) return
+    dmTab = tab
+    const tabQueue = document.getElementById("dmTabQueue")
+    const tabRecords = document.getElementById("dmTabRecords")
+    const paneQueue = document.getElementById("dmQueuePane")
+    const paneRecords = document.getElementById("dmRecordsPane")
+    if (tabQueue) tabQueue.classList.toggle("active", tab === "queue")
+    if (tabRecords) tabRecords.classList.toggle("active", tab === "records")
+    if (paneQueue) paneQueue.classList.toggle("hidden", tab !== "queue")
+    if (paneRecords) paneRecords.classList.toggle("hidden", tab !== "records")
+    if (tab === "queue") refreshDmQueue(true)
+    else refreshDmRecords(true)
+  }
+
+  function renderDmQueuePane() {
+    const pane = document.getElementById("dmQueuePane")
+    if (!pane) return
+    if (!dmQueueData) {
+      pane.innerHTML =
+        '<div class="card dm-empty"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p>加载下载队列…</p></div>'
+      return
+    }
+    const tasks = Array.isArray(dmQueueData.tasks) ? dmQueueData.tasks : []
+    const counts = dmQueueData.counts || {}
+    const active =
+      (counts.waiting || 0) + (counts.downloading || 0)
+    const summary = [
+      counts.waiting ? `等待中 ${counts.waiting}` : "",
+      counts.downloading ? `下载中 ${counts.downloading}` : "",
+      counts.failed ? `失败 ${counts.failed}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ")
+    const rows = tasks
+      .map((t) => {
+        const status = String(t.Status || "")
+        const actions = []
+        if (status === "waiting")
+          actions.push(
+            `<button class="btn btn-mini" data-dm-act="cancel" data-dm-id="${t.ID}">取消</button>`
+          )
+        if (status === "failed" || status === "canceled")
+          actions.push(
+            `<button class="btn btn-mini" data-dm-act="retry" data-dm-id="${t.ID}">重试</button>`
+          )
+        if (status !== "downloading")
+          actions.push(
+            `<button class="btn btn-mini btn-ghost" data-dm-act="remove" data-dm-id="${t.ID}">移除</button>`
+          )
+        return `
+        <li class="dm-row">
+          <div class="dm-info">
+            <div class="dm-name">${escapeHtml(t.Name || "未知歌曲")}${dmSourceBadge(t.Source)}</div>
+            <div class="dm-sub">${escapeHtml(t.Artist || "")}${t.Error ? ` · <span class="dm-error">${escapeHtml(t.Error)}</span>` : ""}${t.Warning ? ` · <span class="dm-warning">${escapeHtml(t.Warning)}</span>` : ""}${t.Path ? ` · <span class="dm-path">${escapeHtml(t.Path)}</span>` : ""}</div>
+          </div>
+          <div class="dm-actions">
+            ${dmStatusChip(status)}
+            ${actions.join("")}
+          </div>
+        </li>`
+      })
+      .join("")
+    pane.innerHTML = `
+      <div class="card">
+        <ul class="dm-list">${rows || '<li class="dm-empty">队列为空，点击列表页的「队列下载」按钮把歌曲加入后台下载</li>'}</ul>
+        <div class="card-foot dm-foot">
+          <span class="dm-summary">${escapeHtml(summary || `共 ${dmQueueData.total || 0} 条任务${active ? "" : ""}`)}</span>
+          <span class="flex gap-2">
+            <button class="btn btn-mini" id="dmRefreshBtn">刷新</button>
+            <button class="btn btn-mini btn-ghost" id="dmClearQueueBtn">清空队列</button>
+          </span>
+        </div>
+      </div>
+    `
+    const refreshBtn = document.getElementById("dmRefreshBtn")
+    if (refreshBtn)
+      refreshBtn.addEventListener("click", () => refreshDmQueue(true))
+    const clearBtn = document.getElementById("dmClearQueueBtn")
+    if (clearBtn) clearBtn.addEventListener("click", dmClearQueue)
+    pane.querySelectorAll("[data-dm-act]").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        dmQueueAction(Number(btn.dataset.dmId), btn.dataset.dmAct)
+      )
+    })
+  }
+
+  function renderDmRecordsPane() {
+    const pane = document.getElementById("dmRecordsPane")
+    if (!pane) return
+    if (!dmRecordsData) {
+      pane.innerHTML =
+        '<div class="card dm-empty"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p>加载下载记录…</p></div>'
+      return
+    }
+    const records = Array.isArray(dmRecordsData.records)
+      ? dmRecordsData.records
+      : []
+    const rows = records
+      .map((r) => {
+        const status = String(r.Status || "")
+        return `
+        <li class="dm-row">
+          <div class="dm-info">
+            <div class="dm-name">${escapeHtml(r.Name || "未知歌曲")}${dmSourceBadge(r.Source)}</div>
+            <div class="dm-sub">${escapeHtml(r.Artist || "")}${r.Error ? ` · <span class="dm-error">${escapeHtml(r.Error)}</span>` : ""}</div>
+          </div>
+          <div class="dm-actions">
+            ${dmStatusChip(status)}
+            <span class="dm-time">${escapeHtml(dmFormatTime(r.CreatedAt))}</span>
+          </div>
+        </li>`
+      })
+      .join("")
+    const page = dmRecordsData.page || 1
+    const totalPages = dmRecordsData.total_pages || 1
+    pane.innerHTML = `
+      <div class="card">
+        <ul class="dm-list">${rows || '<li class="dm-empty">暂无下载记录</li>'}</ul>
+        <div class="card-foot dm-foot">
+          <span class="dm-summary">共 ${dmRecordsData.total || 0} 条记录 · 第 ${page}/${totalPages} 页</span>
+          <span class="flex gap-2">
+            <button class="btn btn-mini" id="dmRecPrevBtn" ${page <= 1 ? "disabled" : ""}>上一页</button>
+            <button class="btn btn-mini" id="dmRecNextBtn" ${page >= totalPages ? "disabled" : ""}>下一页</button>
+            <button class="btn btn-mini btn-ghost" id="dmClearRecordsBtn">清空记录</button>
+          </span>
+        </div>
+      </div>
+    `
+    const prev = document.getElementById("dmRecPrevBtn")
+    if (prev)
+      prev.addEventListener("click", () => {
+        dmRecordsPage = Math.max(1, (dmRecordsData.page || 1) - 1)
+        refreshDmRecords(true)
+      })
+    const next = document.getElementById("dmRecNextBtn")
+    if (next)
+      next.addEventListener("click", () => {
+        dmRecordsPage = Math.min(
+          dmRecordsData.total_pages || 1,
+          (dmRecordsData.page || 1) + 1
+        )
+        refreshDmRecords(true)
+      })
+    const clearBtn = document.getElementById("dmClearRecordsBtn")
+    if (clearBtn) clearBtn.addEventListener("click", dmClearRecords)
+  }
+
+  function dmFormatTime(value) {
+    if (!value) return ""
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return ""
+    const pad = (n) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  async function refreshDmQueue(showLoading) {
+    if (dmLoading && !showLoading) return
+    if (showLoading) dmLoading = true
+    try {
+      const res = await window.ElectronAPI.musicDlDownloadQueueList(1, 100, "")
+      if (res && !res.error) {
+        dmQueueData = res
+        renderDmQueuePane()
+      } else if (showLoading) {
+        dmQueueData = { tasks: [], total: 0, counts: {} }
+        renderDmQueuePane()
+      }
+    } catch (e) {
+      // 静默失败，下轮轮询重试
+    } finally {
+      dmLoading = false
+    }
+  }
+
+  async function refreshDmRecords(showLoading) {
+    try {
+      const res = await window.ElectronAPI.musicDlDownloadRecordsList(
+        dmRecordsPage,
+        20
+      )
+      if (res && !res.error) {
+        dmRecordsData = res
+        if (res.page) dmRecordsPage = res.page
+        renderDmRecordsPane()
+      } else if (showLoading) {
+        dmRecordsData = { records: [], page: 1, total: 0, total_pages: 1 }
+        renderDmRecordsPane()
+      }
+    } catch (e) {}
+  }
+
+  async function dmQueueAction(id, action) {
+    if (!id || !action) return
+    const res = await window.ElectronAPI.musicDlDownloadQueueAction(
+      id,
+      action
+    )
+    if (res && res.error) {
+      showToastError(`队列操作失败：${res.error}`)
+    } else if (action === "cancel") {
+      showToast("已取消该下载任务")
+    } else if (action === "retry") {
+      showToast("已重新加入下载队列")
+    }
+    refreshDmQueue(true)
+  }
+
+  async function dmClearQueue() {
+    const res = await window.ElectronAPI.musicDlDownloadQueueClear()
+    if (res && res.error) {
+      showToastError(`清空队列失败：${res.error}`)
+      return
+    }
+    showToast("已清空下载队列")
+    refreshDmQueue(true)
+  }
+
+  async function dmClearRecords() {
+    const res = await window.ElectronAPI.musicDlDownloadRecordsClear()
+    if (res && res.error) {
+      showToastError(`清空记录失败：${res.error}`)
+      return
+    }
+    dmRecordsPage = 1
+    showToast("已清空下载记录")
+    refreshDmRecords(true)
+  }
+
+  // 把歌曲批量加入 go-music-dl 后台下载队列（去重 + 元数据嵌入，完成后可在「本地和下载」导入）
+  async function enqueueSongsToDownloadQueue(songs) {
+    const list = (songs || []).filter((s) => s && !isSongLocalPath(s) && (s.songId || s.id) && s.source)
+    if (!list.length) {
+      showToastError("没有可加入队列的在线歌曲")
+      return
+    }
+    const requestId = `player-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const res = await window.ElectronAPI.musicDlDownloadQueueEnqueue(
+      requestId,
+      list
+    )
+    if (!res || res.error) {
+      showToastError(`加入下载队列失败：${res && res.error ? res.error : "未知错误"}`)
+      return
+    }
+    const added = res.added || 0
+    const existing = res.existing || 0
+    showToast(
+      `已加入下载队列：新增 ${added} 首${existing ? `，已在队列 ${existing} 首` : ""}（后台下载，可到「下载管理」查看进度）`,
+      "success"
+    )
+    openDownloadManager()
+  }
+
   // 仅同步搜索类型 UI（不触发重新搜索）
   function setSearchTypeUi(type) {
     searchType = type
@@ -4469,6 +4862,20 @@
       })
     }
 
+    const queueDownloadSearchToolbarBtn = document.getElementById(
+      "queueDownloadSearchToolbarBtn"
+    )
+    if (queueDownloadSearchToolbarBtn) {
+      queueDownloadSearchToolbarBtn.addEventListener("click", () => {
+        enqueueSongsToDownloadQueue(getSearchDownloadSongs())
+      })
+    }
+
+    const downloadManagerBtn = document.getElementById("downloadManagerBtn")
+    if (downloadManagerBtn) {
+      downloadManagerBtn.addEventListener("click", openDownloadManager)
+    }
+
     function wirePlaylistDetailSelectAll(on) {
       if (!currentPlaylist) return
       currentPlaylist.songs.forEach((s) => {
@@ -4514,6 +4921,15 @@
     if (downloadPlaylistDetailBtn) {
       downloadPlaylistDetailBtn.addEventListener("click", () => {
         openDownloadModal(getPlaylistDetailDownloadSongs())
+      })
+    }
+
+    const queueDownloadPlaylistDetailBtn = document.getElementById(
+      "queueDownloadPlaylistDetailBtn"
+    )
+    if (queueDownloadPlaylistDetailBtn) {
+      queueDownloadPlaylistDetailBtn.addEventListener("click", () => {
+        enqueueSongsToDownloadQueue(getPlaylistDetailDownloadSongs())
       })
     }
 

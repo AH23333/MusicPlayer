@@ -1044,6 +1044,8 @@
     if (home) home.classList.add("hidden")
     const mineSec = $("mineSection")
     if (mineSec) mineSec.classList.add("hidden")
+    const dmSec = $("downloadManagerSection")
+    if (dmSec) dmSec.classList.add("hidden")
     sec.classList.remove("hidden")
 
     const entries = Object.values(stats.songs).sort((a, b) => b.count - a.count || b.seconds - a.seconds)
@@ -1726,7 +1728,8 @@
         !$("searchResultsSection").classList.contains("hidden") ||
         !$("playlistDetailSection").classList.contains("hidden") ||
         ($("statsSection") && !$("statsSection").classList.contains("hidden")) ||
-        ($("mineSection") && !$("mineSection").classList.contains("hidden"))
+        ($("mineSection") && !$("mineSection").classList.contains("hidden")) ||
+        ($("downloadManagerSection") && !$("downloadManagerSection").classList.contains("hidden"))
       home.classList.toggle("hidden", other)
     }
     ;["searchResultsSection", "playlistDetailSection"].forEach((id) => {
@@ -1761,6 +1764,7 @@
         $("playlistDetailSection").classList.add("hidden")
         if ($("statsSection")) $("statsSection").classList.add("hidden")
         if ($("mineSection")) $("mineSection").classList.add("hidden")
+        if ($("downloadManagerSection")) $("downloadManagerSection").classList.add("hidden")
         refreshHome()
       })
     }
@@ -2204,6 +2208,8 @@
     if (home) home.classList.add("hidden")
     const statsSec = $("statsSection")
     if (statsSec) statsSec.classList.add("hidden")
+    const dmSec = $("downloadManagerSection")
+    if (dmSec) dmSec.classList.add("hidden")
     sec.classList.remove("hidden")
     renderMineSection()
     refreshMineStatuses()
