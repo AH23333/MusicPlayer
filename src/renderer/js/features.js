@@ -661,8 +661,19 @@
       if (API.toggleDesktopLyrics) API.toggleDesktopLyrics()
     })
     if (API.onDesktopLyricsState) {
-      API.onDesktopLyricsState((open) => btn.classList.toggle("feature-on", !!open))
+      API.onDesktopLyricsState((open) => {
+        btn.classList.toggle("feature-on", !!open)
+        // 桌面歌词打开时同步一次播放状态（控制条图标）
+        if (open) sendDesktopLyricsPlayingState()
+      })
     }
+    // 播放/暂停状态同步到桌面歌词
+    function sendDesktopLyricsPlayingState() {
+      if (API.desktopLyricsPlayerState)
+        API.desktopLyricsPlayerState(Player.isPlaying())
+    }
+    Player.on("play", sendDesktopLyricsPlayingState)
+    Player.on("pause", sendDesktopLyricsPlayingState)
     Player.on("songchange", () => {
       // 切歌无歌词时清空
       if (API.desktopLyricsLine) API.desktopLyricsLine({ text: "", prev: "", next: "" })

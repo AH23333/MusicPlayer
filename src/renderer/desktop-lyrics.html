@@ -20,7 +20,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 10px 46px 10px 20px;
+      padding: 10px 20px;
       cursor: move;
     }
     .dl-near {
@@ -45,27 +45,54 @@
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
-      transition: color .18s, transform .18s;
+      transition: color .18s;
     }
     #dlLine.active { color: #1ed760; }
-    #dlClose {
+    #dlTools {
       -webkit-app-region: no-drag;
       position: fixed;
-      top: 6px; right: 8px;
+      top: 4px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity .15s;
+      cursor: default;
+    }
+    #dlWrap:hover #dlTools { opacity: 1; }
+    #dlTools button {
       width: 24px; height: 24px;
       border: none; border-radius: 50%;
       background: rgba(0,0,0,0.35);
       color: rgba(255,255,255,0.85);
-      font-size: 14px; line-height: 1;
+      font-size: 13px; line-height: 1;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
+      padding: 0;
+      white-space: nowrap;
+    }
+    #dlTools .dl-font-btn { width: auto; border-radius: 12px; padding: 0 7px; font-size: 11px; font-weight: 700; }
+    #dlTools button:hover { background: rgba(255,255,255,0.22); color: #fff; }
+    #dlTools button.on { background: rgba(30,215,96,0.8); color: #04120a; }
+    #dlClose:hover { background: rgba(246,78,91,0.85); color: #fff; }
+    #dlLockedBadge {
+      -webkit-app-region: no-drag;
+      position: fixed;
+      top: 8px;
+      left: 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.8);
+      background: rgba(0,0,0,0.4);
+      border-radius: 10px;
+      padding: 2px 8px;
+      text-shadow: 0 1px 3px #000;
       opacity: 0;
       transition: opacity .15s;
+      pointer-events: none;
     }
-    #dlWrap:hover #dlClose { opacity: 1; }
-    #dlClose:hover { background: rgba(246,78,91,0.85); color: #fff; }
+    body.locked #dlLockedBadge { opacity: 1; }
     #dlOpa {
-      -webkit-app-region: no-drag;
       position: fixed;
       bottom: 2px; right: 10px;
       font-size: 11px;
@@ -73,6 +100,7 @@
       text-shadow: 0 1px 3px #000;
       opacity: 0;
       transition: opacity .2s;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -81,7 +109,16 @@
     <div class="dl-near" id="dlPrev"></div>
     <div id="dlLine">♪</div>
     <div class="dl-near" id="dlNext"></div>
-    <button id="dlClose" title="关闭桌面歌词">✕</button>
+    <span id="dlLockedBadge">🔒 已锁定</span>
+    <div id="dlTools">
+      <button id="dlPrevBtn" title="上一首">⏮</button>
+      <button id="dlPlayBtn" title="播放 / 暂停">▶</button>
+      <button id="dlNextBtn" title="下一首">⏭</button>
+      <button id="dlFontMinus" class="dl-font-btn" title="减小字号">A-</button>
+      <button id="dlFontPlus" class="dl-font-btn" title="增大字号">A+</button>
+      <button id="dlLockBtn" title="锁定（点击穿透，需从托盘菜单解锁）">🔒</button>
+      <button id="dlClose" title="关闭桌面歌词">✕</button>
+    </div>
     <span id="dlOpa"></span>
   </div>
   <script>
@@ -90,10 +127,38 @@
     const prevEl = document.getElementById("dlPrev")
     const nextEl = document.getElementById("dlNext")
     const opaEl = document.getElementById("dlOpa")
+    const playBtn = document.getElementById("dlPlayBtn")
+    const lockBtn = document.getElementById("dlLockBtn")
     const wrap = document.getElementById("dlWrap")
     let opacity = 0.92
     let opaTimer = null
 
+    // ===== 字号（本地控制 + 记忆）=====
+    const SIZES = [20, 24, 28, 32, 38, 44]
+    let sizeIdx = 2
+    try {
+      const v = parseInt(localStorage.getItem("dlSizeIdx"), 10)
+      if (v >= 0 && v < SIZES.length) sizeIdx = v
+    } catch (e) {}
+    function applyFont(persist) {
+      lineEl.style.fontSize = SIZES[sizeIdx] + "px"
+      prevEl.style.fontSize = nextEl.style.fontSize =
+        Math.round(SIZES[sizeIdx] * 0.55) + "px"
+      if (persist) {
+        try { localStorage.setItem("dlSizeIdx", String(sizeIdx)) } catch (e) {}
+      }
+    }
+    applyFont(false)
+    document.getElementById("dlFontMinus").addEventListener("click", () => {
+      sizeIdx = Math.max(0, sizeIdx - 1)
+      applyFont(true)
+    })
+    document.getElementById("dlFontPlus").addEventListener("click", () => {
+      sizeIdx = Math.min(SIZES.length - 1, sizeIdx + 1)
+      applyFont(true)
+    })
+
+    // ===== 歌词行 =====
     if (api.onDesktopLyricsLine) {
       api.onDesktopLyricsLine((d) => {
         prevEl.textContent = (d && d.prev) || ""
@@ -101,16 +166,45 @@
         const text = (d && d.text) || ""
         lineEl.textContent = text || "♪"
         lineEl.classList.toggle("active", !!text)
-        if (d && d.size) {
-          const m = { small: [22, 12], medium: [27, 15], large: [33, 18] }[d.size]
-          if (m) {
-            lineEl.style.fontSize = m[0] + "px"
-            prevEl.style.fontSize = nextEl.style.fontSize = m[1] + "px"
-          }
-        }
       })
     }
 
+    // ===== 播放状态（控制条图标）=====
+    function renderPlayIcon(playing) {
+      playBtn.textContent = playing ? "❚❚" : "▶"
+    }
+    renderPlayIcon(false)
+    if (api.onDesktopLyricsPlayerState)
+      api.onDesktopLyricsPlayerState((playing) => renderPlayIcon(!!playing))
+
+    // ===== 播放控制 =====
+    document.getElementById("dlPrevBtn").addEventListener("click", () => {
+      if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("prev")
+    })
+    playBtn.addEventListener("click", () => {
+      if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("toggle")
+    })
+    document.getElementById("dlNextBtn").addEventListener("click", () => {
+      if (api.desktopLyricsPlayerCtl) api.desktopLyricsPlayerCtl("next")
+    })
+
+    // ===== 锁定（点击穿透）=====
+    lockBtn.addEventListener("click", () => {
+      if (api.desktopLyricsLock) api.desktopLyricsLock(true)
+    })
+    if (api.onDesktopLyricsLockState) {
+      api.onDesktopLyricsLockState((locked) => {
+        document.body.classList.toggle("locked", !!locked)
+        lockBtn.classList.toggle("on", !!locked)
+      })
+    }
+    // 双击歌词：切换锁定
+    wrap.addEventListener("dblclick", () => {
+      if (api.desktopLyricsLock)
+        api.desktopLyricsLock(!document.body.classList.contains("locked"))
+    })
+
+    // ===== 透明度滚轮 =====
     if (api.setDesktopLyricsOpacity) {
       wrap.addEventListener("wheel", (e) => {
         e.preventDefault()
@@ -124,9 +218,6 @@
     }
 
     document.getElementById("dlClose").addEventListener("click", () => {
-      if (api.desktopLyricsClose) api.desktopLyricsClose()
-    })
-    wrap.addEventListener("dblclick", () => {
       if (api.desktopLyricsClose) api.desktopLyricsClose()
     })
   </script>

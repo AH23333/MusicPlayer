@@ -1402,54 +1402,75 @@
     updateLyricHighlight()
   }
 
+  let lyricUpdateFallbackTimer = 0
+
   function updateLyricHighlight() {
+    if (document.hidden) {
+      // 窗口隐藏（收起托盘）/最小化/被完全遮挡时 rAF 不会触发，
+      // 直接同步执行，保证桌面歌词持续更新
+      doUpdateLyricHighlight()
+      return
+    }
     if (animationFrameId) return
     animationFrameId = requestAnimationFrame(() => {
       animationFrameId = null
-      if (!lyricsArea || !audioPlayer || currentLyrics.length === 0) return
-      const currentTime = audioPlayer.currentTime + lyricOffset
-      let activeIndex = -1
-      let left = 0,
-        right = currentLyrics.length - 1
-      while (left <= right) {
-        const mid = Math.floor((left + right) / 2)
-        if (currentLyrics[mid].time <= currentTime) {
-          activeIndex = mid
-          left = mid + 1
-        } else {
-          right = mid - 1
-        }
+      clearTimeout(lyricUpdateFallbackTimer)
+      doUpdateLyricHighlight()
+    })
+    // 兜底：页面报告可见但 rAF 长时间未执行的场景，600ms 后同步执行
+    clearTimeout(lyricUpdateFallbackTimer)
+    lyricUpdateFallbackTimer = setTimeout(() => {
+      if (animationFrameId) {
+        animationFrameId = null
+        doUpdateLyricHighlight()
       }
-      if (activeIndex !== lastActiveIndex) {
-        if (lastActiveIndex !== undefined && lyricLines[lastActiveIndex + 3]) {
-          lyricLines[lastActiveIndex + 3].classList.remove("active")
-        }
-        if (activeIndex !== -1 && lyricLines[activeIndex + 3]) {
-          lyricLines[activeIndex + 3].classList.add("active")
-          const activeLine = lyricLines[activeIndex + 3]
-          const scrollContainer = lyricsArea.parentElement
-          if (scrollContainer && activeLine.offsetParent) {
-            const lineRect = activeLine.getBoundingClientRect()
-            const containerRect = scrollContainer.getBoundingClientRect()
-            const lineTop = lineRect.top + scrollContainer.scrollTop
-            const containerMiddle = containerRect.height / 2
-            const targetScrollTop = lineTop - containerMiddle
-            scrollContainer.scrollTo({
-              top: Math.max(0, targetScrollTop),
-              behavior: "smooth",
-            })
-          }
-        }
-        if (activeIndex !== -1 && currentLyrics[activeIndex]) {
-          emitFeature("lyricchange", {
-            index: activeIndex,
-            text: currentLyrics[activeIndex].text || "",
-            lines: currentLyrics,
+    }, 600)
+  }
+
+  function doUpdateLyricHighlight() {
+    if (!lyricsArea || !audioPlayer || currentLyrics.length === 0) return
+    const currentTime = audioPlayer.currentTime + lyricOffset
+    let activeIndex = -1
+    let left = 0,
+      right = currentLyrics.length - 1
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2)
+      if (currentLyrics[mid].time <= currentTime) {
+        activeIndex = mid
+        left = mid + 1
+      } else {
+        right = mid - 1
+      }
+    }
+    if (activeIndex !== lastActiveIndex) {
+      if (lastActiveIndex !== undefined && lyricLines[lastActiveIndex + 3]) {
+        lyricLines[lastActiveIndex + 3].classList.remove("active")
+      }
+      if (activeIndex !== -1 && lyricLines[activeIndex + 3]) {
+        lyricLines[activeIndex + 3].classList.add("active")
+        const activeLine = lyricLines[activeIndex + 3]
+        const scrollContainer = lyricsArea.parentElement
+        if (scrollContainer && activeLine.offsetParent) {
+          const lineRect = activeLine.getBoundingClientRect()
+          const containerRect = scrollContainer.getBoundingClientRect()
+          const lineTop = lineRect.top + scrollContainer.scrollTop
+          const containerMiddle = containerRect.height / 2
+          const targetScrollTop = lineTop - containerMiddle
+          scrollContainer.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: "smooth",
           })
         }
-        lastActiveIndex = activeIndex
       }
-    })
+      if (activeIndex !== -1 && currentLyrics[activeIndex]) {
+        emitFeature("lyricchange", {
+          index: activeIndex,
+          text: currentLyrics[activeIndex].text || "",
+          lines: currentLyrics,
+        })
+      }
+      lastActiveIndex = activeIndex
+    }
   }
 
   // ========== Toast 功能 ==========
@@ -4535,6 +4556,7 @@
     // 关闭前把防抖窗口内未落盘的队列立即保存
     flushQueueSave()
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    if (lyricUpdateFallbackTimer) clearTimeout(lyricUpdateFallbackTimer)
     if (audioPlayer) {
       audioPlayer.removeEventListener("timeupdate", updateLyricHighlight)
       audioPlayer.removeEventListener("ended", playNextSong)

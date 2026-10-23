@@ -134,6 +134,16 @@ musicDlAlbum: (source, id, name) =>
   onDesktopLyricsState: (cb) =>
     ipcRenderer.on("desktop-lyrics-state", (_e, open) => cb(open)),
   desktopLyricsClose: () => ipcRenderer.send("desktop-lyrics-toggle", false),
+  desktopLyricsPlayerCtl: (action) =>
+    ipcRenderer.send("desktop-lyrics-player-ctl", action),
+  desktopLyricsLock: (locked) =>
+    ipcRenderer.send("desktop-lyrics-lock", !!locked),
+  onDesktopLyricsLockState: (cb) =>
+    ipcRenderer.on("desktop-lyrics-lock-state", (_e, locked) => cb(locked)),
+  desktopLyricsPlayerState: (playing) =>
+    ipcRenderer.send("desktop-lyrics-player-state", !!playing),
+  onDesktopLyricsPlayerState: (cb) =>
+    ipcRenderer.on("desktop-lyrics-player-state", (_e, playing) => cb(playing)),
   notifySong: (info) => ipcRenderer.send("notify-song", info),
 
   // 跨域音频经同源代理，避免 Web Audio（频谱/EQ）被 CORS 污染

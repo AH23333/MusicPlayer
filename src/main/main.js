@@ -63,6 +63,7 @@ let mainWindow
 let tray = null
 let desktopLyricsWin = null
 let desktopLyricsOpacity = 0.92
+let desktopLyricsLocked = false
 let savedBounds = null
 let isQuitting = false
 // 通知图标缓存：避免每次切歌都重新生成 64px PNG
@@ -176,6 +177,7 @@ function createTray() {
       { label: "下一首", click: () => sendControl("next") },
       { type: "separator" },
       { label: "桌面歌词", click: () => toggleDesktopLyrics() },
+      { label: "锁定/解锁桌面歌词", click: () => setDesktopLyricsLock(!desktopLyricsLocked) },
       { label: "迷你模式", click: () => setMiniMode(true) },
       { label: "显示主界面", click: () => restoreMainWindow() },
       { type: "separator" },
@@ -232,9 +234,9 @@ function createDesktopLyricsWindow() {
   const w = Math.min(1000, dm.width - 40)
   desktopLyricsWin = new BrowserWindow({
     width: w,
-    height: 110,
+    height: 140,
     x: Math.round((dm.width - w) / 2),
-    y: dm.height - 180,
+    y: dm.height - 200,
     frame: false,
     transparent: true,
     resizable: false,
@@ -247,6 +249,7 @@ function createDesktopLyricsWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
       preload: path.join(__dirname, "preload.js"),
     },
   })
@@ -257,9 +260,18 @@ function createDesktopLyricsWindow() {
   )
   desktopLyricsWin.on("closed", () => {
     desktopLyricsWin = null
+    desktopLyricsLocked = false
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send("desktop-lyrics-state", false)
   })
+}
+
+// 桌面歌词锁定：鼠标点击穿透（forward 保留 hover），从托盘菜单解锁
+function setDesktopLyricsLock(locked) {
+  desktopLyricsLocked = !!locked
+  if (!desktopLyricsWin || desktopLyricsWin.isDestroyed()) return
+  desktopLyricsWin.setIgnoreMouseEvents(desktopLyricsLocked, { forward: true })
+  desktopLyricsWin.webContents.send("desktop-lyrics-lock-state", desktopLyricsLocked)
 }
 
 function toggleDesktopLyrics(force) {
@@ -344,6 +356,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // 音乐应用需后台持续运行：托盘收起/最小化时桌面歌词、定时器不中断
+      backgroundThrottling: false,
       preload: path.join(__dirname, "preload.js"),
     },
   })
@@ -392,6 +406,18 @@ function createWindow() {
   ipcMain.on("desktop-lyrics-opacity", (_e, val) => {
     desktopLyricsOpacity = Math.min(1, Math.max(0.1, val))
     if (desktopLyricsWin) desktopLyricsWin.setOpacity(desktopLyricsOpacity)
+  })
+  // 桌面歌词播放控制（复用托盘/媒体键控制通道）
+  ipcMain.on("desktop-lyrics-player-ctl", (_e, action) => {
+    if (action === "toggle" || action === "prev" || action === "next")
+      sendControl(action)
+  })
+  // 桌面歌词锁定（点击穿透，托盘菜单解锁）
+  ipcMain.on("desktop-lyrics-lock", (_e, locked) => setDesktopLyricsLock(locked))
+  // 主窗口 → 桌面歌词：播放状态（控制条图标）
+  ipcMain.on("desktop-lyrics-player-state", (_e, playing) => {
+    if (desktopLyricsWin && !desktopLyricsWin.isDestroyed())
+      desktopLyricsWin.webContents.send("desktop-lyrics-player-state", !!playing)
   })
 
   // 切歌系统通知
