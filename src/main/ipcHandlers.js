@@ -1589,6 +1589,29 @@ function initIpcHandlers() {
     return await update.openDownloadPage(url)
   })
 
+  // 一键更新：下载 / 取消 / 解压 / 应用
+  ipcMain.handle("download-update", async (event, url, digest) => {
+    return await update.downloadUpdate(url, digest, (progress) => {
+      if (!event.sender.isDestroyed()) {
+        try {
+          event.sender.send("update-download-progress", progress)
+        } catch (e) {}
+      }
+    })
+  })
+
+  ipcMain.handle("cancel-update", async () => {
+    return update.cancelUpdate()
+  })
+
+  ipcMain.handle("prepare-update", async (event, zipPath) => {
+    return await update.prepareUpdate(zipPath)
+  })
+
+  ipcMain.handle("install-update", async (event, newRoot) => {
+    return await update.installUpdate(newRoot)
+  })
+
   // 音乐下载服务相关
   ipcMain.handle(
     "musicDlSearch",

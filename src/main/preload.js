@@ -54,6 +54,14 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
   openDownloadPage: (url) => ipcRenderer.invoke("open-download-page", url),
   onUpdateAvailable: (callback) =>
     ipcRenderer.on("update-available", (event, info) => callback(info)),
+  // 新增：一键更新
+  downloadUpdate: (url, digest) =>
+    ipcRenderer.invoke("download-update", url, digest),
+  cancelUpdate: () => ipcRenderer.invoke("cancel-update"),
+  prepareUpdate: (zipPath) => ipcRenderer.invoke("prepare-update", zipPath),
+  installUpdate: (newRoot) => ipcRenderer.invoke("install-update", newRoot),
+  onUpdateDownloadProgress: (callback) =>
+    ipcRenderer.on("update-download-progress", (event, data) => callback(data)),
   // 新增：音乐下载服务
   musicDlSearch: (keyword, sources, page, limit) =>
     ipcRenderer.invoke("musicDlSearch", keyword, sources, page, limit),

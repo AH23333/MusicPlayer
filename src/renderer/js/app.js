@@ -903,6 +903,52 @@
   }
 
   let currentUpdateInfo = null
+  let updateState = "idle" // idle | downloading | preparing | ready | installing
+  let updateFilePath = null
+  let updateNewRoot = null
+  let updateSpeedSample = null
+
+  function updateFormatMB(bytes) {
+    const n = Number(bytes) || 0
+    return n >= 1048576
+      ? (n / 1048576).toFixed(1) + " MB"
+      : Math.max(1, Math.round(n / 1024)) + " KB"
+  }
+
+  function updateFormatSpeed(bps) {
+    return bps >= 1048576
+      ? (bps / 1048576).toFixed(1) + " MB/s"
+      : Math.max(1, Math.round(bps / 1024)) + " KB/s"
+  }
+
+  function setUpdateProgressVisible(visible) {
+    const wrap = document.getElementById("updateProgressWrap")
+    if (wrap) wrap.classList.toggle("hidden", !visible)
+  }
+
+  function setUpdateProgressPercent(percent) {
+    const fill = document.getElementById("updateProgressFill")
+    if (fill) fill.style.width = Math.max(0, Math.min(100, percent)) + "%"
+  }
+
+  function setUpdateProgressText(text) {
+    const el = document.getElementById("updateProgressText")
+    if (el) el.textContent = text
+  }
+
+  function resetUpdateUi() {
+    updateState = "idle"
+    updateFilePath = null
+    updateNewRoot = null
+    updateSpeedSample = null
+    setUpdateProgressVisible(false)
+    setUpdateProgressPercent(0)
+    setUpdateProgressText("")
+    const downloadBtn = document.getElementById("updateDownloadBtn")
+    const laterBtn = document.getElementById("updateLaterBtn")
+    if (downloadBtn) downloadBtn.disabled = false
+    if (laterBtn) laterBtn.textContent = "稍后"
+  }
 
   function showUpdateModal(info) {
     const modal = document.getElementById("updateModal")
@@ -913,11 +959,20 @@
     const laterBtn = document.getElementById("updateLaterBtn")
 
     currentUpdateInfo = info
+    resetUpdateUi()
 
     if (info.hasUpdate) {
       title.textContent = "发现新版本"
-      text.innerHTML = `当前版本：${info.currentVersion || "1.0.0"}<br>最新版本：${info.latestVersion || "未知"}<br><br>请手动下载更新覆盖安装，注意备份用户数据！`
-      downloadBtn.textContent = "前往下载"
+      const sizeText = info.assetSize
+        ? `，安装包约 ${updateFormatMB(info.assetSize)}`
+        : ""
+      if (info.downloadUrl) {
+        text.innerHTML = `当前版本：${info.currentVersion || "1.0.0"}<br>最新版本：${info.latestVersion || "未知"}${sizeText}<br><br>一键更新会自动下载并替换程序文件（用户数据不受影响），完成后自动重启。`
+        downloadBtn.textContent = "一键更新"
+      } else {
+        text.innerHTML = `当前版本：${info.currentVersion || "1.0.0"}<br>最新版本：${info.latestVersion || "未知"}<br><br>请手动下载更新覆盖安装，注意备份用户数据！`
+        downloadBtn.textContent = "前往下载"
+      }
       downloadBtn.classList.remove("hidden")
     } else {
       title.textContent = "更新检查"
@@ -932,24 +987,127 @@
   function hideUpdateModal() {
     document.getElementById("updateModal").classList.add("hidden")
     currentUpdateInfo = null
+    resetUpdateUi()
+  }
+
+  async function startOneClickUpdate(info) {
+    const downloadBtn = document.getElementById("updateDownloadBtn")
+    const laterBtn = document.getElementById("updateLaterBtn")
+    updateState = "downloading"
+    if (downloadBtn) {
+      downloadBtn.disabled = true
+      downloadBtn.textContent = "正在下载…"
+    }
+    if (laterBtn) laterBtn.textContent = "取消"
+    setUpdateProgressVisible(true)
+    setUpdateProgressPercent(0)
+    setUpdateProgressText("正在下载…")
+
+    const result = await window.ElectronAPI.downloadUpdate(
+      info.downloadUrl,
+      info.assetDigest
+    )
+    if (updateState !== "downloading") return
+
+    if (!result || !result.success) {
+      resetUpdateUi()
+      if (downloadBtn) downloadBtn.textContent = "一键更新"
+      if (result && result.cancelled) {
+        showToast("已取消更新")
+      } else {
+        showToastError((result && result.error) || "下载失败，请重试")
+      }
+      return
+    }
+
+    updateFilePath = result.filePath
+    updateState = "preparing"
+    setUpdateProgressText("下载完成，正在校验安装包…")
+    const prepared = await window.ElectronAPI.prepareUpdate(updateFilePath)
+    if (updateState !== "preparing") return
+
+    if (!prepared || !prepared.success) {
+      resetUpdateUi()
+      if (downloadBtn) downloadBtn.textContent = "一键更新"
+      showToastError((prepared && prepared.error) || "安装包解析失败，请重试")
+      return
+    }
+
+    updateNewRoot = prepared.newRoot
+    updateState = "ready"
+    setUpdateProgressPercent(100)
+    setUpdateProgressText("更新已就绪")
+    if (downloadBtn) {
+      downloadBtn.disabled = false
+      downloadBtn.textContent = "立即重启完成更新"
+    }
+    if (laterBtn) laterBtn.textContent = "稍后"
   }
 
   function bindUpdateModalEvents() {
+    window.ElectronAPI.onUpdateDownloadProgress((p) => {
+      if (updateState !== "downloading" || !p) return
+      const now = Date.now()
+      let speedText = ""
+      if (updateSpeedSample && now > updateSpeedSample.time) {
+        const bps =
+          ((p.received - updateSpeedSample.received) * 1000) /
+          (now - updateSpeedSample.time)
+        if (bps > 0) speedText = "，" + updateFormatSpeed(bps)
+      }
+      updateSpeedSample = { received: p.received, time: now }
+      if (p.percent >= 0) setUpdateProgressPercent(p.percent)
+      else setUpdateProgressPercent(100)
+      const totalText = p.total > 0 ? " / " + updateFormatMB(p.total) : ""
+      setUpdateProgressText(
+        `正在下载 ${updateFormatMB(p.received)}${totalText}${speedText}`
+      )
+    })
+
     document
       .getElementById("updateDownloadBtn")
       .addEventListener("click", async () => {
-        if (currentUpdateInfo && currentUpdateInfo.downloadUrl) {
-          await window.ElectronAPI.openDownloadPage(
-            currentUpdateInfo.downloadUrl
-          )
-          showToast("请下载最新版本覆盖安装，记得备份用户数据！")
-        } else {
-          await window.ElectronAPI.openDownloadPage()
+        if (!currentUpdateInfo) {
+          hideUpdateModal()
+          return
         }
-        hideUpdateModal()
+        if (updateState === "downloading" || updateState === "preparing") return
+        if (updateState === "ready" && updateNewRoot) {
+          updateState = "installing"
+          const downloadBtn = document.getElementById("updateDownloadBtn")
+          if (downloadBtn) {
+            downloadBtn.disabled = true
+            downloadBtn.textContent = "正在重启…"
+          }
+          setUpdateProgressText("正在应用更新…")
+          const result = await window.ElectronAPI.installUpdate(updateNewRoot)
+          if (updateState !== "installing") return
+          if (!result || !result.success) {
+            updateState = "ready"
+            if (downloadBtn) {
+              downloadBtn.disabled = false
+              downloadBtn.textContent = "立即重启完成更新"
+            }
+            showToastError((result && result.error) || "应用更新失败")
+          }
+          return
+        }
+        const info = currentUpdateInfo
+        if (info.downloadUrl) {
+          startOneClickUpdate(info)
+        } else {
+          await window.ElectronAPI.openDownloadPage(
+            info.releaseUrl || info.downloadUrl
+          )
+          hideUpdateModal()
+        }
       })
 
     document.getElementById("updateLaterBtn").addEventListener("click", () => {
+      if (updateState === "downloading" || updateState === "preparing") {
+        window.ElectronAPI.cancelUpdate()
+        return
+      }
       hideUpdateModal()
     })
 

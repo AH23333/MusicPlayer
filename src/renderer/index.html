@@ -567,6 +567,10 @@
     <div class="dialog dialog-center">
       <h3 class="dialog-title" id="updateModalTitle">发现新版本</h3>
       <p class="dialog-desc" id="updateModalText">是否立即下载更新？</p>
+      <div id="updateProgressWrap" class="hidden">
+        <div class="update-progress-track"><div id="updateProgressFill" class="update-progress-fill"></div></div>
+        <p id="updateProgressText" class="update-progress-text">正在下载…</p>
+      </div>
       <div class="dialog-foot-center">
         <button id="updateDownloadBtn" class="btn btn-primary">前往下载</button>
         <button id="updateGitHubBtn" class="btn btn-ghost hidden">打开 GitHub</button>
