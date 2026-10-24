@@ -1250,6 +1250,8 @@
     if (mineSec) mineSec.classList.add("hidden")
     const dmSec = $("downloadManagerSection")
     if (dmSec) dmSec.classList.add("hidden")
+    const libSec0 = $("musicLibrarySection")
+    if (libSec0) libSec0.classList.add("hidden")
     sec.classList.remove("hidden")
     if (typeof Player.navRecord === "function")
       Player.navRecord("听歌统计", () => openStats())
@@ -2340,6 +2342,7 @@
         !$("playlistDetailSection").classList.contains("hidden") ||
         ($("statsSection") && !$("statsSection").classList.contains("hidden")) ||
         ($("mineSection") && !$("mineSection").classList.contains("hidden")) ||
+        ($("musicLibrarySection") && !$("musicLibrarySection").classList.contains("hidden")) ||
         ($("downloadManagerSection") && !$("downloadManagerSection").classList.contains("hidden"))
       home.classList.toggle("hidden", other)
     }
@@ -2380,6 +2383,7 @@
           if ($("statsSection")) $("statsSection").classList.add("hidden")
           if ($("mineSection")) $("mineSection").classList.add("hidden")
           if ($("downloadManagerSection")) $("downloadManagerSection").classList.add("hidden")
+          if ($("musicLibrarySection")) $("musicLibrarySection").classList.add("hidden")
         }
         refreshHome()
       })
@@ -2869,6 +2873,8 @@
     if (statsSec) statsSec.classList.add("hidden")
     const dmSec = $("downloadManagerSection")
     if (dmSec) dmSec.classList.add("hidden")
+    const libSec = $("musicLibrarySection")
+    if (libSec) libSec.classList.add("hidden")
     sec.classList.remove("hidden")
     if (typeof Player.navRecord === "function")
       Player.navRecord("我的云歌单", () => openMineSection())
@@ -3230,6 +3236,403 @@
     })
   }
 
+  // ============ 音乐库浏览页（本地文件管理：分组浏览/重复清理/文件操作）============
+  const LIB_VIEWS = [
+    ["all", "全部"],
+    ["artist", "按歌手"],
+    ["fmt", "按格式"],
+    ["dup", "重复文件"],
+  ]
+  const libState = {
+    songs: [],
+    dir: "",
+    loading: false,
+    loaded: false,
+    view: "all",
+    query: "",
+    sort: "added",
+    collapsed: {},
+  }
+
+  function libSectionEl() {
+    return $("musicLibrarySection")
+  }
+
+  function ensureLibSection() {
+    let sec = libSectionEl()
+    if (sec) return sec
+    sec = document.createElement("section")
+    sec.id = "musicLibrarySection"
+    sec.className = "content-section hidden"
+    sec.addEventListener("click", onLibClick)
+    const contentScroll = $("contentScroll")
+    if (!contentScroll) return null
+    contentScroll.appendChild(sec)
+    return sec
+  }
+
+  function libExtOf(song) {
+    const m = String(song.url || "").match(/\.([a-zA-Z0-9]+)$/)
+    return m ? m[1].toLowerCase() : ""
+  }
+
+  function libFiltered() {
+    let list = libState.songs.slice()
+    const q = libState.query.trim().toLowerCase()
+    if (q) {
+      list = list.filter((s) =>
+        (String(s.name || "") + " " + String(s.artist || "")).toLowerCase().includes(q)
+      )
+    }
+    const sorters = {
+      added: (a, b) => (b.mtime || 0) - (a.mtime || 0),
+      name: (a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh"),
+      size: (a, b) => (b.size || 0) - (a.size || 0),
+    }
+    list.sort(sorters[libState.sort] || sorters.added)
+    return list
+  }
+
+  function libFmtSize(n) {
+    const v = Number(n) || 0
+    if (v >= 1073741824) return (v / 1073741824).toFixed(2) + " GB"
+    if (v >= 1048576) return (v / 1048576).toFixed(1) + " MB"
+    if (v >= 1024) return (v / 1024).toFixed(0) + " KB"
+    return v + " B"
+  }
+
+  function libFmtDate(ts) {
+    const t = Number(ts) || 0
+    if (!t) return "-"
+    const d = new Date(t)
+    const p = (x) => (x < 10 ? "0" + x : "" + x)
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
+  }
+
+  function libFindSong(id) {
+    return libState.songs.find((s) => s.id === id) || null
+  }
+
+  function libGrouped(list, keyOf) {
+    const groups = {}
+    const order = []
+    for (const s of list) {
+      const k = keyOf(s)
+      if (!groups[k]) {
+        groups[k] = []
+        order.push(k)
+      }
+      groups[k].push(s)
+    }
+    order.sort((a, b) => groups[b].length - groups[a].length || a.localeCompare(b, "zh"))
+    return order.map((k) => [k, groups[k]])
+  }
+
+  function libDupGroups() {
+    const map = {}
+    const order = []
+    for (const s of libState.songs) {
+      const key =
+        String(s.name || "").trim().toLowerCase() +
+        "|" +
+        String(s.artist || "").trim().toLowerCase()
+      if (!map[key]) {
+        map[key] = []
+        order.push(key)
+      }
+      map[key].push(s)
+    }
+    return order.map((k) => map[k]).filter((g) => g.length > 1)
+  }
+
+  function libRowHtml(s, tag) {
+    const ext = libExtOf(s)
+    return `
+      <div class="lib-row" data-lib-id="${escapeHtml(s.id)}">
+        <button class="lib-play" data-lib-act="play" title="播放">▶</button>
+        <div class="lib-info">
+          <div class="lib-name">${escapeHtml(s.name || "")}${tag ? ' <span class="lib-tag">' + tag + "</span>" : ""}</div>
+          <div class="lib-sub">${escapeHtml(s.artist || "")}${ext ? " · " + ext.toUpperCase() : ""}</div>
+        </div>
+        <div class="lib-size">${libFmtSize(s.size)}</div>
+        <div class="lib-date">${libFmtDate(s.mtime)}</div>
+        <div class="lib-acts">
+          <button data-lib-act="next" title="下一首播放">⏭</button>
+          <button data-lib-act="folder" title="打开所在文件夹">📂</button>
+          <button data-lib-act="del" title="删除文件">✕</button>
+        </div>
+      </div>`
+  }
+
+  function libGroupHtml(view, key, songs) {
+    const gkey = view + "|" + key
+    const collapsed = !!libState.collapsed[gkey]
+    const total = songs.reduce((acc, s) => acc + (Number(s.size) || 0), 0)
+    return `
+      <div class="lib-group">
+        <button class="lib-group-head" data-lib-group="${escapeHtml(gkey)}">
+          <span class="lib-caret">${collapsed ? "▸" : "▾"}</span>
+          <span class="lib-group-key">${escapeHtml(key)}</span>
+          <span class="lib-group-meta">${songs.length} 首 · ${libFmtSize(total)}</span>
+        </button>
+        <div class="lib-group-rows${collapsed ? " hidden" : ""}">
+          ${songs.map((s) => libRowHtml(s)).join("")}
+        </div>
+      </div>`
+  }
+
+  function libBodyHtml() {
+    if (libState.loading) return '<div class="lib-empty">正在读取音乐库…</div>'
+    if (!libState.songs.length)
+      return '<div class="lib-empty">音乐库是空的。导入本地歌曲或下载歌曲后，即可在这里浏览和管理。</div>'
+    const list = libFiltered()
+    if (!list.length) return '<div class="lib-empty">没有匹配的歌曲</div>'
+    if (libState.view === "all") {
+      return list.map((s) => libRowHtml(s)).join("")
+    }
+    if (libState.view === "artist") {
+      return libGrouped(list, (s) => String(s.artist || "未知歌手"))
+        .map(([k, gs]) => libGroupHtml("artist", k, gs))
+        .join("")
+    }
+    if (libState.view === "fmt") {
+      return libGrouped(list, (s) => {
+        const e = libExtOf(s)
+        return e ? e.toUpperCase() : "其他"
+      })
+        .map(([k, gs]) => libGroupHtml("fmt", k, gs))
+        .join("")
+    }
+    // 重复文件视图
+    const dups = libDupGroups()
+    if (!dups.length)
+      return '<div class="lib-empty">没有发现重复文件，音乐库很干净</div>'
+    return dups
+      .map((g, i) => {
+        const newest = g.slice().sort((a, b) => (b.mtime || 0) - (a.mtime || 0))[0]
+        const wasted =
+          g.reduce((acc, s) => acc + (Number(s.size) || 0), 0) - (Number(newest.size) || 0)
+        return `
+        <div class="lib-group" data-lib-dup="${i}">
+          <div class="lib-group-head lib-group-head-static">
+            <div class="lib-group-title">
+              <div class="lib-name">${escapeHtml(newest.name || "")}</div>
+              <div class="lib-sub">${escapeHtml(newest.artist || "")} · ${g.length} 个版本 · 可释放 ${libFmtSize(wasted)}</div>
+            </div>
+            <button class="btn btn-ghost" data-lib-act="dupclean">保留最新</button>
+          </div>
+          <div class="lib-group-rows">
+            ${g.map((s) => libRowHtml(s, s.id === newest.id ? "最新" : "")).join("")}
+          </div>
+        </div>`
+      })
+      .join("")
+  }
+
+  function renderMusicLibrary() {
+    const sec = libSectionEl()
+    if (!sec || sec.classList.contains("hidden")) return
+    const songs = libState.songs
+    const totalSize = songs.reduce((acc, s) => acc + (Number(s.size) || 0), 0)
+    const newest = songs.reduce((m, s) => Math.max(m, Number(s.mtime) || 0), 0)
+    const dupCount = libDupGroups().reduce((acc, g) => acc + (g.length - 1), 0)
+    sec.innerHTML = `
+      <div class="lib-head">
+        <h2>音乐库</h2>
+        <div class="lib-head-meta">
+          <span>${songs.length} 首歌曲</span>
+          <span>${libFmtSize(totalSize)}</span>
+          ${newest ? `<span>最近添加 ${libFmtDate(newest)}</span>` : ""}
+          ${dupCount ? `<span class="lib-dup-hint">${dupCount} 个重复文件</span>` : ""}
+        </div>
+        <div class="lib-head-actions">
+          <button class="btn btn-ghost" data-lib-act="refresh">刷新</button>
+          <button class="btn btn-ghost" data-lib-act="opendir">打开文件夹</button>
+        </div>
+      </div>
+      <div class="lib-toolbar">
+        <div class="lib-tabs">
+          ${LIB_VIEWS.map(
+            ([id, label]) =>
+              `<button class="lib-tab${libState.view === id ? " active" : ""}" data-lib-view="${id}">${label}</button>`
+          ).join("")}
+        </div>
+        <div class="lib-tools">
+          <input id="libSearch" class="lib-search" type="text" placeholder="搜索歌曲 / 歌手" value="${escapeHtml(libState.query)}">
+          <select id="libSort" class="lib-sort">
+            <option value="added"${libState.sort === "added" ? " selected" : ""}>最近添加</option>
+            <option value="name"${libState.sort === "name" ? " selected" : ""}>歌曲名</option>
+            <option value="size"${libState.sort === "size" ? " selected" : ""}>文件大小</option>
+          </select>
+        </div>
+      </div>
+      <div id="libBody" class="lib-body">${libBodyHtml()}</div>`
+    const search = $("libSearch")
+    if (search) {
+      // 输入时仅刷新列表体，避免整页重渲染导致输入框失焦
+      search.addEventListener("input", () => {
+        libState.query = search.value
+        const body = $("libBody")
+        if (body) body.innerHTML = libBodyHtml()
+      })
+    }
+    const sortSel = $("libSort")
+    if (sortSel) {
+      sortSel.addEventListener("change", () => {
+        libState.sort = sortSel.value
+        renderMusicLibrary()
+      })
+    }
+  }
+
+  async function loadMusicLibrary() {
+    if (libState.loading) return
+    libState.loading = true
+    libState.loaded = false
+    renderMusicLibrary()
+    try {
+      const songs = await window.ElectronAPI.readLocalSongs()
+      libState.songs = Array.isArray(songs) ? songs : []
+      if (libState.songs.length && libState.songs[0].url) {
+        libState.dir = String(libState.songs[0].url).replace(/[\\/][^\\/]+$/, "")
+      }
+      libState.loaded = true
+    } catch (err) {
+      libState.songs = []
+    } finally {
+      libState.loading = false
+      renderMusicLibrary()
+    }
+  }
+
+  async function libDeleteSongs(songs) {
+    let removed = 0
+    for (const s of songs) {
+      try {
+        const res = await window.ElectronAPI.deleteLocalSong(s.url)
+        if (res && res.success) removed++
+      } catch (err) {
+        // 单个失败忽略，继续删除其余
+      }
+    }
+    if (removed) {
+      try {
+        libState.songs = (await Player.refreshLocalSongs()) || []
+        libState.dir =
+          libState.songs.length && libState.songs[0].url
+            ? String(libState.songs[0].url).replace(/[\\/][^\\/]+$/, "")
+            : libState.dir
+      } catch (err) {
+        libState.songs = libState.songs.filter(
+          (s) => !songs.some((d) => d.id === s.id)
+        )
+      }
+      Player.toast(`已删除 ${removed} 个文件`)
+    } else {
+      Player.toast("删除失败，请重试", "error")
+    }
+    renderMusicLibrary()
+  }
+
+  function openMusicLibrary() {
+    const sec = ensureLibSection()
+    if (!sec) return
+    $("searchResultsSection").classList.add("hidden")
+    $("playlistDetailSection").classList.add("hidden")
+    const home = $("homeSection")
+    if (home) home.classList.add("hidden")
+    ;["statsSection", "mineSection", "downloadManagerSection"].forEach((id) => {
+      const el = $(id)
+      if (el) el.classList.add("hidden")
+    })
+    sec.classList.remove("hidden")
+    if (typeof Player.navRecord === "function")
+      Player.navRecord("音乐库", () => openMusicLibrary())
+    if (!libState.loaded) {
+      loadMusicLibrary()
+    } else {
+      renderMusicLibrary()
+    }
+  }
+
+  function onLibClick(e) {
+    const viewBtn = e.target.closest("[data-lib-view]")
+    if (viewBtn) {
+      libState.view = viewBtn.dataset.libView
+      renderMusicLibrary()
+      return
+    }
+    const groupBtn = e.target.closest("[data-lib-group]")
+    if (groupBtn) {
+      const gkey = groupBtn.dataset.libGroup
+      libState.collapsed[gkey] = !libState.collapsed[gkey]
+      renderMusicLibrary()
+      return
+    }
+    const actBtn = e.target.closest("[data-lib-act]")
+    if (!actBtn) return
+    const act = actBtn.dataset.libAct
+    if (act === "refresh") {
+      loadMusicLibrary()
+      return
+    }
+    if (act === "opendir") {
+      if (libState.dir) {
+        window.ElectronAPI.showItemInFolder(libState.dir)
+      } else {
+        Player.toast("音乐库为空，无法打开文件夹", "error")
+      }
+      return
+    }
+    if (act === "dupclean") {
+      const grp = actBtn.closest("[data-lib-dup]")
+      const dups = libDupGroups()
+      const g = grp ? dups[Number(grp.dataset.libDup)] : null
+      if (!g || g.length < 2) return
+      const newest = g.slice().sort((a, b) => (b.mtime || 0) - (a.mtime || 0))[0]
+      const rest = g.filter((s) => s.id !== newest.id)
+      confirmDialog(
+        "清理重复文件",
+        `将保留最新版本（${libFmtDate(newest.mtime)} 添加），删除其余 ${rest.length} 个文件。确定继续吗？`,
+        "删除",
+        () => libDeleteSongs(rest)
+      )
+      return
+    }
+    const row = actBtn.closest(".lib-row")
+    const song = row ? libFindSong(row.dataset.libId) : null
+    if (!song) return
+    if (act === "play") {
+      const list = libFiltered()
+      const idx = list.findIndex((s) => s.id === song.id)
+      if (idx >= 0) Player.playSongs(list, idx)
+      else Player.playSongs([song], 0)
+      return
+    }
+    if (act === "next") {
+      Player.playSongNext(song)
+      Player.toast("已加入下一首播放")
+      return
+    }
+    if (act === "folder") {
+      window.ElectronAPI.showItemInFolder(song.url)
+      return
+    }
+    if (act === "del") {
+      confirmDialog(
+        "删除文件",
+        `确定要从磁盘删除《${escapeHtml(song.name)}》吗？此操作不可恢复。`,
+        "删除",
+        () => libDeleteSongs([song])
+      )
+    }
+  }
+
+  function initMusicLibrary() {
+    const btn = $("musicLibraryBtn")
+    if (btn) btn.addEventListener("click", () => openMusicLibrary())
+  }
+
   // ============ 播放/切歌统一副作用 ============
   function initReactions() {
     Player.on("songchange", (song) => {
@@ -3314,6 +3717,7 @@
     initSettings()
     initHomePage()
     initMinePlaylists()
+    initMusicLibrary()
     initExportLyric()
     initSmartPlaylists()
     initReactions()

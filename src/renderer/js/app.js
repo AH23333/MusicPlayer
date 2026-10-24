@@ -3007,7 +3007,7 @@
   function navShowHome() {
     if (searchResultsSection) searchResultsSection.classList.add("hidden")
     if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
-    ;["statsSection", "mineSection", "downloadManagerSection"].forEach((id) => {
+    ;["statsSection", "mineSection", "downloadManagerSection", "musicLibrarySection"].forEach((id) => {
       const el = document.getElementById(id)
       if (el) el.classList.add("hidden")
     })
@@ -3023,7 +3023,7 @@
       if (searchInput) searchInput.value = keyword
       if (searchResultsSection) searchResultsSection.classList.remove("hidden")
       if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
-      ;["statsSection", "mineSection", "downloadManagerSection"].forEach((id) => {
+      ;["statsSection", "mineSection", "downloadManagerSection", "musicLibrarySection"].forEach((id) => {
         const el = document.getElementById(id)
         if (el) el.classList.add("hidden")
       })
@@ -4353,7 +4353,7 @@
     contentScroll.appendChild(dmSection)
     // 其他视图显示时自动隐藏下载管理
     const hideIfOtherVisible = () => {
-      const ids = ["searchResultsSection", "playlistDetailSection", "statsSection", "mineSection"]
+      const ids = ["searchResultsSection", "playlistDetailSection", "statsSection", "mineSection", "musicLibrarySection"]
       const other = ids.some((id) => {
         const el = document.getElementById(id)
         return el && !el.classList.contains("hidden")
@@ -4379,7 +4379,7 @@
         for (const node of m.addedNodes) {
           if (
             node.nodeType === 1 &&
-            (node.id === "statsSection" || node.id === "mineSection")
+            (node.id === "statsSection" || node.id === "mineSection" || node.id === "musicLibrarySection")
           ) {
             observeClass(node)
             hideIfOtherVisible()
@@ -4400,6 +4400,7 @@
       "homeSection",
       "statsSection",
       "mineSection",
+      "musicLibrarySection",
     ].forEach((id) => {
       const el = document.getElementById(id)
       if (el) el.classList.add("hidden")
@@ -5813,6 +5814,27 @@
     navShowHome: () => navShowHome(),
     // 歌单整卡操作
     playPlaylist: (p) => playPlaylist(p),
+    // 直接播放一组歌曲（音乐库浏览页等使用）
+    playSongs: (songs, startIndex) => {
+      const list = (songs || []).filter(Boolean)
+      if (!list.length) return
+      selectedQueueIds.clear()
+      playQueue = list.slice()
+      renderPlaylist()
+      currentSongIndex = Math.max(0, Math.min(startIndex || 0, list.length - 1))
+      playCurrentSong()
+    },
+    // 重新读取本地歌曲并刷新侧边栏计数/正在查看的本地歌单
+    refreshLocalSongs: async () => {
+      localSongs = await window.ElectronAPI.readLocalSongs()
+      const localCountEl = document.getElementById("localCount")
+      if (localCountEl) localCountEl.textContent = localSongs.length
+      if (currentPlaylist && currentPlaylist.id === "local") {
+        currentPlaylist.songs = localSongs
+        renderPlaylistDetail(currentPlaylist)
+      }
+      return localSongs
+    },
     showOnlinePlaylistMenu: (e, opts) => showOnlinePlaylistMenu(e, opts),
     // 将 go-music-dl 返回的歌曲归一化为播放器内部结构
     enrichDlSong: (s) => enrichMusicDlSearchSong(s),

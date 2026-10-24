@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("import-local-songs", filePaths),
   deleteLocalSong: (songUrl) =>
     ipcRenderer.invoke("delete-local-song", songUrl),
+  showItemInFolder: (filePath) =>
+    ipcRenderer.invoke("show-item-in-folder", filePath),
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
   selectDownloadDirectory: () =>
     ipcRenderer.invoke("select-download-directory"),

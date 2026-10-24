@@ -1,4 +1,4 @@
-const { ipcMain, dialog } = require("electron")
+const { ipcMain, dialog, shell } = require("electron")
 const logger = require("./services/logger")
 const storage = require("./services/storage")
 const update = require("./services/update")
@@ -786,6 +786,17 @@ function initIpcHandlers() {
           const fileName = path.basename(file, path.extname(file))
           const songInfo = fileName.split(" - ")
 
+          // 音乐库浏览页需要文件大小/修改时间
+          let size = 0
+          let mtime = 0
+          try {
+            const st = await fs.stat(filePath)
+            size = st.size
+            mtime = Math.round(st.mtimeMs)
+          } catch (statErr) {
+            logger.warn(`读取文件信息失败：${file}，${statErr.message}`)
+          }
+
           songs.push({
             id: stableLocalSongId(file),
             name: songInfo.length > 1 ? songInfo[1] : fileName,
@@ -795,6 +806,8 @@ function initIpcHandlers() {
             duration: 0,
             url: filePath,
             local: true,
+            size,
+            mtime,
           })
         }
       }
@@ -889,6 +902,28 @@ function initIpcHandlers() {
       return { success: true }
     } catch (err) {
       logger.error(`删除本地歌曲失败：${err.message}`)
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 在系统文件管理器中显示文件（音乐库浏览页"打开所在文件夹"）
+  ipcMain.handle("show-item-in-folder", async (event, filePath) => {
+    if (typeof filePath !== "string" || !filePath) {
+      return { success: false, error: "无效路径" }
+    }
+    try {
+      const path = require("path")
+      const localDir = path.resolve(storage.ROOT_DIR, "ImportLocalSongs")
+      const target = path.resolve(filePath)
+      // 仅允许定位导入目录内的文件
+      if (target !== localDir && !target.startsWith(localDir + path.sep)) {
+        logger.warn(`拒绝定位导入目录之外的文件：${target}`)
+        return { success: false, error: "仅允许定位已导入的本地歌曲" }
+      }
+      shell.showItemInFolder(target)
+      return { success: true }
+    } catch (err) {
+      logger.error(`打开文件位置失败：${err.message}`)
       return { success: false, error: err.message }
     }
   })

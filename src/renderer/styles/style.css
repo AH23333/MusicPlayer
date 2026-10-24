@@ -1117,3 +1117,47 @@ body.yr-open { overflow: hidden; }
 .yr-page.yr-cur > *:nth-child(3) { animation-delay: 0.16s; }
 .yr-page.yr-cur > *:nth-child(4) { animation-delay: 0.24s; }
 .yr-page.yr-cur > *:nth-child(5) { animation-delay: 0.32s; }
+
+/* ============ 音乐库浏览页 ============ */
+.lib-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.lib-head h2 { font-size: 22px; font-weight: 800; }
+.lib-head-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--text-2); }
+.lib-head-meta > span { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.lib-dup-hint { color: var(--accent); font-weight: 600; }
+.lib-head-actions { display: flex; gap: 8px; }
+.lib-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.lib-tabs { display: flex; gap: 6px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
+.lib-tab { border: none; background: transparent; color: var(--text-2); font-size: 13px; padding: 5px 14px; border-radius: 7px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.lib-tab:hover { color: var(--text); }
+.lib-tab.active { background: var(--accent); color: #fff; font-weight: 600; }
+.lib-tools { display: flex; gap: 8px; align-items: center; }
+.lib-search { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-size: 13px; color: var(--text); width: 200px; outline: none; font-family: inherit; }
+.lib-search:focus { border-color: var(--accent); }
+.lib-sort { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; cursor: pointer; }
+.lib-body { display: flex; flex-direction: column; gap: 4px; }
+.lib-empty { padding: 60px 20px; text-align: center; color: var(--text-3); font-size: 14px; background: var(--bg-2); border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+.lib-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 84px 96px 96px; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); transition: border-color 0.2s; }
+.lib-row:hover { border-color: var(--accent); }
+.lib-play { width: 30px; height: 30px; border-radius: 8px; border: none; background: var(--bg-3); color: var(--text-2); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.lib-row:hover .lib-play { background: var(--accent); color: #fff; }
+.lib-info { min-width: 0; }
+.lib-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.lib-size, .lib-date { font-size: 12px; color: var(--text-2); text-align: right; white-space: nowrap; }
+.lib-acts { display: flex; gap: 2px; justify-content: flex-end; }
+.lib-acts button { border: none; background: transparent; color: var(--text-3); width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.lib-acts button:hover { background: var(--bg-3); color: var(--text); }
+.lib-acts button[data-lib-act="del"]:hover { background: #dc2626; color: #fff; }
+.lib-tag { font-size: 10px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 4px; padding: 1px 6px; vertical-align: 1px; }
+.lib-group { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.lib-group + .lib-group, .lib-group + .lib-row, .lib-row + .lib-group { margin-top: 8px; }
+.lib-group-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: transparent; border: none; cursor: pointer; text-align: left; font-family: inherit; }
+.lib-group-head:hover { background: var(--bg-3); }
+.lib-group-head-static { cursor: default; }
+.lib-group-head-static:hover { background: transparent; }
+.lib-caret { color: var(--text-3); font-size: 12px; flex-shrink: 0; }
+.lib-group-key { font-size: 14px; font-weight: 700; color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-group-meta { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.lib-group-title { flex: 1; min-width: 0; }
+.lib-group-rows { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 8px; }
+.lib-group-rows .lib-row { background: var(--bg-3); }
