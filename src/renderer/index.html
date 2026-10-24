@@ -5,9 +5,14 @@
   <meta charset="UTF-8">
   <title>音乐播放器</title>
   <link rel="icon" type="image/png" href="../../assets/icon.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- 字体走非阻塞加载：离线/断网时静默回退 system-ui，不再阻塞首屏 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
   <link href="./styles/style.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Play CDN 本地化：head 内远程脚本曾阻塞 DOM 解析，断网时白屏数秒 -->
+  <script src="./js/tailwind.cdn.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
