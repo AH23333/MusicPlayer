@@ -1096,15 +1096,51 @@
   }
   // 统计条目上限：超出时保留最常听的前若干条，防止 localStorage 无限膨胀
   const MAX_STAT_SONGS = 400
+  // 年度报告数据桶：按年聚合（播放数 / 时长 / 分歌曲 / 分歌手 / 时段直方图）
+  function yearBucketOf(statsObj, year) {
+    if (!statsObj.yearly || typeof statsObj.yearly !== "object") statsObj.yearly = {}
+    if (!statsObj.yearly[year]) {
+      statsObj.yearly[year] = {
+        playCount: 0,
+        totalSeconds: 0,
+        songs: {},
+        artists: {},
+        hours: new Array(24).fill(0),
+        weekdays: new Array(7).fill(0),
+        months: new Array(12).fill(0),
+      }
+    }
+    const y = statsObj.yearly[year]
+    if (!y.songs || typeof y.songs !== "object") y.songs = {}
+    if (!y.artists || typeof y.artists !== "object") y.artists = {}
+    if (!Array.isArray(y.hours) || y.hours.length !== 24) y.hours = new Array(24).fill(0)
+    if (!Array.isArray(y.weekdays) || y.weekdays.length !== 7) y.weekdays = new Array(7).fill(0)
+    if (!Array.isArray(y.months) || y.months.length !== 12) y.months = new Array(12).fill(0)
+    return y
+  }
   function pruneStats() {
     const entries = Object.values(stats.songs || {})
-    if (entries.length <= MAX_STAT_SONGS) return
-    entries.sort((a, b) => b.count - a.count || b.seconds - a.seconds)
-    const keep = new Set(
-      entries.slice(0, MAX_STAT_SONGS).map((e) => String(e.id))
-    )
-    Object.keys(stats.songs).forEach((k) => {
-      if (!keep.has(String(k))) delete stats.songs[k]
+    if (entries.length > MAX_STAT_SONGS) {
+      entries.sort((a, b) => b.count - a.count || b.seconds - a.seconds)
+      const keep = new Set(
+        entries.slice(0, MAX_STAT_SONGS).map((e) => String(e.id))
+      )
+      Object.keys(stats.songs).forEach((k) => {
+        if (!keep.has(String(k))) delete stats.songs[k]
+      })
+    }
+    // 年度桶同样裁剪，且仅保留最近 8 年
+    const years = Object.keys(stats.yearly || {}).sort()
+    years.slice(0, Math.max(0, years.length - 8)).forEach((yr) => delete stats.yearly[yr])
+    years.slice(-8).forEach((yr) => {
+      const y = stats.yearly[yr]
+      const yEntries = Object.values(y.songs || {})
+      if (yEntries.length <= MAX_STAT_SONGS) return
+      yEntries.sort((a, b) => b.count - a.count || b.seconds - a.seconds)
+      const keep = new Set(yEntries.slice(0, MAX_STAT_SONGS).map((e) => String(e.id)))
+      Object.keys(y.songs).forEach((k) => {
+        if (!keep.has(String(k))) delete y.songs[k]
+      })
     })
   }
   function saveStatsDebounced() {
@@ -1122,6 +1158,7 @@
         counted: !(song && lastCountedId === song.id),
         t: Date.now(),
       })
+      if (songChangeLog.length > 500) songChangeLog.splice(0, songChangeLog.length - 500)
       if (!song || !song.id) return
       if (lastCountedId === song.id) return
       lastCountedId = song.id
@@ -1131,6 +1168,16 @@
       }
       stats.songs[key].count++
       stats.playCount++
+      // 年度桶同步累计（播放次数 / 分歌曲 / 分歌手）
+      const now = new Date()
+      const yb = yearBucketOf(stats, now.getFullYear())
+      yb.playCount++
+      if (!yb.songs[key]) {
+        yb.songs[key] = { id: song.id, name: song.name, artist: song.artist, count: 0, seconds: 0 }
+      }
+      yb.songs[key].count++
+      const aName = (song.artist || "未知").trim() || "未知"
+      yb.artists[aName] = (yb.artists[aName] || 0) + 1
       saveStatsDebounced()
     })
     // 播放时长累计
@@ -1143,6 +1190,17 @@
       }
       stats.songs[s.id].seconds++
       stats.totalSeconds++
+      // 年度桶同步累计（时长 / 小时 / 星期 / 月份直方图）
+      const now = new Date()
+      const yb = yearBucketOf(stats, now.getFullYear())
+      yb.totalSeconds++
+      if (!yb.songs[s.id]) {
+        yb.songs[s.id] = { id: s.id, name: s.name, artist: s.artist, count: 0, seconds: 0 }
+      }
+      yb.songs[s.id].seconds++
+      yb.hours[now.getHours()]++
+      yb.weekdays[now.getDay()]++
+      yb.months[now.getMonth()]++
       saveStatsDebounced()
     }, 1000)
 
@@ -1209,7 +1267,10 @@
     sec.innerHTML = `
       <div class="stats-head">
         <h2>听歌统计</h2>
-        <button class="btn btn-ghost" id="statsClearBtn">清空统计</button>
+        <div class="stats-head-actions">
+          <button class="btn btn-primary" id="yearReportBtn">🎨 年度报告</button>
+          <button class="btn btn-ghost" id="statsClearBtn">清空统计</button>
+        </div>
       </div>
       <div class="stats-cards">
         <div class="stat-card"><div class="stat-num">${stats.playCount}</div><div class="stat-label">总播放次数</div></div>
@@ -1252,10 +1313,336 @@
         </div>
       </div>`
     $("statsClearBtn").addEventListener("click", () => {
-      stats = { songs: {}, totalSeconds: 0, playCount: 0 }
+      stats = { songs: {}, totalSeconds: 0, playCount: 0, yearly: {} }
       localStorage.setItem(STATS_KEY, JSON.stringify(stats))
       openStats()
     })
+    $("yearReportBtn").addEventListener("click", () => openYearReport())
+  }
+
+  // ============ 年度听歌报告（Wrapped 风格多页卡片）============
+  let yrState = null
+  function reportModes() {
+    const modes = [{ key: "all", label: "生涯" }]
+    const years = Object.keys(stats.yearly || {}).sort()
+    const cur = String(new Date().getFullYear())
+    if (!years.includes(cur)) years.push(cur)
+    years.forEach((y) => modes.push({ key: y, label: y }))
+    return modes
+  }
+  function buildReportData(mode) {
+    if (mode === "all") {
+      const entries = Object.values(stats.songs || {}).sort(
+        (a, b) => b.count - a.count || b.seconds - a.seconds
+      )
+      const artistMap = {}
+      entries.forEach((s) => {
+        const a = (s.artist || "未知").trim() || "未知"
+        artistMap[a] = (artistMap[a] || 0) + s.count
+      })
+      return {
+        mode: "all",
+        title: "我的音乐旅程",
+        subtitle: "生涯总览",
+        playCount: stats.playCount || 0,
+        totalSeconds: stats.totalSeconds || 0,
+        songCount: entries.length,
+        topSongs: entries.slice(0, 5),
+        topArtists: Object.entries(artistMap).sort((a, b) => b[1] - a[1]).slice(0, 5),
+        hours: null,
+        weekdays: null,
+        months: null,
+      }
+    }
+    const y = (stats.yearly || {})[mode]
+    const entries = Object.values((y && y.songs) || {}).sort(
+      (a, b) => b.count - a.count || b.seconds - a.seconds
+    )
+    const hasHours = !!(y && Array.isArray(y.hours) && y.hours.some((v) => v > 0))
+    const hasMonths = !!(y && Array.isArray(y.months) && y.months.some((v) => v > 0))
+    return {
+      mode,
+      title: `我的 ${mode} 音乐旅程`,
+      subtitle: `${mode} 年度报告`,
+      playCount: (y && y.playCount) || 0,
+      totalSeconds: (y && y.totalSeconds) || 0,
+      songCount: entries.length,
+      topSongs: entries.slice(0, 5),
+      topArtists:
+        y && y.artists
+          ? Object.entries(y.artists).sort((a, b) => b[1] - a[1]).slice(0, 5)
+          : [],
+      hours: hasHours ? y.hours : null,
+      weekdays: hasHours && Array.isArray(y.weekdays) ? y.weekdays : null,
+      months: hasMonths ? y.months : null,
+    }
+  }
+  function reportBars(arr, labels) {
+    const max = Math.max.apply(null, arr.concat([1]))
+    return (
+      '<div class="yr-bars">' +
+      arr
+        .map((v, i) => {
+          const h = Math.max(3, Math.round((v / max) * 100))
+          const lab = labels ? labels[i] || "" : ""
+          const tip = lab !== "" ? ` title="${lab}：${fmtDur(v || 0)}"` : ""
+          return `<div class="yr-bar-col"${tip}><div class="yr-bar${v > 0 ? "" : " yr-bar-zero"}" style="height:${h}%"></div><span class="yr-bar-lab">${lab}</span></div>`
+        })
+        .join("") +
+      "</div>"
+    )
+  }
+  function reportPages(d) {
+    const pages = []
+    pages.push(`
+      <div class="yr-page yr-page-center">
+        <div class="yr-cover-badge">🎧</div>
+        <h1 class="yr-cover-title">${escapeHtml(d.title)}</h1>
+        <p class="yr-cover-sub">${escapeHtml(d.subtitle)}</p>
+        <div class="yr-cover-hint">按 → 或点击右侧开始回顾</div>
+      </div>`)
+    pages.push(`
+      <div class="yr-page">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">你一共听了</h2>
+        <div class="yr-hero-num">${d.playCount}<span>次</span></div>
+        <div class="yr-stat-row">
+          <div class="yr-stat"><div class="yr-stat-v">${fmtDur(d.totalSeconds)}</div><div class="yr-stat-k">累计时长</div></div>
+          <div class="yr-stat"><div class="yr-stat-v">${d.songCount}</div><div class="yr-stat-k">不同的歌</div></div>
+        </div>
+      </div>`)
+    if (d.topArtists.length) {
+      const maxA = d.topArtists[0][1] || 1
+      pages.push(`
+      <div class="yr-page">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">你的常听歌手</h2>
+        <ul class="yr-rank-list">
+          ${d.topArtists
+            .map(
+              ([a, c], i) => `
+          <li class="yr-rank">
+            <span class="yr-rank-n">${i + 1}</span>
+            <div class="yr-rank-body">
+              <div class="yr-rank-name">${escapeHtml(a)}</div>
+              <div class="yr-rank-bar"><i style="width:${Math.round((c / maxA) * 100)}%"></i></div>
+            </div>
+            <span class="yr-rank-v">${c} 次</span>
+          </li>`
+            )
+            .join("")}
+        </ul>
+      </div>`)
+    }
+    if (d.topSongs.length) {
+      const maxS = d.topSongs[0].count || 1
+      pages.push(`
+      <div class="yr-page">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">循环最多的歌</h2>
+        <ul class="yr-rank-list">
+          ${d.topSongs
+            .map(
+              (s, i) => `
+          <li class="yr-rank">
+            <span class="yr-rank-n">${i + 1}</span>
+            <div class="yr-rank-body">
+              <div class="yr-rank-name">${escapeHtml(s.name)}</div>
+              <div class="yr-rank-artist">${escapeHtml(s.artist || "")}</div>
+              <div class="yr-rank-bar"><i style="width:${Math.round((s.count / maxS) * 100)}%"></i></div>
+            </div>
+            <span class="yr-rank-v">${s.count} 次</span>
+          </li>`
+            )
+            .join("")}
+        </ul>
+      </div>`)
+    }
+    if (d.hours) {
+      const hourLabels = []
+      for (let i = 0; i < 24; i++) hourLabels.push(i % 6 === 0 ? String(i) : "")
+      pages.push(`
+      <div class="yr-page">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">你的听歌时刻</h2>
+        <div class="yr-chart-block">
+          <div class="yr-chart-title">一天中的每个小时</div>
+          ${reportBars(d.hours, hourLabels)}
+        </div>
+        ${d.weekdays ? `<div class="yr-chart-block"><div class="yr-chart-title">一周节奏</div>${reportBars(d.weekdays, ["日", "一", "二", "三", "四", "五", "六"])}</div>` : ""}
+      </div>`)
+    }
+    if (d.months) {
+      const monthLabels = []
+      for (let i = 0; i < 12; i++) monthLabels.push(i % 2 === 0 ? String(i + 1) : "")
+      pages.push(`
+      <div class="yr-page">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">每月足迹</h2>
+        <div class="yr-chart-block">
+          <div class="yr-chart-title">十二个月的陪伴</div>
+          ${reportBars(d.months, monthLabels)}
+        </div>
+      </div>`)
+    }
+    pages.push(`
+      <div class="yr-page yr-page-center">
+        <div class="yr-kicker">${escapeHtml(d.subtitle)}</div>
+        <h2 class="yr-h2">音乐是时光的注脚</h2>
+        <p class="yr-end-text">${d.mode === "all" ? "感谢音乐一路陪伴" : `感谢 ${escapeHtml(d.mode)} 年的陪伴`}</p>
+        <div class="yr-stat-row">
+          <div class="yr-stat"><div class="yr-stat-v">${d.playCount}</div><div class="yr-stat-k">播放次数</div></div>
+          <div class="yr-stat"><div class="yr-stat-v">${fmtDur(d.totalSeconds)}</div><div class="yr-stat-k">累计时长</div></div>
+          <div class="yr-stat"><div class="yr-stat-v">${d.songCount}</div><div class="yr-stat-k">听过的歌</div></div>
+        </div>
+        <button class="btn btn-primary" id="yrCopyBtn">复制报告文字</button>
+      </div>`)
+    return pages
+  }
+  function reportText(d) {
+    const lines = [
+      d.title,
+      `总播放 ${d.playCount} 次 · 累计 ${fmtDur(d.totalSeconds)} · 听过 ${d.songCount} 首歌`,
+    ]
+    if (d.topArtists.length)
+      lines.push("常听歌手：" + d.topArtists.map((x) => x[0]).join("、"))
+    if (d.topSongs.length)
+      lines.push("最常听：" + d.topSongs.map((s) => `《${s.name}》`).join(""))
+    return lines.join("\n")
+  }
+  function yrApplyPos() {
+    const track = $("yrTrack")
+    if (!track || !yrState) return
+    track.style.transform = `translateX(-${yrState.idx * 100}%)`
+    const pages = track.querySelectorAll(".yr-page")
+    pages.forEach((p, i) => p.classList.toggle("yr-cur", i === yrState.idx))
+    const dots = document.querySelectorAll("#yearReportOverlay .yr-dot")
+    dots.forEach((dt, i) => dt.classList.toggle("yr-dot-on", i === yrState.idx))
+    const prev = $("yrPrevBtn")
+    const next = $("yrNextBtn")
+    if (prev) prev.disabled = yrState.idx === 0
+    if (next) next.disabled = yrState.idx >= yrState.pages.length - 1
+  }
+  function yrGo(delta) {
+    if (!yrState) return
+    const ni = Math.min(Math.max(yrState.idx + delta, 0), yrState.pages.length - 1)
+    if (ni === yrState.idx) return
+    yrState.idx = ni
+    yrApplyPos()
+  }
+  function closeYearReport() {
+    const ov = $("yearReportOverlay")
+    if (ov) ov.remove()
+    if (yrState && yrState.keyHandler)
+      document.removeEventListener("keydown", yrState.keyHandler, true)
+    document.body.classList.remove("yr-open")
+    yrState = null
+  }
+  function renderYearReport() {
+    const ov = $("yearReportOverlay")
+    if (!ov || !yrState) return
+    const modes = reportModes()
+    const d = buildReportData(yrState.mode)
+    yrState.data = d
+    yrState.pages = reportPages(d)
+    if (yrState.idx > yrState.pages.length - 1) yrState.idx = 0
+    const empty = d.playCount === 0 && d.songCount === 0 && yrState.mode === "all"
+    ov.innerHTML = `
+      <div class="yr-topbar">
+        <div class="yr-tabs">
+          ${modes
+            .map(
+              (m) =>
+                `<button class="yr-tab${m.key === yrState.mode ? " yr-tab-on" : ""}" data-mode="${m.key}">${escapeHtml(m.label)}</button>`
+            )
+            .join("")}
+        </div>
+        <button class="yr-close" id="yrCloseBtn" title="关闭 (Esc)">×</button>
+      </div>
+      ${
+        empty
+          ? `<div class="yr-empty">还没有统计数据，去播放几首歌再来看看吧 🎧</div>`
+          : `
+      <button class="yr-nav yr-prev" id="yrPrevBtn">‹</button>
+      <div class="yr-viewport"><div class="yr-track" id="yrTrack">${yrState.pages.join("")}</div></div>
+      <button class="yr-nav yr-next" id="yrNextBtn">›</button>
+      <div class="yr-dots">
+        ${yrState.pages
+          .map((_, i) => `<button class="yr-dot${i === yrState.idx ? " yr-dot-on" : ""}" data-idx="${i}"></button>`)
+          .join("")}
+      </div>`
+      }
+    `
+    ov.classList.remove("hidden")
+    document.body.classList.add("yr-open")
+    $("yrCloseBtn").addEventListener("click", closeYearReport)
+    ov.querySelectorAll(".yr-tab").forEach((tab) =>
+      tab.addEventListener("click", () => {
+        if (tab.dataset.mode === yrState.mode) return
+        yrState.mode = tab.dataset.mode
+        yrState.idx = 0
+        renderYearReport()
+      })
+    )
+    if (!empty) {
+      $("yrPrevBtn").addEventListener("click", () => yrGo(-1))
+      $("yrNextBtn").addEventListener("click", () => yrGo(1))
+      ov.querySelectorAll(".yr-dot").forEach((dt) =>
+        dt.addEventListener("click", () => {
+          yrState.idx = Number(dt.dataset.idx) || 0
+          yrApplyPos()
+        })
+      )
+      const copyBtn = $("yrCopyBtn")
+      if (copyBtn)
+        copyBtn.addEventListener("click", () => {
+          const ta = document.createElement("textarea")
+          ta.value = reportText(yrState.data)
+          document.body.appendChild(ta)
+          ta.select()
+          try {
+            document.execCommand("copy")
+            copyBtn.textContent = "已复制 ✓"
+            setTimeout(() => (copyBtn.textContent = "复制报告文字"), 1600)
+          } catch {
+            /* ignore */
+          }
+          ta.remove()
+        })
+      yrApplyPos()
+    }
+  }
+  function openYearReport() {
+    if (yrState && $("yearReportOverlay")) {
+      renderYearReport()
+      return
+    }
+    const cur = String(new Date().getFullYear())
+    const curBucket = (stats.yearly || {})[cur]
+    let mode = cur
+    if (!curBucket || (curBucket.playCount || 0) < 20) mode = "all"
+    let ov = $("yearReportOverlay")
+    if (!ov) {
+      ov = document.createElement("div")
+      ov.id = "yearReportOverlay"
+      document.body.appendChild(ov)
+    }
+    const keyHandler = (e) => {
+      if (!$("yearReportOverlay")) return
+      if (e.key === "Escape") {
+        e.stopPropagation()
+        closeYearReport()
+      } else if (e.key === "ArrowRight") {
+        e.stopPropagation()
+        yrGo(1)
+      } else if (e.key === "ArrowLeft") {
+        e.stopPropagation()
+        yrGo(-1)
+      }
+    }
+    document.addEventListener("keydown", keyHandler, true)
+    yrState = { mode, idx: 0, data: null, pages: [], keyHandler }
+    renderYearReport()
   }
   function escapeHtml(s) {
     return String(s == null ? "" : s)
