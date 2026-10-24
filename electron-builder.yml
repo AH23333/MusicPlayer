@@ -1,0 +1,34 @@
+appId: com.ah23333.musicplayer
+productName: MusicPlayer
+asar: false
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**/*
+  - assets/icon.ico
+  - utils.js
+extraResources:
+  - from: music-dl-api.exe
+    to: music-dl-api.exe
+win:
+  icon: assets/icon.ico
+  artifactName: MusicPlayer-win32-x64-v${version}.${ext}
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MusicPlayer
+  installerLanguages:
+    - zh_CN
+  include: build/installer.nsh
+  artifactName: MusicPlayer-Setup-v${version}.${ext}
