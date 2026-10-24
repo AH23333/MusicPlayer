@@ -419,6 +419,21 @@ input[type="checkbox"].selection-sq-checkbox:indeterminate::after { content: "";
   padding: 8px 20px 12px;
 }
 .np-progress-wrap { margin-bottom: 8px; }
+/* 隐藏播放器：移除底部 np-bar，压缩内容区底部留白 */
+body.np-bar-hidden .np-bar { display: none; }
+body.np-bar-hidden .content { padding-bottom: 40px; }
+/* 播放器隐藏后的悬浮恢复按钮 */
+.show-player-pill {
+  position: fixed; right: 18px; bottom: 18px; z-index: 95;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform .15s var(--ease), background .15s var(--ease);
+}
+.show-player-pill svg { width: 20px; height: 20px; }
+.show-player-pill:hover { background: var(--bg-3); transform: translateY(-2px); }
+.show-player-pill.hidden { display: none; }
 .np-times { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
 .np-progress { height: 5px; border-radius: 999px; background: var(--bg-hover); cursor: pointer; position: relative; transition: height 0.15s; }
 .np-progress:hover { height: 8px; }
@@ -885,7 +900,7 @@ body.mini-mode .dialog-layer { display: none !important; }
   color: var(--text-3); user-select: none;
 }
 #pdGridSentinel { grid-column: 1 / -1; }
-.dg-card { cursor: pointer; min-width: 0; }
+.dg-card { position: relative; cursor: pointer; min-width: 0; }
 .dg-cover {
   position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
   background: var(--bg-2); margin-bottom: 8px;
@@ -906,6 +921,15 @@ body.mini-mode .dialog-layer { display: none !important; }
 .dg-card:hover .dg-play { opacity: 1; transform: translateY(0); }
 .dg-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dg-artist { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 封面网格单曲勾选框：悬浮或已勾选时显示在封面右上角 */
+input[type="checkbox"].dg-cb {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  background: color-mix(in srgb, var(--bg-2) 80%, transparent);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  opacity: 0; transition: opacity .15s var(--ease);
+}
+.dg-card:hover input[type="checkbox"].dg-cb,
+input[type="checkbox"].dg-cb:checked { opacity: 1; }
 
 /* ===== 智能歌单 ===== */
 .sb-smart-list { margin-bottom: 4px; }

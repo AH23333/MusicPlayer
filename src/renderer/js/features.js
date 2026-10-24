@@ -1193,6 +1193,8 @@
     const dmSec = $("downloadManagerSection")
     if (dmSec) dmSec.classList.add("hidden")
     sec.classList.remove("hidden")
+    if (typeof Player.navRecord === "function")
+      Player.navRecord("听歌统计", () => openStats())
 
     const entries = Object.values(stats.songs).sort((a, b) => b.count - a.count || b.seconds - a.seconds)
     const totalSongs = entries.length
@@ -1278,7 +1280,8 @@
   }
   let homeData = { recent: [], liked: [] }
   // ===== 热门榜单（go-music-dl toplist 能力）=====
-  const TL_SOURCES = [
+  // 音源 Tab 会由 initSourceCaps() 按 /api/sources 能力表过滤，故用 let
+  let TL_SOURCES = [
     ["netease", "网易"],
     ["qq", "QQ"],
     ["kugou", "酷狗"],
@@ -1343,7 +1346,7 @@
     )
   }
   // ===== 为你推荐歌单（go-music-dl recommend 能力）=====
-  const REC_SOURCES = [
+  let REC_SOURCES = [
     ["netease", "网易"],
     ["qq", "QQ"],
     ["kugou", "酷狗"],
@@ -1405,7 +1408,7 @@
     )
   }
   // ===== 歌单广场（go-music-dl 分类浏览能力）=====
-  const SQ_SOURCES = [
+  let SQ_SOURCES = [
     ["netease", "网易"],
     ["qq", "QQ"],
     ["kugou", "酷狗"],
@@ -1868,6 +1871,81 @@
       const card = e.target.closest("[data-song-key]")
       if (card) playSongFromHome(homeSongMap.get(card.dataset.songKey))
     })
+    // 首页榜单/推荐/广场卡片右键：打开 / 播放 / 导入为自定义歌单
+    home.addEventListener("contextmenu", (e) => {
+      if (typeof Player.showOnlinePlaylistMenu !== "function") return
+      const plLoadSongs = (p) => async () => {
+        const res = await window.ElectronAPI.musicDlPlaylistDetail(
+          p.source,
+          String(p.id),
+          p.name
+        )
+        if (!res || res.error || !Array.isArray(res.songs)) return null
+        return res.songs
+          .map((s) => Player.enrichDlSong(Object.assign({}, s, { source: s.source || p.source })))
+          .filter(Boolean)
+      }
+      const tlCard = e.target.closest("[data-tl-idx]")
+      if (tlCard) {
+        const lists = toplistState.lists[toplistState.source] || []
+        const t = lists[Number(tlCard.dataset.tlIdx)]
+        if (t) {
+          e.preventDefault()
+          t.source = t.source || toplistState.source
+          Player.showOnlinePlaylistMenu(e, {
+            id: "toplist-" + t.source + "-" + t.id,
+            name: t.name,
+            description: t.update_frequency || t.description || "",
+            loadSongs: async () => {
+              const res = await window.ElectronAPI.musicDlToplistSongs(
+                t.source,
+                String(t.id),
+                t.name
+              )
+              if (!res || res.error || !Array.isArray(res.songs)) return null
+              return res.songs
+                .map((s) =>
+                  Player.enrichDlSong(Object.assign({}, s, { source: s.source || t.source }))
+                )
+                .filter(Boolean)
+            },
+          })
+        }
+        return
+      }
+      const recCard = e.target.closest("[data-rec-idx]")
+      if (recCard) {
+        const lists = recState.lists[recState.source] || []
+        const p = lists[Number(recCard.dataset.recIdx)]
+        if (p) {
+          e.preventDefault()
+          p.source = p.source || recState.source
+          Player.showOnlinePlaylistMenu(e, {
+            id: "rec-" + p.source + "-" + p.id,
+            name: p.name,
+            description: p.description || "",
+            loadSongs: plLoadSongs(p),
+          })
+        }
+        return
+      }
+      const sqCard = e.target.closest("[data-sq-idx]")
+      if (sqCard) {
+        const catId = sqState.catId[sqState.source] || ""
+        const lists = sqState.lists[sqCatKey(sqState.source, catId)] || []
+        const p = lists[Number(sqCard.dataset.sqIdx)]
+        if (p) {
+          e.preventDefault()
+          p.source = p.source || sqState.source
+          Player.showOnlinePlaylistMenu(e, {
+            id: "sq-" + p.source + "-" + p.id,
+            name: p.name,
+            description: p.description || "",
+            loadSongs: plLoadSongs(p),
+          })
+        }
+      }
+    })
     // 自动显隐：其他视图显示时隐藏首页
     const sync = () => {
       const other =
@@ -1901,16 +1979,21 @@
       }
     })
     Player.on("songchange", () => refreshHome())
-    // 点击品牌卡片回到首页
+    // 点击品牌卡片回到首页（并计入导航历史）
     const sbUser = document.querySelector(".sb-user")
     if (sbUser) {
       sbUser.addEventListener("click", (e) => {
         if (e.target.closest(".icon-btn, button")) return
-        $("searchResultsSection").classList.add("hidden")
-        $("playlistDetailSection").classList.add("hidden")
-        if ($("statsSection")) $("statsSection").classList.add("hidden")
-        if ($("mineSection")) $("mineSection").classList.add("hidden")
-        if ($("downloadManagerSection")) $("downloadManagerSection").classList.add("hidden")
+        if (typeof Player.navShowHome === "function") {
+          Player.navShowHome()
+          Player.navRecord("首页", () => Player.navShowHome())
+        } else {
+          $("searchResultsSection").classList.add("hidden")
+          $("playlistDetailSection").classList.add("hidden")
+          if ($("statsSection")) $("statsSection").classList.add("hidden")
+          if ($("mineSection")) $("mineSection").classList.add("hidden")
+          if ($("downloadManagerSection")) $("downloadManagerSection").classList.add("hidden")
+        }
         refreshHome()
       })
     }
@@ -2356,6 +2439,35 @@
           }
         }
       })
+      // 云歌单卡片右键：打开 / 播放 / 导入为自定义歌单
+      sec.addEventListener("contextmenu", (e) => {
+        const card = e.target.closest("[data-mine-idx]")
+        if (!card) return
+        const lists = mineState.playlists[mineState.source] || []
+        const p = lists[Number(card.dataset.mineIdx)]
+        if (!p) return
+        e.preventDefault()
+        p.source = p.source || mineState.source
+        if (typeof Player.showOnlinePlaylistMenu !== "function") return
+        Player.showOnlinePlaylistMenu(e, {
+          id: "mine-" + p.source + "-" + p.id,
+          name: p.name,
+          description: p.description || "",
+          loadSongs: async () => {
+            const res = await window.ElectronAPI.musicDlPlaylistDetail(
+              p.source,
+              String(p.id),
+              p.name
+            )
+            if (!res || res.error || !Array.isArray(res.songs)) return null
+            return res.songs
+              .map((s) =>
+                Player.enrichDlSong(Object.assign({}, s, { source: s.source || p.source }))
+              )
+              .filter(Boolean)
+          },
+        })
+      })
     }
     $("searchResultsSection").classList.add("hidden")
     $("playlistDetailSection").classList.add("hidden")
@@ -2366,6 +2478,8 @@
     const dmSec = $("downloadManagerSection")
     if (dmSec) dmSec.classList.add("hidden")
     sec.classList.remove("hidden")
+    if (typeof Player.navRecord === "function")
+      Player.navRecord("我的云歌单", () => openMineSection())
     renderMineSection()
     refreshMineStatuses()
   }
@@ -2698,6 +2812,37 @@
     },
   }
 
+  // ============ 音源能力表（go-music-dl GET /api/sources）============
+  // 按后端声明的能力过滤各版块的音源 Tab；过滤后为空则保留原数组兜底
+  async function initSourceCaps(attempt) {
+    const n = attempt || 1
+    let res = null
+    try {
+      res = await window.ElectronAPI.musicDlSources()
+    } catch (e) {
+      res = null
+    }
+    if (!res || res.error || !Array.isArray(res.caps)) {
+      // 搜索服务可能尚未启动：稍后重试（最多 3 次），期间沿用全量 Tab
+      if (n < 3) setTimeout(() => initSourceCaps(n + 1), 8000)
+      return
+    }
+    const capOf = (id) => res.caps.find((c) => c && c.name === id)
+    const filterBy = (arr, field) => {
+      const kept = arr.filter(([id]) => {
+        const cap = capOf(id)
+        return !!cap && !!cap[field]
+      })
+      return kept.length ? kept : arr.slice()
+    }
+    TL_SOURCES = filterBy(TL_SOURCES, "toplist")
+    REC_SOURCES = filterBy(REC_SOURCES, "recommend")
+    SQ_SOURCES = filterBy(SQ_SOURCES, "playlist")
+    // 首页正在展示时刷新 Tab
+    const home = $("homeSection")
+    if (home && !home.classList.contains("hidden")) renderHome()
+  }
+
   // ============ 启动 ============
   function start() {
     initMediaKeys()
@@ -2720,6 +2865,7 @@
     initExportLyric()
     initSmartPlaylists()
     initReactions()
+    initSourceCaps()
     // 频谱依赖歌词页 DOM，延迟初始化
     initSpectrum()
   }

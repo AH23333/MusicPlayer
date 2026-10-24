@@ -327,6 +327,12 @@
         box.checked = on
       })
     }
+    // 封面网格视图的勾选框同步
+    if (playlistDetailGrid) {
+      playlistDetailGrid.querySelectorAll(".download-song-cb").forEach((box) => {
+        box.checked = on
+      })
+    }
     syncPlaylistDetailSelectAllCheckbox()
   }
 
@@ -717,7 +723,7 @@
     playlistDetailListCard,
     viewListBtn,
     viewGridBtn
-  let backToSearchBtn
+  let navBackBtn, navForwardBtn
   let lyricsArea,
     lyricsInterface,
     closeLyricsBtn,
@@ -777,7 +783,8 @@
     playlistDetailListCard = document.getElementById("playlistDetailListCard")
     viewListBtn = document.getElementById("viewListBtn")
     viewGridBtn = document.getElementById("viewGridBtn")
-    backToSearchBtn = document.getElementById("backToSearchBtn")
+    navBackBtn = document.getElementById("navBackBtn")
+    navForwardBtn = document.getElementById("navForwardBtn")
     lyricsArea = document.getElementById("lyricsArea")
     lyricsInterface = document.getElementById("lyricsInterface")
     closeLyricsBtn = document.getElementById("closeLyricsBtn")
@@ -1163,7 +1170,6 @@
             searchResultsSection.classList.remove("hidden")
           if (playlistDetailSection)
             playlistDetailSection.classList.add("hidden")
-          if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
           if (searchResultList)
             searchResultList.innerHTML =
               '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
@@ -1173,6 +1179,7 @@
             await loadSearchResults(keyword, searchOffset)
           }
           await updateSearchHistory(keyword)
+          recordSearchNav(keyword)
           if (searchResultsSection) {
             searchResultsSection.classList.remove("fade-in")
             void searchResultsSection.offsetWidth
@@ -1225,7 +1232,7 @@
     if (sectionTitle) sectionTitle.textContent = "关注歌手"
     if (searchResultList) searchResultList.innerHTML = ""
     setLoadMoreVisible(false)
-    if (backToSearchBtn) backToSearchBtn.classList.remove("hidden")
+    navRecord("关注歌手", () => showFollowedArtists())
 
     if (followedArtists.length === 0) {
       const emptyMessage = document.createElement("li")
@@ -1264,27 +1271,27 @@
           } else {
             if (clearSearchBtn) clearSearchBtn.classList.add("hidden")
           }
-          // 隐藏返回按钮
-          if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
-          // 显示加载动画
-          if (searchResultsSection)
-            searchResultsSection.classList.remove("hidden")
-          if (playlistDetailSection)
-            playlistDetailSection.classList.add("hidden")
-          if (searchResultList)
-            searchResultList.innerHTML =
-              '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
-          // 设置标题为"搜索结果"
-          const titleEl = document.querySelector("#searchResultsSection h2")
-          if (titleEl) titleEl.textContent = "搜索结果"
-          // 歌手搜索固定为单曲模式
-          setSearchTypeUi("song")
-          // 执行搜索
-          await loadSearchResults(artistName, 0)
-          // 更新搜索历史
-          await updateSearchHistory(artistName)
-          // 初始化搜索状态
-          initSearchState()
+           // 隐藏返回按钮
+           // 显示加载动画
+           if (searchResultsSection)
+             searchResultsSection.classList.remove("hidden")
+           if (playlistDetailSection)
+             playlistDetailSection.classList.add("hidden")
+           if (searchResultList)
+             searchResultList.innerHTML =
+               '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
+           // 设置标题为"搜索结果"
+           const titleEl = document.querySelector("#searchResultsSection h2")
+           if (titleEl) titleEl.textContent = "搜索结果"
+           // 歌手搜索固定为单曲模式
+           setSearchTypeUi("song")
+           // 执行搜索
+           await loadSearchResults(artistName, 0)
+           // 更新搜索历史
+           await updateSearchHistory(artistName)
+           // 初始化搜索状态
+           initSearchState()
+           recordSearchNav(artistName)
           if (searchResultsSection) {
             searchResultsSection.classList.remove("fade-in")
             void searchResultsSection.offsetWidth
@@ -1698,8 +1705,6 @@
     ) {
       artistStripEl.classList.add("hidden")
     }
-    if (backToSearchBtn) backToSearchBtn.classList.remove("hidden")
-
     if (
       playlist.id === "liked" ||
       playlist.id === "recent" ||
@@ -1754,6 +1759,14 @@
     } else {
       if (exportPlaylistBtnEl) exportPlaylistBtnEl.classList.add("hidden")
       if (playPlaylistBtnEl) playPlaylistBtnEl.classList.add("hidden")
+    }
+
+    // 自定义歌单：详情页内提供“编辑”入口（与侧边栏右键“修改歌单”同能力）
+    const editInfoBtn = document.getElementById("editPlaylistInfoBtn")
+    if (editInfoBtn) {
+      const isDiy = diyPlaylists.some((d) => d && d.id === playlist.id)
+      editInfoBtn.classList.toggle("hidden", !isDiy)
+      editInfoBtn.onclick = () => editPlaylist(playlist)
     }
 
     const playlistDetailNameEl = document.getElementById("playlistDetailName")
@@ -1847,6 +1860,7 @@
     if (playlist.id === "local") {
       applyLocalDownloadProgressUI()
     }
+    navRecord(playlist.name || "歌单详情", () => showPlaylistDetail(playlist))
   }
 
   // ===== 歌单详情分批渲染：大歌单不再一次性渲染全部行（列表+网格都分批），避免卡顿 =====
@@ -2053,6 +2067,22 @@
         e.preventDefault()
         showSongContextMenu(e, song, "playlist-detail")
       })
+      // 封面网格单曲勾选（与列表视图共用 selectedPlaylistDetailIds，供全选/下载）
+      if (!isSongLocalPath(song)) {
+        const cb = document.createElement("input")
+        cb.type = "checkbox"
+        cb.className = "download-song-cb selection-sq-checkbox dg-cb"
+        cb.dataset.songId = song.id
+        cb.checked = selectedPlaylistDetailIds.has(song.id)
+        cb.title = "选择下载"
+        cb.addEventListener("click", (ev) => ev.stopPropagation())
+        cb.addEventListener("change", () => {
+          if (cb.checked) selectedPlaylistDetailIds.add(song.id)
+          else selectedPlaylistDetailIds.delete(song.id)
+          syncPlaylistDetailSelectAllCheckbox()
+        })
+        card.appendChild(cb)
+      }
       if (sentinel) playlistDetailGrid.insertBefore(card, sentinel)
       else playlistDetailGrid.appendChild(card)
     }
@@ -2372,6 +2402,125 @@
     }, 0)
   }
 
+  // 主窗口在线歌单卡片右键菜单：打开 / 播放 / 导入为自定义歌单
+  // opts: { id, name, description, loadSongs: async () => enrichedSongs }
+  function showOnlinePlaylistMenu(e, opts) {
+    if (!opts || typeof opts.loadSongs !== "function") return
+    const existingMenus = document.querySelectorAll(
+      ".context-menu, .artist-selection-menu, .online-pl-menu"
+    )
+    existingMenus.forEach((menu) => menu.remove())
+
+    const menu = document.createElement("div")
+    menu.className =
+      "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700 context-menu online-pl-menu"
+    // 压过队列抽屉 z72 / 标题栏 z200，防止菜单被盖住
+    menu.style.zIndex = "320"
+    menu.innerHTML = `
+      <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="onlinePlOpenBtn">打开歌单</button>
+      <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="onlinePlPlayBtn">播放歌单</button>
+      <div class="border-t border-gray-300 my-1 dark:border-gray-700"></div>
+      <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="onlinePlImportBtn">导入为自定义歌单</button>
+    `
+    document.body.appendChild(menu)
+
+    const menuRect = menu.getBoundingClientRect()
+    let left = e.clientX
+    let top = e.clientY
+    if (left + menuRect.width > window.innerWidth)
+      left = window.innerWidth - menuRect.width - 10
+    if (top + menuRect.height > window.innerHeight)
+      top = window.innerHeight - menuRect.height - 10
+    left = Math.max(10, left)
+    top = Math.max(10, top)
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
+
+    let songsCache = null
+    const loadSongs = async () => {
+      if (songsCache) return songsCache
+      showToast(`正在加载歌单《${opts.name || ""}》`, "info")
+      let songs = null
+      try {
+        songs = await opts.loadSongs()
+      } catch (err) {
+        songs = null
+      }
+      if (!songs) {
+        showToastError("歌单加载失败，请稍后重试")
+        return null
+      }
+      if (!songs.length) {
+        showToastWarning("该歌单暂无可用歌曲")
+        return null
+      }
+      songsCache = songs
+      return songs
+    }
+    const openWith = (songs, autoplay) => {
+      const pl = {
+        id: opts.id || "online-" + Date.now(),
+        name: opts.name || "在线歌单",
+        songs,
+        description: opts.description || "",
+      }
+      showPlaylistDetail(pl)
+      if (autoplay) playPlaylist(pl)
+    }
+
+    const openBtn = menu.querySelector("#onlinePlOpenBtn")
+    const playBtn = menu.querySelector("#onlinePlPlayBtn")
+    const importBtn = menu.querySelector("#onlinePlImportBtn")
+    if (openBtn)
+      openBtn.addEventListener("click", async () => {
+        menu.remove()
+        const songs = await loadSongs()
+        if (songs) openWith(songs, false)
+      })
+    if (playBtn)
+      playBtn.addEventListener("click", async () => {
+        menu.remove()
+        const songs = await loadSongs()
+        if (songs) openWith(songs, true)
+      })
+    if (importBtn)
+      importBtn.addEventListener("click", async () => {
+        menu.remove()
+        const songs = await loadSongs()
+        if (songs)
+          importPlaylistAsCustom(
+            opts.name || "导入的歌单",
+            songs,
+            opts.description || ""
+          )
+      })
+
+    setTimeout(() => {
+      document.addEventListener("click", function closeMenu(ev) {
+        if (!menu.contains(ev.target)) {
+          if (document.body.contains(menu)) menu.remove()
+          document.removeEventListener("click", closeMenu)
+        }
+      })
+    }, 0)
+  }
+
+  // 将在线歌单曲目保存为自定义歌单（出现在侧边栏“我的歌单”）
+  function importPlaylistAsCustom(name, songs, description) {
+    const playlist = {
+      id: Date.now().toString(),
+      name: name || "导入的歌单",
+      description: description || "",
+      coverPath: "",
+      songs: songs || [],
+    }
+    diyPlaylists.push(playlist)
+    window.ElectronAPI.saveDIYPlaylists(diyPlaylists)
+    renderPlaylistSidebar()
+    showPlaylistDetail(playlist)
+    showToast(`已导入歌单《${playlist.name}》（${playlist.songs.length}首）`)
+  }
+
   function playPlaylist(selectedPlaylist) {
     if (selectedPlaylist.songs.length === 0) {
       showToastWarning("歌单为空，无法播放")
@@ -2410,7 +2559,9 @@
           window.ElectronAPI.saveDIYPlaylists(diyPlaylists)
           renderPlaylistSidebar()
           if (currentPlaylist && currentPlaylist.id === playlist.id) {
-            backToSearch()
+            // 正在查看的歌单被删除：后退到上一页，无历史则回首页
+            if (navIndex > 0) navGoBack()
+            else navShowHome()
           }
           showToast(`歌单《${playlist.name}》已删除`)
         }
@@ -2585,40 +2736,111 @@
     initialSearchState = saveCurrentSearchState()
   }
 
-  function backToSearch() {
-    currentPlaylist = null
-    if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
-    if (searchResultsSection) searchResultsSection.classList.remove("hidden")
-    if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
-    if (searchType === "playlist") {
-      // 歌单搜索模式：恢复歌单搜索结果
-      renderPlaylistSearchResults()
-      const titleElement = document.querySelector("#searchResultsSection h2")
-      if (titleElement) titleElement.textContent = "搜索结果"
-      if (searchInput) searchInput.value = currentKeyword
-      if (searchResultsSection) {
-        searchResultsSection.classList.remove("fade-in")
-        void searchResultsSection.offsetWidth
-        searchResultsSection.classList.add("fade-in")
-      }
+  // ========== 页面导航历史（后退 / 前进，类似撤销与重做） ==========
+  const navHistory = [] // [{ title, replay }]
+  let navIndex = -1
+  let navApplying = false
+
+  function navUpdateButtons() {
+    if (navBackBtn) {
+      const can = navIndex > 0
+      navBackBtn.classList.toggle("hidden", !can)
+      navBackBtn.disabled = !can
+    }
+    if (navForwardBtn) {
+      const can = navIndex >= 0 && navIndex < navHistory.length - 1
+      navForwardBtn.classList.toggle("hidden", !can)
+      navForwardBtn.disabled = !can
+    }
+  }
+
+  // 记录一次页面跳转；导航回放期间不记录，避免回退/前进时污染历史
+  function navRecord(title, replay) {
+    if (typeof replay !== "function") return
+    if (navApplying) return
+    // 已停留在该页时重复进入（如连点侧栏按钮）不产生重复历史
+    const cur = navHistory[navIndex]
+    if (cur && cur.title === title) {
+      cur.replay = replay
       return
     }
-    if (searchResults.length > 0) {
-      if (searchResultList) {
-        searchResultList.innerHTML = ""
-        renderSearchResults(searchResults, 0)
-      }
-      if (searchResultsSection) {
-        searchResultsSection.classList.remove("fade-in")
-        void searchResultsSection.offsetWidth
-        searchResultsSection.classList.add("fade-in")
+    navHistory.splice(navIndex + 1)
+    navHistory.push({ title, replay })
+    navIndex = navHistory.length - 1
+    navUpdateButtons()
+  }
+
+  function navApply(entry) {
+    if (!entry || typeof entry.replay !== "function") return
+    navApplying = true
+    try {
+      entry.replay()
+    } finally {
+      navApplying = false
+      navUpdateButtons()
+    }
+  }
+
+  function navGoBack() {
+    if (navIndex <= 0) return
+    navIndex--
+    navApply(navHistory[navIndex])
+  }
+
+  function navGoForward() {
+    if (navIndex < 0 || navIndex >= navHistory.length - 1) return
+    navIndex++
+    navApply(navHistory[navIndex])
+  }
+
+  // 回到首页：隐藏全部二级视图
+  function navShowHome() {
+    if (searchResultsSection) searchResultsSection.classList.add("hidden")
+    if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
+    ;["statsSection", "mineSection", "downloadManagerSection"].forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) el.classList.add("hidden")
+    })
+    const home = document.getElementById("homeSection")
+    if (home) home.classList.remove("hidden")
+  }
+
+  // 构造“回到某次搜索结果”的回放闭包
+  function navReplaySearch(keyword, state, stype) {
+    return () => {
+      currentPlaylist = null
+      currentKeyword = keyword
+      if (searchInput) searchInput.value = keyword
+      if (searchResultsSection) searchResultsSection.classList.remove("hidden")
+      if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
+      ;["statsSection", "mineSection", "downloadManagerSection"].forEach((id) => {
+        const el = document.getElementById(id)
+        if (el) el.classList.add("hidden")
+      })
+      const titleEl = document.querySelector("#searchResultsSection h2")
+      if (titleEl) titleEl.textContent = "搜索结果"
+      if (stype === "playlist") {
+        renderPlaylistSearchResults()
+      } else {
+        restoreSearchState(state)
       }
     }
-    // 确保标题是搜索结果
-    const titleElement = document.querySelector("#searchResultsSection h2")
-    if (titleElement) titleElement.textContent = "搜索结果"
-    if (searchInput) searchInput.value = currentKeyword
-    setLoadMoreVisible(searchResults.length >= PAGE_SIZE)
+  }
+
+  // 搜索完成后记录当前结果快照
+  function recordSearchNav(keyword) {
+    const state = saveCurrentSearchState()
+    navRecord(`搜索：${keyword}`, navReplaySearch(keyword, state, searchType))
+  }
+
+  // ========== 隐藏播放器（np-bar） ==========
+  function applyPlayerHidden(hidden) {
+    document.body.classList.toggle("np-bar-hidden", !!hidden)
+    const showBtn = document.getElementById("showPlayerBtn")
+    if (showBtn) showBtn.classList.toggle("hidden", !hidden)
+    try {
+      localStorage.setItem("mp-np-hidden", hidden ? "1" : "0")
+    } catch (e) {}
   }
 
   async function toggleLike(song) {
@@ -3724,7 +3946,6 @@
       searchOffset = 0
       if (searchResultsSection) searchResultsSection.classList.remove("hidden")
       if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
-      if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
       // 设置标题为"搜索结果"
       const titleElement = document.querySelector("#searchResultsSection h2")
       if (titleElement) titleElement.textContent = "搜索结果"
@@ -3739,6 +3960,7 @@
       }
       await updateSearchHistory(keyword)
       initSearchState()
+      recordSearchNav(keyword)
       if (searchResultsSection) {
         searchResultsSection.classList.remove("fade-in")
         void searchResultsSection.offsetWidth
@@ -3832,13 +4054,21 @@
         '<div class="pl-name">' + escapeHtml(p.name) + "</div>" +
         '<div class="pl-sub">' + escapeHtml(subParts.join(" · ")) + "</div>"
       li.addEventListener("click", () => openSearchedPlaylist(p))
+      li.addEventListener("contextmenu", (e) => {
+        e.preventDefault()
+        showOnlinePlaylistMenu(e, {
+          id: "search-pl-" + (p.source || "web") + "-" + p.id,
+          name: p.name,
+          description: p.description || "",
+          loadSongs: () => fetchSearchedPlaylistSongs(p),
+        })
+      })
       searchResultList.appendChild(li)
     })
   }
 
-  async function openSearchedPlaylist(p) {
-    if (!p || !p.id) return
-    window.MusicPlayer.toast("正在加载歌单《" + p.name + "》", "info")
+  // 拉取歌单搜索结果的曲目（失败返回 null，由调用方决定提示文案）
+  async function fetchSearchedPlaylistSongs(p) {
     let res = null
     try {
       res = await window.ElectronAPI.musicDlPlaylistDetail(
@@ -3849,15 +4079,22 @@
     } catch (e) {
       res = null
     }
-    if (!res || res.error || !Array.isArray(res.songs)) {
-      showToastError("歌单加载失败：" + (res && res.error ? res.error : "未知错误"))
-      return
-    }
-    const songs = res.songs
+    if (!res || res.error || !Array.isArray(res.songs)) return null
+    return res.songs
       .map((s) =>
         enrichMusicDlSearchSong(Object.assign({}, s, { source: s.source || p.source }))
       )
       .filter(Boolean)
+  }
+
+  async function openSearchedPlaylist(p) {
+    if (!p || !p.id) return
+    window.MusicPlayer.toast("正在加载歌单《" + p.name + "》", "info")
+    const songs = await fetchSearchedPlaylistSongs(p)
+    if (!songs) {
+      showToastError("歌单加载失败，请稍后重试")
+      return
+    }
     if (!songs.length) {
       showToastWarning("该歌单暂无可用歌曲")
       return
@@ -4516,7 +4753,6 @@
         if (searchResultList) searchResultList.innerHTML = ""
         if (searchResultsSection) searchResultsSection.classList.remove("hidden")
         if (playlistDetailSection) playlistDetailSection.classList.add("hidden")
-        if (backToSearchBtn) backToSearchBtn.classList.add("hidden")
         if (searchResultList)
           searchResultList.innerHTML =
             '<div class="p-10 text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div><p class="mt-2 text-gray-600 dark:text-gray-400">搜索中...</p></div>'
@@ -4919,10 +5155,21 @@
       })
     }
 
-    // 返回按钮
-    if (backToSearchBtn) {
-      backToSearchBtn.addEventListener("click", backToSearch)
+    // 导航历史：返回上一页 / 前进下一页
+    if (navBackBtn) {
+      navBackBtn.addEventListener("click", navGoBack)
     }
+    if (navForwardBtn) {
+      navForwardBtn.addEventListener("click", navGoForward)
+    }
+
+    // 隐藏 / 显示播放器（np-bar）
+    const hidePlayerBtn = document.getElementById("hidePlayerBtn")
+    if (hidePlayerBtn)
+      hidePlayerBtn.addEventListener("click", () => applyPlayerHidden(true))
+    const showPlayerBtnEl = document.getElementById("showPlayerBtn")
+    if (showPlayerBtnEl)
+      showPlayerBtnEl.addEventListener("click", () => applyPlayerHidden(false))
 
     // 搜索
     if (searchInput) {
@@ -5211,6 +5458,13 @@
     }
 
     syncDownloadQualitySelects()
+    // 恢复播放器隐藏状态；首页作为导航历史的起点
+    let npHidden = false
+    try {
+      npHidden = localStorage.getItem("mp-np-hidden") === "1"
+    } catch (e) {}
+    applyPlayerHidden(npHidden)
+    navRecord("首页", navShowHome)
     emitFeature("app-ready")
   }
 
@@ -5286,6 +5540,14 @@
     // 通用歌单详情入口（排行榜/在线歌单等）
     openPlaylist: (id, name, songs, description) =>
       showPlaylistDetail({ id, name, songs, description: description || "" }),
+    // 页面导航历史（后退/前进）
+    navRecord: (title, replay) => navRecord(title, replay),
+    navGoBack: () => navGoBack(),
+    navGoForward: () => navGoForward(),
+    navShowHome: () => navShowHome(),
+    // 歌单整卡操作
+    playPlaylist: (p) => playPlaylist(p),
+    showOnlinePlaylistMenu: (e, opts) => showOnlinePlaylistMenu(e, opts),
     // 将 go-music-dl 返回的歌曲归一化为播放器内部结构
     enrichDlSong: (s) => enrichMusicDlSearchSong(s),
     // 歌手页（多源热门歌曲 + 专辑浏览）

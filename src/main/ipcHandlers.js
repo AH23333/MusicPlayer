@@ -1657,6 +1657,20 @@ function initIpcHandlers() {
     }
   })
 
+  // 音源能力表（go-music-dl GET /api/sources）：各源 search/playlist/toplist/recommend 等能力
+  ipcMain.handle("musicDlSources", async () => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/sources`,
+        { timeout: 15000 }
+      )
+      return response.data
+    } catch (error) {
+      logger.error("获取音源能力表失败:", error.message)
+      return { error: error.message }
+    }
+  })
+
   // 排行榜列表（复用 go-music-dl 的 toplist 能力）
   ipcMain.handle("musicDlToplists", async (event, source = "netease") => {
     try {
