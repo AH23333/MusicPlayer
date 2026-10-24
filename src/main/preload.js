@@ -48,6 +48,11 @@ contextBridge.exposeInMainWorld("ElectronAPI", {
     ipcRenderer.invoke("delete-local-song", songUrl),
   showItemInFolder: (filePath) =>
     ipcRenderer.invoke("show-item-in-folder", filePath),
+  // 系统集成：播放防休眠（true/false 变更，其他值仅查询）+ 文件关联打开
+  powerSave: (on) => ipcRenderer.invoke("power-save", on),
+  getPendingOpenFiles: () => ipcRenderer.invoke("get-pending-open-files"),
+  onOpenAudioFiles: (callback) =>
+    ipcRenderer.on("open-audio-files", (event, files) => callback(files)),
   openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
   selectDownloadDirectory: () =>
     ipcRenderer.invoke("select-download-directory"),

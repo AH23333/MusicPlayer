@@ -854,8 +854,11 @@ function initIpcHandlers() {
         if (supportedFormats.includes(extWithoutDot)) {
           const destPath = path.join(localDir, fileName)
 
-          // 复制文件
-          await fs.copyFile(filePath, destPath)
+          // 源即目标（文件已在本库目录）时跳过复制，避免 copyFile 自拷贝报错
+          if (path.resolve(filePath) !== path.resolve(destPath)) {
+            // 复制文件
+            await fs.copyFile(filePath, destPath)
+          }
           logger.info(`导入歌曲：${fileName}`)
 
           // 提取歌曲信息

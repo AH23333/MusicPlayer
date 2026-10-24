@@ -10,6 +10,7 @@ const {
   screen,
   protocol,
   net,
+  powerSaveBlocker,
 } = require("electron")
 const path = require("path")
 const zlib = require("zlib")
@@ -68,8 +69,58 @@ let desktopLyricsLocked = false
 let savedBounds = null
 let isQuitting = false
 let miniModeActive = false
+// 单实例锁：多开会二次拉起 music-dl-api（端口冲突）并出现双托盘，
+// 第二实例直接退出，由已有实例接收 argv（文件关联打开场景）
+const gotSingleLock = app.requestSingleInstanceLock()
+if (!gotSingleLock) {
+  app.quit()
+} else {
+  // 第二实例退出前会触发：聚焦已有窗口并转发其命令行（关联打开的音频文件）
+  app.on("second-instance", (_event, argv) => {
+    restoreMainWindow()
+    pushOpenFiles(collectAudioFilesFromArgv(argv))
+  })
+}
+
 // 通知图标缓存：避免每次切歌都重新生成 64px PNG
 let notifyIconCache = null
+
+// ============ 文件关联 / 命令行打开音频 ============
+const AUDIO_EXTS = [".mp3", ".wav", ".flac", ".m4a", ".ogg", ".wma"]
+let pendingOpenFiles = []
+
+function isAudioFilePath(p) {
+  if (typeof p !== "string" || p === "" || p.startsWith("-")) return false
+  try {
+    const abs = path.resolve(p)
+    if (!AUDIO_EXTS.includes(path.extname(abs).toLowerCase())) return false
+    return fs.existsSync(abs)
+  } catch (e) {
+    return false
+  }
+}
+
+// 过滤 argv 中的命令行音频文件路径（跳过 electron 本身、"."、flag 参数）
+function collectAudioFilesFromArgv(argv) {
+  return (argv || []).filter(isAudioFilePath).map((p) => path.resolve(p))
+}
+
+// 把关联打开的音频文件转发给渲染进程；窗口未就绪时暂存，待渲染进程拉取
+function pushOpenFiles(files) {
+  const list = (files || []).filter(isAudioFilePath).map((p) => path.resolve(p))
+  if (!list.length) return
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("open-audio-files", list)
+  } else {
+    pendingOpenFiles = pendingOpenFiles.concat(list)
+  }
+}
+
+// macOS 通过 open-file 事件拿到关联文件（需在 app.ready 前注册才能捕获启动时的文件）
+app.on("open-file", (event, filePath) => {
+  event.preventDefault()
+  if (isAudioFilePath(filePath)) pushOpenFiles([filePath])
+})
 
 // 生成绿色音符托盘图标（无需外部资源）
 function createTrayIcon(size = 22) {
@@ -650,9 +701,45 @@ function createWindow() {
   })
 }
 
+// 渲染进程就绪后拉取启动时关联打开的音频文件（窗口未就绪期间暂存的）
+ipcMain.handle("get-pending-open-files", () => {
+  const files = pendingOpenFiles
+  pendingOpenFiles = []
+  return files
+})
+
+// 播放时阻止系统休眠/挂起（屏幕允许熄灭），暂停即释放
+// on: true/false 变更状态；其他值（如 "query"）仅查询
+let powerSaveBlockerId = null
+ipcMain.handle("power-save", (_event, on) => {
+  try {
+    if (on === true || on === false) {
+      const running =
+        powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)
+      if (on && !running) {
+        powerSaveBlockerId = powerSaveBlocker.start("prevent-app-suspension")
+      } else if (!on && running) {
+        powerSaveBlocker.stop(powerSaveBlockerId)
+        powerSaveBlockerId = null
+      }
+    }
+    return {
+      started:
+        powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId),
+      id: powerSaveBlockerId,
+    }
+  } catch (err) {
+    console.log("[power-save] error", err.message)
+    return { started: false, error: err.message, id: powerSaveBlockerId }
+  }
+})
+
 app.whenReady().then(() => {
   logger.init()
   logger.info("Electron应用启动")
+
+  // 启动命令行里关联打开的音频文件（如双击 .mp3 启动）
+  pushOpenFiles(collectAudioFilesFromArgv(process.argv))
 
   // 全局媒体键
   try {
@@ -692,6 +779,13 @@ app.on("before-quit", () => {
 app.on("will-quit", () => {
   try {
     globalShortcut.unregisterAll()
+  } catch (e) {}
+  // 释放防休眠阻塞器，避免退出后系统仍被占用
+  try {
+    if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+      powerSaveBlocker.stop(powerSaveBlockerId)
+      powerSaveBlockerId = null
+    }
   } catch (e) {}
   // 刷盘日志缓冲，终止 music-dl-api.exe 子进程，避免孤儿进程残留
   try {

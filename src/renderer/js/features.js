@@ -607,6 +607,69 @@
     })
   }
 
+  // ============ 系统集成 ============
+  // 播放时阻止系统休眠（prevent-app-suspension，屏幕允许熄灭）；
+  // 文件关联 / 命令行打开的音频文件走与拖入一致的路：导入库并入队播放
+  function initSystemIntegration() {
+    const API = window.ElectronAPI || {}
+
+    // 防休眠：跟随播放/暂停/切歌状态，幂等同步到主进程
+    if (API.powerSave) {
+      const syncPowerSave = () => {
+        try {
+          API.powerSave(Player.isPlaying())
+        } catch (e) {}
+      }
+      Player.on("play", syncPowerSave)
+      Player.on("pause", syncPowerSave)
+      Player.on("songchange", syncPowerSave)
+      syncPowerSave()
+    }
+
+    // 关联打开的音频文件入队播放（与拖放行为一致）
+    const enqueueOpenedFiles = async (paths) => {
+      if (!Array.isArray(paths) || !paths.length) return
+      let res
+      try {
+        res = await window.ElectronAPI.importLocalSongs(paths)
+      } catch (err) {
+        Player.toast("打开文件失败：" + err.message, "error")
+        return
+      }
+      const songs = (res && res.songs) || []
+      if (!songs.length) {
+        Player.toast("未发现可播放的音频文件", "error")
+        return
+      }
+      let firstIdx = -1
+      let added = 0
+      songs.forEach((s) => {
+        const cur = Player.getQueue()
+        let idx = cur.findIndex((x) => x.id === s.id)
+        if (idx < 0) {
+          idx = cur.length
+          Player.appendRaw(s)
+          added++
+        }
+        if (firstIdx < 0) firstIdx = idx
+      })
+      if (firstIdx >= 0) Player.playAt(firstIdx)
+      Player.toast(
+        added ? "已打开 " + added + " 个音频文件" : "文件已在队列中",
+        added ? "success" : "info"
+      )
+    }
+
+    if (API.getPendingOpenFiles) {
+      API.getPendingOpenFiles()
+        .then(enqueueOpenedFiles)
+        .catch(() => {})
+    }
+    if (API.onOpenAudioFiles) {
+      API.onOpenAudioFiles((files) => enqueueOpenedFiles(files))
+    }
+  }
+
   // ============ 迷你模式 ============
   let miniBar = null
   function initMiniMode() {
@@ -3750,6 +3813,7 @@
     initExportLyric()
     initSmartPlaylists()
     initReactions()
+    initSystemIntegration()
     initSourceCaps()
     // 频谱依赖歌词页 DOM，延迟初始化
     initSpectrum()
