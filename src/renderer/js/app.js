@@ -91,6 +91,21 @@
     lastActiveIndex = -999 // 强制下一次重新计算并高亮
     return lyricOffset
   }
+  // 歌词翻译显示开关（原文下方显示译文小字）
+  let lyricTransOn = false
+  try {
+    lyricTransOn = localStorage.getItem("mp-lyric-trans") === "1"
+  } catch (e) {
+    lyricTransOn = false
+  }
+  function toggleLyricTrans() {
+    lyricTransOn = !lyricTransOn
+    try {
+      localStorage.setItem("mp-lyric-trans", lyricTransOn ? "1" : "0")
+    } catch (e) {}
+    if (lyricsArea) lyricsArea.classList.toggle("show-trans", lyricTransOn)
+    return lyricTransOn
+  }
   const MAX_SEARCH_HISTORY = 50
   const PAGE_SIZE = 20
   const MAX_LATEST_PLAYED = 50
@@ -1581,13 +1596,35 @@
       })
   }
 
-  function renderLyrics(lyrics, songId) {
+  // 将译文按时间对齐到已解析的原文行（双指针；容差 0.6s 内视为同一句）
+  function alignTranslation(lines, tlrcText) {
+    if (!tlrcText || !lines.length) return
+    const transLines = parseLyrics(tlrcText)
+    if (!transLines.length) return
+    let ti = 0
+    lines.forEach((line) => {
+      while (
+        ti + 1 < transLines.length &&
+        Math.abs(transLines[ti + 1].time - line.time) <=
+          Math.abs(transLines[ti].time - line.time)
+      ) {
+        ti++
+      }
+      const t = transLines[ti]
+      if (t && Math.abs(t.time - line.time) <= 0.6 && t.text) {
+        line.trans = t.text
+      }
+    })
+  }
+
+  function renderLyrics(lyrics, songId, tlrc) {
     // songId 可能为 undefined（清空歌词场景），不得污染缓存键
     const cacheKey = songId != null ? String(songId) : null
     if (cacheKey && lyricsCache.has(cacheKey)) {
       currentLyrics = lyricsCache.get(cacheKey)
     } else {
       currentLyrics = parseLyrics(lyrics)
+      if (tlrc) alignTranslation(currentLyrics, tlrc)
       if (cacheKey) {
         lyricsCache.set(cacheKey, currentLyrics)
         if (lyricsCache.size > LYRICS_CACHE_MAX) {
@@ -1597,6 +1634,7 @@
       }
     }
     if (!lyricsArea) return
+    lyricsArea.classList.toggle("show-trans", lyricTransOn)
     lyricsArea.innerHTML = ""
     lyricLines = []
     if (currentLyrics.length === 0) {
@@ -1614,7 +1652,17 @@
     currentLyrics.forEach((lyric, index) => {
       const line = document.createElement("div")
       line.className = "lyric-line"
-      line.textContent = lyric.text
+      // 原文与译文分层渲染，译文受“翻译”开关控制显隐
+      const textEl = document.createElement("div")
+      textEl.className = "lyric-text"
+      textEl.textContent = lyric.text
+      line.appendChild(textEl)
+      if (lyric.trans) {
+        const transEl = document.createElement("div")
+        transEl.className = "lyric-trans"
+        transEl.textContent = lyric.trans
+        line.appendChild(transEl)
+      }
       line.dataset.index = index
       if (isFinite(lyric.time)) {
         line.classList.add("seekable")
@@ -1835,7 +1883,11 @@
       if (lyricFetchCache.has(fetchKey)) {
         const lyrics = lyricFetchCache.get(fetchKey)
         if (lyrics && (lyrics.lrc || lyrics.tlrc)) {
-          renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId || song.id)
+          renderLyrics(
+            lyrics.lrc || lyrics.tlrc,
+            song.songId || song.id,
+            lyrics.lrc ? lyrics.tlrc : ""
+          )
         } else if (lyricsArea) {
           lyricsArea.innerHTML =
             '<div class="lyrics-empty">🎵 暂无歌词，享受音乐吧~</div>'
@@ -1865,7 +1917,11 @@
       }
 
       if (lyrics && (lyrics.lrc || lyrics.tlrc)) {
-        renderLyrics(lyrics.lrc || lyrics.tlrc, song.songId || song.id)
+        renderLyrics(
+          lyrics.lrc || lyrics.tlrc,
+          song.songId || song.id,
+          lyrics.lrc ? lyrics.tlrc : ""
+        )
       } else {
         if (lyricsArea) {
           lyricsArea.innerHTML =
@@ -5766,6 +5822,10 @@
     getLyrics: () => ({ lines: currentLyrics, activeIndex: lastActiveIndex }),
     getLyricOffset: () => lyricOffset,
     adjustLyricOffset: (d) => adjustLyricOffset(d),
+    isLyricTransOn: () => lyricTransOn,
+    toggleLyricTrans: () => toggleLyricTrans(),
+    // 供测试钩子渲染指定歌词（不对外承诺 UI 行为）
+    renderLyricsForTest: (lrc, songId, tlrc) => renderLyrics(lrc, songId, tlrc),
     toggle: () => togglePlayback(),
     play: () => {
       if (audioPlayer && currentSongIndex >= 0) {

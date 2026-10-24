@@ -1161,3 +1161,8 @@ body.yr-open { overflow: hidden; }
 .lib-group-title { flex: 1; min-width: 0; }
 .lib-group-rows { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 8px; }
 .lib-group-rows .lib-row { background: var(--bg-3); }
+
+/* ============ 歌词翻译 ============ */
+.lyric-line .lyric-trans { display: none; font-size: 0.7em; line-height: 1.4; color: var(--text-3); margin-top: 2px; opacity: 0.92; }
+.lyrics-area.show-trans .lyric-trans { display: block; }
+.lyric-line.active .lyric-trans { color: var(--text-2); }

@@ -6,7 +6,7 @@ exports.API_CONFIGS = {
   neteaseSearch: { url: "https://163api.qijieya.cn/cloudsearch" },
   metingFallback: { url: "https://api.qijieya.cn/meting/" },
   neteaseSongDetail: { url: "https://163api.qijieya.cn/song/detail" },
-  neteaseLyric: { url: "https://163api.qijieya.cn/lyric/new" },
+  neteaseLyric: { url: "https://music.163.com/api/song/lyric" },
   neteaseAudioUrl: { url: "https://api.qijieya.cn/meting/" },
 }
 
@@ -115,7 +115,30 @@ exports.extractCleanLyrics = (content) => {
 // 获取歌词
 exports.fetchLyricsById = async (songId) => {
   if (!songId) return null
-  // 使用Meting API获取歌词
+  const metadata = []
+
+  // 优先：网易云官方歌词接口（同一接口返回原文+翻译，时间轴天然对齐）
+  try {
+    const lyricData = await exports.fetchViaProxy(
+      `${exports.API_CONFIGS.neteaseLyric.url}?id=${songId}&lv=1&kv=1&tv=-1`
+    )
+    if (lyricData && typeof lyricData === "object") {
+      const lrc = lyricData.lrc && lyricData.lrc.lyric ? lyricData.lrc.lyric : ""
+      const tlrc =
+        lyricData.tlyric && lyricData.tlyric.lyric ? lyricData.tlyric.lyric : ""
+      if (lrc || tlrc) {
+        return {
+          lrc,
+          tlrc,
+          metadata,
+        }
+      }
+    }
+  } catch (err) {
+    // 接口异常时回退 Meting
+  }
+
+  // 回退：Meting API 原文歌词（无翻译）
   const lyricUrl = `${exports.API_CONFIGS.metingFallback.url}?server=netease&type=lrc&id=${songId}`
   const lyricData = await exports.fetchViaProxy(lyricUrl)
 
@@ -123,8 +146,6 @@ exports.fetchLyricsById = async (songId) => {
 
   // 处理返回的数据
   let lrc = ""
-  let tlrc = ""
-  const metadata = []
 
   if (typeof lyricData === "string") {
     // 如果返回的是字符串，直接作为歌词
@@ -136,7 +157,7 @@ exports.fetchLyricsById = async (songId) => {
 
   return {
     lrc: lrc || "",
-    tlrc: tlrc || "",
+    tlrc: "",
     metadata: metadata,
   }
 }

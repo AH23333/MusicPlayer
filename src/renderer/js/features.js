@@ -840,8 +840,31 @@
       const text = cur ? cur.text || "" : ""
       const prev = lines[index - 1] ? lines[index - 1].text || "" : ""
       const next = lines[index + 1] ? lines[index + 1].text || "" : ""
-      if (text) API.desktopLyricsLine({ text, prev, next, size: settings.lyricSize })
+      // 译文跟随主歌词页的“翻译”开关
+      const showTrans =
+        typeof Player.isLyricTransOn === "function" && Player.isLyricTransOn()
+      const trans =
+        showTrans && cur && cur.trans && text ? cur.trans : ""
+      if (text) API.desktopLyricsLine({ text, prev, next, trans, size: settings.lyricSize })
     })
+  }
+
+  // ============ 歌词翻译开关 ============
+  function initLyricTrans() {
+    const btn = $("lyricTransBtn")
+    if (!btn) return
+    const sync = () =>
+      btn.classList.toggle(
+        "feature-on",
+        typeof Player.isLyricTransOn === "function" && Player.isLyricTransOn()
+      )
+    btn.addEventListener("click", () => {
+      if (typeof Player.toggleLyricTrans !== "function") return
+      Player.toggleLyricTrans()
+      sync()
+      Player.toast(Player.isLyricTransOn() ? "已显示歌词翻译" : "已隐藏歌词翻译", "info")
+    })
+    sync()
   }
 
   // ============ 频谱可视化 ============
@@ -3665,6 +3688,11 @@
       lastCountedId = null
       localStorage.setItem(STATS_KEY, JSON.stringify(stats))
     },
+    // 歌词翻译链路测试钩子（渲染指定歌词到歌词页，便于自动化验证）
+    renderLyricsForTest: (lrc, songId, tlrc) => {
+      if (typeof Player.renderLyricsForTest !== "function") return null
+      return Player.renderLyricsForTest(lrc, songId, tlrc)
+    },
   }
 
   // ============ 音源能力表（go-music-dl GET /api/sources）============
@@ -3704,6 +3732,7 @@
     initSession()
     initLyricSize()
     initLyricOffset()
+    initLyricTrans()
     initVolumeEx()
     initSidebarToggle()
     initFileDrop()
