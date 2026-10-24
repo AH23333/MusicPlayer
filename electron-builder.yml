@@ -1,0 +1,54 @@
+appId: com.ah23333.musicplayer
+productName: MusicPlayer
+asar: false
+# 文件关联：安装后可双击音频文件直接用本播放器打开（经单实例锁转发到已运行实例）
+fileAssociations:
+  - ext: mp3
+    name: MP3 音频
+    role: Editor
+  - ext: flac
+    name: FLAC 无损音频
+    role: Editor
+  - ext: wav
+    name: WAV 音频
+    role: Editor
+  - ext: m4a
+    name: M4A 音频
+    role: Editor
+  - ext: ogg
+    name: OGG 音频
+    role: Editor
+  - ext: wma
+    name: WMA 音频
+    role: Editor
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**/*
+  - assets/icon.ico
+  - utils.js
+extraResources:
+  - from: music-dl-api.exe
+    to: music-dl-api.exe
+win:
+  icon: assets/icon.ico
+  artifactName: MusicPlayer-win32-x64-v${version}.${ext}
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MusicPlayer
+  installerLanguages:
+    - zh_CN
+  include: build/installer.nsh
+  artifactName: MusicPlayer-Setup-v${version}.${ext}

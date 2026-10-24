@@ -1,1 +1,131 @@
-[]
+[
+  {
+    "id": "1967786901",
+    "songId": "1967786901",
+    "name": "S.S.S.",
+    "artist": "佐藤千亜妃",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951167725225284",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=1967786901"
+  },
+  {
+    "id": "3445560500",
+    "name": "琵琶曲 (司凤版)",
+    "artist": "山本康康",
+    "album": "琵琶曲",
+    "source": "netease",
+    "duration": 198,
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951174076981357",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=3445560500"
+  },
+  {
+    "id": "2651425710",
+    "name": "稻香(深情版)",
+    "artist": "Lucky小爱",
+    "album": "稻香",
+    "source": "netease",
+    "duration": 242,
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951173982244370",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=2651425710"
+  },
+  {
+    "id": "local_MjgyMzg0ODAyMDktMS0zMDIzMi5tcDM",
+    "name": "28238480209-1-30232",
+    "artist": "本地艺术家",
+    "album": "本地专辑",
+    "coverUrl": "",
+    "duration": 0,
+    "url": "D:\\Visual Studio Code\\Something\\restruct-music-player\\ImportLocalSongs\\28238480209-1-30232.mp3",
+    "local": true
+  },
+  {
+    "id": "557922",
+    "songId": "557922",
+    "name": "悲しみがとまらない",
+    "artist": "杏里",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951164975068608",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=557922"
+  },
+  {
+    "id": "3445954288",
+    "songId": "3445954288",
+    "name": "星と僕らと",
+    "artist": "Settle一虾子",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951174082598750",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=3445954288"
+  },
+  {
+    "id": "2122534120",
+    "songId": "2122534120",
+    "name": "浸春芜",
+    "artist": "塞壬唱片-MSR/宋柏/十音/解伟苓",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951169299656333",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=2122534120"
+  },
+  {
+    "id": "3443145320",
+    "songId": "3443145320",
+    "name": "大地之盐",
+    "artist": "塞壬唱片-MSR/何美臻 (Min He)",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951174035154846",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=3443145320"
+  },
+  {
+    "id": "5257138",
+    "songId": "5257138",
+    "name": "屋顶",
+    "artist": "周杰伦/温岚/吴宗宪",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951165671182684",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=5257138"
+  },
+  {
+    "id": "210049",
+    "songId": "210049",
+    "name": "布拉格广场",
+    "artist": "蔡依林/周杰伦",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951172453712025",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=210049"
+  },
+  {
+    "id": "490595315",
+    "songId": "490595315",
+    "name": "因为爱情 (Live)",
+    "artist": "周杰伦/那英",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=18892908300315027",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=490595315"
+  },
+  {
+    "id": "509781655",
+    "songId": "509781655",
+    "name": "想你就写信 (Live)",
+    "artist": "周杰伦/李硕/张鑫",
+    "album": "未知专辑",
+    "coverUrl": "https://api.qijieya.cn/meting/?server=netease&type=pic&id=109951163038292176",
+    "duration": 0,
+    "source": "netease",
+    "url": "https://api.qijieya.cn/meting/?server=netease&type=url&id=509781655"
+  }
+]

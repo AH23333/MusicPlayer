@@ -6,6 +6,7 @@
 main/master分支非项目最新进度，最新更新的项目代码请查看restruct分支！
 
 ## 下载
+
 [点击此处跳转下载](https://github.com/AH23333/MusicPlayer/releases)
 
 ## 📋 项目功能
@@ -20,11 +21,46 @@ main/master分支非项目最新进度，最新更新的项目代码请查看res
   - 支持多种音频格式：mp3、wav、flac、m4a
   - 自动提取歌曲信息
   - 支持删除本地歌曲
-- 🎵 **自建歌单**：创建和管理个人歌单
+- 🎵 **自建歌单**：创建和管理个人歌单、导入网易云/QQ音乐歌单
 - 🎛️ **多种播放模式**：顺序、倒序、单曲循环、列表循环、随机
 - 📝 **歌词显示**：实时歌词同步显示
 - 🌙 **深色/浅色模式**：根据系统或手动切换
 - 🔧 **数据导入导出**：支持个人数据的备份与恢复
+
+### 增强功能
+
+> 以下增强功能由重构后新增的 `src/renderer/js/features.js` 提供。
+
+- 🎚️ **均衡器（EQ）**：10 段参量均衡器，内置流行 / 摇滚 / 人声增强 / 重低音等预设，可自定义
+- 🌊 **淡入淡出**：歌曲开头淡入、结尾淡出，过渡时长可调（1–6 秒）
+- ⏩ **播放速度**：0.5×–2× 变速播放
+- 🔊 **音量增益 / 声道平衡**：响度增强（0.5–3×）与左右声道平衡调节
+- 📊 **频谱可视化**：歌词页底部实时音频频谱
+- 🪟 **桌面歌词**：独立桌面歌词窗口，字号与歌词页同步
+- 🔤 **歌词字号 / 时间轴校正**：歌词小 / 中 / 大三档，支持 ±0.2 秒偏移校正
+- 🖥️ **迷你模式**：紧凑迷你播放条，一键还原主界面
+- 💾 **记忆播放**：记住音量、播放模式与上次播放进度，启动时自动恢复
+- ⏱️ **睡眠定时**：15/30/45/60 分钟、自定义分钟或「播完当前歌曲」后自动停止播放
+- 🔁 **A-B 片段循环**：设置 A/B 两点循环播放，适合练外语 / 乐器
+- 🔀 **队列拖拽**：播放列表拖拽排序，支持一键去重与清空
+- 📈 **听歌统计**：总播放次数、累计时长、最常听 Top 10、常听歌手
+- 🎛️ **智能歌单**：基于听歌统计自动生成「最常播放」「最近添加」歌单
+- 🏠 **发现首页**：问候语 + 快捷入口 + 最近播放 / 我喜欢的卡片推荐
+- ⌨️ **媒体键 / MediaSession**：支持系统媒体键与系统媒体中心控制播放
+- 🔔 **系统通知**：切歌时弹出系统通知（可在设置中关闭）
+- 📂 **拖放导入**：将本地音频文件拖入窗口即可加入播放队列
+- 🎨 **外观强调色**：内置多款强调色，自定义界面主题色
+- 📐 **侧边栏折叠**：可折叠侧边栏，扩大主内容区
+- 🔑 **快捷键**：空格播放、方向键快进快退（Shift 为 15 秒）、音量键调节、Ctrl/⌘+F 聚焦搜索、Esc 关闭弹窗等
+
+### v1.3.0 新增功能
+
+- 📊 **年度听歌报告**：生涯 / 年度双模式，7 页故事流（总览、时长、次数、歌手、歌曲、时刻、结语），支持键盘导航与一键复制分享文案
+- 🖼️ **封面 / 下载 / 登录增强**：歌单封面裂图自动代理回退；批量下载前逐源预检并二次确认；支持 Cookie 手动导入登录音乐源
+- 📚 **音乐库浏览页**：本地音乐按歌手 / 格式分组浏览、重复文件检测与"保留最新"一键清理、文件定位与删除管理
+- 🌐 **翻译歌词**：接入网易官方翻译歌词接口，原文 + 译文双行对齐显示，桌面歌词窗口同步译文
+- 🖥️ **系统集成**：单实例锁（重复启动自动聚焦已有窗口）、文件关联打开（双击音频文件直接入队播放）、播放时阻止系统休眠
+- 🎵 **无间隙播放**：自动预载下一首歌曲，切歌即播几乎无缝；歌词加载不再阻塞播放启动
 
 ## ✨ 项目特色
 
@@ -33,7 +69,7 @@ main/master分支非项目最新进度，最新更新的项目代码请查看res
 - **离线播放**：支持离线状态下播放本地歌曲
 - **跨平台**：支持 Windows、macOS、Linux
 
-## 📷 项目截图
+## 📷 项目截图（非最新项目截图）
 
 ![主界面黑](./snapshot/Snipaste_2026-03-21_22-11-12.png)
 ![主界面白](./snapshot/Snipaste_2026-03-21_22-12-03.png)
@@ -92,64 +128,56 @@ npm run make
 ## 📁 项目结构
 
 ```
-src/
-├── main/                           # Electron 主进程
-│   ├── main.js                     # 窗口创建、生命周期管理
-│   ├── ipcHandlers.js              # IPC 通信处理器
-│   ├── preload.js                  # 预加载脚本，安全暴露 API
-│   └── services/                   # 主进程服务
-│       ├── storage.js              # 文件读写服务
-│       ├── update.js               # 更新检查与处理
-│       ├── logger.js               # 日志服务
-│       └── musicDlService.js       # go-music-dl API 服务管理
-│
-├── renderer/                       # 渲染进程（前端）
-│   ├── index.html                  # 主界面 HTML
-│   ├── styles/                     # 样式文件
-│   │   └── style.css               # 全局样式
-│   ├── js/                         # 前端逻辑
-│   │   ├── app.js                  # 应用入口
-│   │   ├── store/                  # 状态管理
-│   │   │   ├── index.js            # 状态存储
-│   │   │   ├── state.js            # 初始状态
-│   │   │   └── actions.js          # 状态变更函数
-│   │   ├── modules/                # 功能模块
-│   │   │   ├── player.js           # 音频播放核心
-│   │   │   ├── playlist.js         # 播放列表管理
-│   │   │   ├── search.js           # 搜索功能
-│   │   │   ├── liked.js            # 我喜欢管理
-│   │   │   ├── recent.js           # 最近播放管理
-│   │   │   ├── local.js            # 本地歌曲管理
-│   │   │   ├── followed.js         # 关注歌手管理
-│   │   │   ├── diyPlaylists.js     # 自建歌单管理
-│   │   │   └── lyrics.js           # 歌词管理
-│   │   ├── ui/                     # UI 组件
-│   │   │   ├── sidebar.js          # 侧边栏
-│   │   │   ├── playlistDetail.js   # 歌单详情
-│   │   │   ├── searchResults.js    # 搜索结果
-│   │   │   ├── playerControls.js   # 播放控件
-│   │   │   ├── lyricsInterface.js  # 歌词界面
-│   │   │   ├── playlistFloat.js    # 播放列表浮窗
-│   │   │   ├── modals.js           # 模态框
-│   │   │   └── toast.js            # 全局提示
-│   │   ├── services/               # 前端服务
-│   │   │   ├── api.js              # API 调用
-│   │   │   ├── musicDlApi.js       # go-music-dl API 调用
-│   │   │   └── storage.js          # 数据持久化
-│   │   └── utils/                  # 工具函数
-│   │       ├── helpers.js          # 通用工具
-│   │       └── dom.js              # DOM 操作
-│   └── assets/                     # 静态资源
-│
-├── config/                         # 配置文件
-│   ├── forge.config.js             # Electron Forge 配置
-│   ├── tailwind.config.js          # Tailwind 配置
-│   └── postcss.config.js           # PostCSS 配置
-│
-├── package.json                    # 项目配置
-├── README.md                       # 项目说明
-└── music-dl-api.exe                # go-music-dl API 服务可执行文件（Windows）
+MusicPlayer/
+├── src/                            # 源代码目录
+│   ├── main/                       # Electron 主进程
+│   │   ├── main.js                 # 窗口创建、生命周期管理
+│   │   ├── ipcHandlers.js          # IPC 通信处理器
+│   │   ├── preload.js              # 预加载脚本，安全暴露 API
+│   │   └── services/               # 主进程服务
+│   │       ├── storage.js          # 文件读写服务
+│   │       ├── update.js           # 更新检查与处理
+│   │       ├── logger.js           # 日志服务
+│   │       └── musicDlService.js   # go-music-dl API 服务管理
+│   ├── renderer/                    # 渲染进程（前端）
+│   │   ├── index.html              # 主界面 HTML
+│   │   ├── desktop-lyrics.html     # 桌面歌词独立窗口
+│   │   ├── styles/                  # 样式文件
+│   │   │   └── style.css           # 全局样式
+│   │   └── js/                     # 前端逻辑（已重构整合）
+│   │       ├── app.js              # 渲染进程入口：整合全局状态与播放/搜索/歌单核心逻辑（原 store/modules 整合）
+│   │       └── features.js         # 增强功能集：媒体键、托盘通知、记忆播放、迷你模式、睡眠定时、桌面歌词、频谱、淡入淡出、队列拖拽、均衡器、听歌统计、设置面板（原 ui/utils/services 整合）
+│   └── config/                     # 配置文件
+│       ├── forge.config.js         # Electron Forge 配置
+│       ├── tailwind.config.js      # Tailwind 配置
+│       └── postcss.config.js       # PostCSS 配置
+├── snapshot/                       # 项目截图（用于README）
+├── .gitignore                      # Git 忽略文件配置
+├── package.json                    # 项目配置和依赖
+├── package-lock.json               # 依赖锁定文件
+├── music-dl-api.exe                # go-music-dl API 服务可执行文件（Windows）
+├── DIYSongList.json                # 自建歌单数据
+├── FollowedArtists.json            # 关注歌手数据
+├── Latest.json                     # 最新播放数据
+├── MyFavorite.json                 # 我喜欢数据
+├── PlayList.json                   # 播放列表数据
+├── SearchHistory.json              # 搜索历史数据
+├── .gitattributes                  # Git 换行符配置
+├── scripts/                        # 构建和部署脚本
+│   └── sync-to-packaged.ps1       # 同步文件到打包应用
+├── .cursor/                        # Cursor IDE 配置
+│   └── rules/                      # 自定义规则
+│       └── sync-packaged-app.mdc  # 同步规则配置
+└── README.md                       # 项目说明文档
 ```
+
+## 📂 构建输出
+
+项目构建后会生成以下目录和文件（通常不包含在版本控制中）：
+
+- `out/` - 打包后的应用文件
+- `node_modules/` - 项目依赖（通过 `npm install` 安装）
+
 
 ## 💾 本地数据管理
 
@@ -189,6 +217,14 @@ src/
 - [Meting](https://github.com/metowolf/Meting.git)
 - [go-music-dl](https://github.com/guohuiyuan/go-music-dl.git)
 
+## 📄 第三方组件与许可
+
+本项目代码以 [MIT License](LICENSE) 开源。发行版中捆绑了以下 AGPL-3.0 组件：
+
+- **music-dl-api.exe**：由 [guohuiyuan/go-music-dl](https://github.com/guohuiyuan/go-music-dl)（[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)）修改构建，为播放器提供本地（127.0.0.1:1989）在线音乐搜索 / 下载 API
+  - 修改版完整源码随本仓库发布：[third_party/go-music-dl](third_party/go-music-dl)
+  - 许可证文本：[third_party/go-music-dl/LICENSE](third_party/go-music-dl/LICENSE)
+
 # 📝 更新日志
 
 ## 2026.3.14
@@ -225,3 +261,38 @@ src/
 ## 2026.3.23
 
 - 通过go-music-dl项目增加了自定义源功能、清除搜索缓存功能，优化搜索历史管理
+
+## 2026.3.30
+
+- 感谢[qjl357](https://github.com/qjl357)增加的网易云/QQ音乐使用链接导入歌单功能、多选下载功能
+
+## 2026.3.31
+
+- 修复导出信息和导出歌单路径错误导致无法导出数据的问题
+
+## 2026.4.2
+
+- 修复导入歌曲路径错误问题
+
+## 2026.4.5
+
+- 修复左侧边栏自定义歌单列表展示的问题
+
+## 2026.10.24
+
+- **新增年度听歌报告**：生涯 / 年度双模式，7 页故事流，键盘导航与一键复制分享
+- **封面 / 下载 / 登录增强**：歌单封面裂图自动代理回退；批量下载前逐源预检并二次确认；Cookie 手动导入登录
+- **新增音乐库浏览页**：本地音乐按歌手 / 格式分组浏览、重复检测清理、文件定位与删除管理
+- **新增翻译歌词**：接入网易官方翻译歌词接口，原文 + 译文双行对齐显示，桌面歌词同步译文
+- **新增系统集成**：单实例锁、文件关联打开音频、播放时阻止系统休眠
+- **新增无间隙播放**：自动预载下一首即切即播，歌词加载不再阻塞播放启动
+- 修复歌单详情页歌曲"喜欢"爱心图标绘制错误
+- 修复启动后首次右键歌单菜单定位到侧边栏的问题（Tailwind JIT 异步生成定位类导致）
+- 补充第三方组件许可声明：随发行版捆绑的 music-dl-api.exe（AGPL-3.0）修改版源码移入 third_party/go-music-dl 公开
+
+## 2026.10.16
+
+- 重构渲染进程代码结构：将原本分散在 `store/`、`modules/`、`ui/`、`services/`、`utils/` 下的多个文件整合为 `src/renderer/js/app.js`（入口与全局状态/核心播放逻辑）与 `src/renderer/js/features.js`（增强功能集）
+- 新增独立桌面歌词窗口 `src/renderer/desktop-lyrics.html`
+- 新增 / 整合增强功能（features.js）：均衡器（10 段 + 预设）、淡入淡出、0.5×–2× 变速、音量增益与声道平衡、实时频谱可视化、桌面歌词、歌词字号与 ±0.2s 时间轴校正、迷你模式、记忆播放、睡眠定时、A-B 片段循环、队列拖拽排序 / 去重 / 清空、听歌统计、智能歌单（最常播放 / 最近添加）、发现首页、媒体键 / MediaSession 控制、切歌系统通知、拖放导入本地文件、外观强调色、侧边栏折叠、快捷键
+- 同步更新 README「项目结构」与「项目功能（增强功能）」章节，修正过时文档

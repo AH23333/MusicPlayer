@@ -1,0 +1,36 @@
+name: 拉取请求检查
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Fork code runs without repository write permissions or secrets.
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull request merge commit
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Tidy Modules
+        run: |
+          go mod tidy
+          go generate ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.12.2
+          # Compare against the checked-out base revision without requiring PR API access.
+          args: --new-from-rev=${{ github.event.pull_request.base.sha }} ./cmd/music-dl ./core ./internal/... ./winres/...

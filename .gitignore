@@ -40,3 +40,7 @@ MyFavorite.json
 PlayList.json
 SearchHistory.json
 integration-log.md
+/LICENSE
+
+# music-dl-api runtime data
+data/

@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Build artifacts
+music-dl
+music-dl.exe
+*.apk
+*.exe
+*.idsig
+gogio-local.exe
+tmp-music-dl*
+
+# Downloads
+downloads/
+data/
+desktop/
+desktop_app/ffmpeg/
+screenshots/
+
+# Sensitive files
+cookies.json
+.env
+*.keystore
+
+# Documentation
+README.md
+LICENSE
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+*.tmp
+*.swp

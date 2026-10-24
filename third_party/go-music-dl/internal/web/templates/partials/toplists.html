@@ -1,0 +1,66 @@
+{{define "toplists"}}
+{{ if .TopListCurrent }}
+    {{ with .TopListCurrent }}
+    <div class="category-current-bar">
+        <div class="category-current-info">
+            <span class="category-current-badge"><i class="fa-solid fa-ranking-star"></i> 当前榜单</span>
+            <div class="category-current-title">{{ .SourceName }}<span class="category-current-sep">·</span>{{ .TopListName }}</div>
+            <div class="category-current-subtitle">
+                {{ if .UpdateFrequency }}{{ .UpdateFrequency }} · {{ end }}点击歌曲即可播放或下载，也可以导入到本地歌单。
+            </div>
+        </div>
+        <a class="btn-pill btn-pill-switch" href="{{$.Root}}/toplists" onclick="event.preventDefault(); navigateTo(this.href)">
+            <i class="fa-solid fa-arrow-left"></i> 返回排行榜
+        </a>
+    </div>
+    {{ end }}
+{{ end }}
+
+{{ if .TopListSources }}
+<section class="category-panel toplist-panel">
+    <header class="category-panel-header">
+        <div class="category-panel-title">
+            <h2><i class="fa-solid fa-ranking-star"></i> 排行榜</h2>
+            <p>选择音乐源与榜单，查看热门、飙升等榜单歌曲。</p>
+        </div>
+    </header>
+
+    <div class="category-source-tabs" role="tablist">
+        {{ range $idx, $src := .TopListSources }}
+        <button type="button"
+            class="category-source-tab{{ if eq $idx 0 }} is-active{{ end }}"
+            role="tab"
+            data-target="toplist-panel-{{ $src.Source }}"
+            onclick="switchCategorySource(this)">
+            <span class="category-source-tab-name">{{ $src.Name }}</span>
+            <span class="category-source-tab-count">{{ $src.Count }}</span>
+        </button>
+        {{ end }}
+    </div>
+
+    <div class="category-source-panels">
+        {{ range $idx, $src := .TopListSources }}
+        <div class="category-source-panel{{ if eq $idx 0 }} is-active{{ end }}" id="toplist-panel-{{ $src.Source }}" role="tabpanel">
+            <div class="toplist-grid">
+                {{ range $src.TopLists }}
+                <a class="toplist-card" href="{{ .URL }}" onclick="event.preventDefault(); navigateTo(this.href)"{{ if .Description }} title="{{ .Description }}"{{ end }}>
+                    <div class="toplist-cover">
+                        <img src="{{ .Cover }}" loading="lazy" onerror="this.src='https://via.placeholder.com/400?text=TopList'">
+                        {{ if .UpdateFrequency }}<span class="toplist-freq-tag">{{ .UpdateFrequency }}</span>{{ end }}
+                    </div>
+                    <div class="toplist-meta">
+                        <div class="toplist-title">{{ .Name }}</div>
+                        <div class="toplist-sub">
+                            {{ if gt .TrackCount 0 }}<span><i class="fa-solid fa-music"></i> {{ .TrackCount }} 首</span>{{ end }}
+                            {{ if .PlayCount }}<span><i class="fa-solid fa-headphones"></i> {{ .PlayCount }}</span>{{ end }}
+                        </div>
+                    </div>
+                </a>
+                {{ end }}
+            </div>
+        </div>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
+{{end}}

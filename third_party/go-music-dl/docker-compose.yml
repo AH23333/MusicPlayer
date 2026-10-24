@@ -1,0 +1,16 @@
+services:
+  music-dl:
+    image: guohuiyuan/go-music-dl:latest
+    container_name: music-dl
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - type: bind
+        source: ./data
+        target: /home/appuser/data
+        bind:
+          create_host_path: true
+    environment:
+      - TZ=Asia/Shanghai
+    command: [ "./music-dl", "web", "--port", "8080", "--no-browser" ]
