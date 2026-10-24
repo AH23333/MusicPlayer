@@ -2,6 +2,8 @@
 
 个人项目，AI生成，仅供学习娱乐，不可商用
 
+> restruct 为开发分支，main 为稳定发布分支（随版本发布同步合并）。
+
 ## 下载
 
 [点击此处跳转下载](https://github.com/AH23333/MusicPlayer/releases)
