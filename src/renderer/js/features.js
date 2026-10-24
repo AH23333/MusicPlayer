@@ -704,8 +704,23 @@
     Player.on("pause", syncMini)
   }
   function setMini(enter) {
-    document.body.classList.toggle("mini-mode", enter)
-    miniBar.classList.toggle("hidden", !enter)
+    if (enter) {
+      document.body.classList.add("mini-mode")
+      miniBar.classList.remove("hidden")
+    } else {
+      // 退出迷你：先隐藏迷你条、主界面暂不恢复，等主进程扩展窗口完成
+      //（window resize 事件）后再移除 mini-mode，让整页重排发生在最终
+      // 窗口尺寸上，避免小窗口内整页布局 + resize 后二次布局的卡顿
+      miniBar.classList.add("hidden")
+      let guardTimer = 0
+      const restore = () => {
+        window.removeEventListener("resize", restore)
+        clearTimeout(guardTimer)
+        document.body.classList.remove("mini-mode")
+      }
+      window.addEventListener("resize", restore)
+      guardTimer = setTimeout(restore, 350)
+    }
     if (API.setMiniMode) API.setMiniMode(enter)
   }
 

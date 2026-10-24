@@ -76,6 +76,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   background: transparent; color: var(--text-2); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag; /* 标题栏为拖拽区，按钮必须显式排除才能收到点击 */
 }
 .titlebar-btn svg { width: 14px; height: 14px; }
 .titlebar-btn:hover { background: var(--bg-hover); color: var(--text); }
@@ -111,8 +112,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 }
 .sb-avatar svg { width: 22px; height: 22px; color: #fff; }
 .sb-user-meta { flex: 1; min-width: 0; }
-.sb-user-name { font-weight: 600; font-size: 14px; white-space: nowrap; }
-.sb-user-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.sb-user-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-sub { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-user-actions { display: flex; gap: 2px; }
 
 .sb-nav { display: flex; flex-direction: column; gap: 4px; }

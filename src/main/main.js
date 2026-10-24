@@ -226,10 +226,13 @@ function setMiniMode(enter) {
   } else {
     miniModeActive = false
     mainWindow.setResizable(true)
-    mainWindow.setAlwaysOnTop(false)
-    mainWindow.setMinimumSize(900, 600)
+    // 先恢复窗口尺寸，再放宽最小尺寸限制：
+    // 若先 setMinimumSize(900,600)，400x116 的迷你窗口会被强制先扩到 900x600，
+    // 随后 setBounds 再变一次——窗口连续两次 resize 造成退出迷你模式卡顿
     if (savedBounds) mainWindow.setBounds(savedBounds)
     else mainWindow.setSize(1080, 720)
+    mainWindow.setMinimumSize(900, 600)
+    mainWindow.setAlwaysOnTop(false)
     saveMainWindowStateNow()
   }
 }

@@ -2668,6 +2668,8 @@
     const subMenu = document.createElement("div")
     subMenu.className =
       "artist-selection-menu absolute bg-white border border-gray-300 rounded shadow-lg z-51 py-2 dark:bg-gray-800 dark:border-gray-700"
+    // z-51 不是有效 Tailwind 类（默认刻度无此值），子菜单需高于父菜单 320
+    subMenu.style.zIndex = "321"
 
     document.body.appendChild(subMenu)
 
@@ -2913,6 +2915,8 @@
     const menu = document.createElement("div")
     menu.className =
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700"
+    // 压过队列抽屉 z72 / 标题栏 z200，防止菜单被盖住
+    menu.style.zIndex = "320"
 
     menu.innerHTML = `
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToCurrentPlaylistBtn">添加到当前播放列表</button>
@@ -2987,6 +2991,9 @@
     const menu = document.createElement("div")
     menu.className =
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700"
+    // 队列抽屉 z72 / 标题栏 z200 / 弹窗 z280 都高于 Tailwind z-50，
+    // 右键菜单会被盖住（看似“消失”），用内联 z-index 压过全部层
+    menu.style.zIndex = "320"
 
     document.body.appendChild(menu)
 
@@ -3449,7 +3456,7 @@
       removeFromPlaylist(index)
     } else if (target.classList.contains("more-btn")) {
       e.stopPropagation()
-      showToast("更多功能开发中...")
+      showSongContextMenu(e, song, "playlist")
     }
   }
 
@@ -3478,7 +3485,7 @@
       showAddToPlaylistMenu(e, song)
     } else if (target.classList.contains("more-btn")) {
       e.stopPropagation()
-      showToast("更多功能开发中...")
+      showSongContextMenu(e, song, "search")
     }
   }
 
@@ -3531,7 +3538,7 @@
       }
     } else if (target.classList.contains("more-btn")) {
       e.stopPropagation()
-      showToast("更多功能开发中...")
+      showSongContextMenu(e, song, "playlist-detail")
     }
   }
 
@@ -5126,12 +5133,13 @@
     const el = document.getElementById("brandGreeting")
     if (!el) return
     const h = new Date().getHours()
-    let g = "享受音乐时光"
-    if (h >= 5 && h < 11) g = "早上好，听歌开启一天"
-    else if (h >= 11 && h < 14) g = "中午好，稍作休息"
-    else if (h >= 14 && h < 18) g = "下午好，来首歌吗"
-    else if (h >= 18 && h < 23) g = "晚上好，放松一下"
-    else g = "夜深了，来点轻音乐"
+    // 侧边栏用户卡片列宽有限，问候语过长会溢出遮挡右侧按钮，保持 3-5 字
+    let g = "享受音乐"
+    if (h >= 5 && h < 11) g = "早上好"
+    else if (h >= 11 && h < 14) g = "中午好"
+    else if (h >= 14 && h < 18) g = "下午好"
+    else if (h >= 18 && h < 23) g = "晚上好"
+    else g = "夜深了"
     el.textContent = g
   }
 
