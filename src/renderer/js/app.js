@@ -1860,7 +1860,8 @@
     if (playlist.id === "local") {
       applyLocalDownloadProgressUI()
     }
-    navRecord(playlist.name || "歌单详情", () => showPlaylistDetail(playlist))
+    // 标题仅用于导航去重（不展示），带 id 避免同名歌单互相覆盖历史
+    navRecord(`歌单详情:${playlist.id}`, () => showPlaylistDetail(playlist))
   }
 
   // ===== 歌单详情分批渲染：大歌单不再一次性渲染全部行（列表+网格都分批），避免卡顿 =====
@@ -2576,6 +2577,18 @@
 
   // ========== 键盘快捷键与弹层统一管理 ==========
   function closeTopmostOverlay() {
+    // 右键/浮层菜单（内联 zIndex 320/321）在视觉最顶层，Escape 优先关闭
+    const ctxMenu = Array.prototype.find.call(
+      document.body.children,
+      (el) =>
+        el.nodeType === 1 &&
+        el.style &&
+        (Number(el.style.zIndex) || 0) >= 320
+    )
+    if (ctxMenu) {
+      ctxMenu.remove()
+      return true
+    }
     // 模态弹窗优先（按视觉层级）
     const modals = [
       downloadSongModal,
@@ -4195,6 +4208,7 @@
     refreshDmQueue(true)
     refreshDmRecords(true)
     startDmQueuePolling()
+    navRecord("下载管理", () => openDownloadManager())
   }
 
   function startDmQueuePolling() {
@@ -5219,6 +5233,8 @@
         try {
           searchOffset += PAGE_SIZE
           await loadSearchResults(keyword, searchOffset)
+          // 加载更多后刷新导航快照（同名条目原地更新回放闭包）
+          recordSearchNav(keyword)
         } finally {
           isLoadingMore = false
           loadMoreBtn.disabled = false
