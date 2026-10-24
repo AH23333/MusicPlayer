@@ -2145,7 +2145,7 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button class="like-btn ${isLiked ? "text-red-500" : "text-gray-400 dark:text-gray-500"} hover:text-red-500 transition-colors" data-song-id="${song.id}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 1 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${isLiked ? "currentColor" : "none"}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
             </button>
             <button class="add-to-playlist" data-song-id="${song.id}">+</button>
             <button class="more-btn" data-song-id="${song.id}">
@@ -2503,6 +2503,10 @@
     const menu = document.createElement("div")
     menu.className =
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700 context-menu"
+    // Tailwind 类在元素插入 DOM 后由 MutationObserver 异步生成，首次右键时
+    // absolute/z-50 尚未生效，菜单按静态流布局测量导致 left/top 落在侧边栏，必须内联
+    menu.style.position = "absolute"
+    menu.style.zIndex = "320"
     menu.innerHTML = `
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="playPlaylistBtn">播放歌单</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="editPlaylistBtn">修改歌单</button>
@@ -2575,6 +2579,7 @@
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700 context-menu online-pl-menu"
     // 压过队列抽屉 z72 / 标题栏 z200，防止菜单被盖住
     menu.style.zIndex = "320"
+    menu.style.position = "absolute"
     menu.innerHTML = `
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="onlinePlOpenBtn">打开歌单</button>
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="onlinePlPlayBtn">播放歌单</button>
@@ -3063,6 +3068,7 @@
       "artist-selection-menu absolute bg-white border border-gray-300 rounded shadow-lg z-51 py-2 dark:bg-gray-800 dark:border-gray-700"
     // z-51 不是有效 Tailwind 类（默认刻度无此值），子菜单需高于父菜单 320
     subMenu.style.zIndex = "321"
+    subMenu.style.position = "absolute"
 
     document.body.appendChild(subMenu)
 
@@ -3312,6 +3318,7 @@
       "absolute bg-white border border-gray-300 rounded shadow-lg z-50 py-2 dark:bg-gray-800 dark:border-gray-700"
     // 压过队列抽屉 z72 / 标题栏 z200，防止菜单被盖住
     menu.style.zIndex = "320"
+    menu.style.position = "absolute"
 
     menu.innerHTML = `
       <button class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-200 dark:hover:bg-gray-700 dark:text-white" id="addToCurrentPlaylistBtn">添加到当前播放列表</button>
@@ -3389,6 +3396,7 @@
     // 队列抽屉 z72 / 标题栏 z200 / 弹窗 z280 都高于 Tailwind z-50，
     // 右键菜单会被盖住（看似“消失”），用内联 z-index 压过全部层
     menu.style.zIndex = "320"
+    menu.style.position = "absolute"
 
     document.body.appendChild(menu)
 
