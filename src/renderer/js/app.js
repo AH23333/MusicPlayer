@@ -3630,8 +3630,22 @@
     flushRecentSaves()
   }
 
+  // 无间隙播放：当前歌开播后把“下一首”预取为 blob，切歌时 src 直指本地
+  // blob，省去网络往返与解码等待，衔接近乎无缝。本地文件磁盘读取本就快，
+  // 无需预载；预载失败静默回退原有网络加载。
+  let gaplessCache = null // { key: song.url, blobUrl, song }
+
+  function releaseGaplessCache() {
+    if (gaplessCache) {
+      try {
+        URL.revokeObjectURL(gaplessCache.blobUrl)
+      } catch (e) {}
+      gaplessCache = null
+    }
+  }
+
   async function preloadNextSong() {
-    if (!playQueue.length) return
+    if (!playQueue.length || !audioPlayer) return
     let nextIndex = currentSongIndex
     switch (playMode) {
       case "order":
@@ -3648,18 +3662,24 @@
         return
     }
     const nextSong = playQueue[nextIndex]
-    if (
-      nextSong &&
-      nextSong.url &&
-      audioPlayer &&
-      nextSong.url !== audioPlayer.src
-    ) {
-      const link = document.createElement("link")
-      link.rel = "preload"
-      link.as = "audio"
-      link.href = nextSong.url
-      document.head.appendChild(link)
-      setTimeout(() => link.remove(), 10000)
+    if (!nextSong || !nextSong.url || isSongLocalPath(nextSong)) return
+    if (gaplessCache && gaplessCache.key === String(nextSong.url)) return
+    releaseGaplessCache()
+    try {
+      const target =
+        window.ElectronAPI && typeof window.ElectronAPI.proxyMedia === "function"
+          ? window.ElectronAPI.proxyMedia(nextSong.url)
+          : nextSong.url
+      const resp = await fetch(target)
+      if (!resp.ok) throw new Error("HTTP " + resp.status)
+      const blob = await resp.blob()
+      gaplessCache = {
+        key: String(nextSong.url),
+        blobUrl: URL.createObjectURL(blob),
+        song: nextSong,
+      }
+    } catch (e) {
+      releaseGaplessCache()
     }
   }
 
@@ -3805,8 +3825,15 @@
 
     // 重置并直接加载目标音频（不再用临时 Audio 双重加载）
     audioPlayer.pause()
-    audioPlayer.src =
-      window.ElectronAPI && typeof window.ElectronAPI.proxyMedia === "function"
+    // 无间隙：预载命中的在线歌直接用本地 blob，免去切歌时的网络往返
+    const gaplessHit =
+      gaplessCache &&
+      !isSongLocalPath(song) &&
+      song.url &&
+      gaplessCache.key === String(song.url)
+    audioPlayer.src = gaplessHit
+      ? gaplessCache.blobUrl
+      : window.ElectronAPI && typeof window.ElectronAPI.proxyMedia === "function"
         ? window.ElectronAPI.proxyMedia(song.url)
         : song.url
     syncNowPlayingRows(song)
@@ -3854,8 +3881,8 @@
       }
     }
 
-    await loadLyricsWithStatus(song)
-    if (myGeneration !== playGeneration) return
+    // 歌词改为不阻塞播放启动（内部自带缓存与错误兜底），切歌衔接因此更紧
+    loadLyricsWithStatus(song).catch(() => {})
 
     try {
       if (audioPlayer.readyState < 2) {
@@ -5826,6 +5853,15 @@
     toggleLyricTrans: () => toggleLyricTrans(),
     // 供测试钩子渲染指定歌词（不对外承诺 UI 行为）
     renderLyricsForTest: (lrc, songId, tlrc) => renderLyrics(lrc, songId, tlrc),
+    enrichMusicDlSearchSongForTest: (song) => enrichMusicDlSearchSong(song),
+    gaplessInfo: () => ({
+      cached: !!gaplessCache,
+      key: gaplessCache ? gaplessCache.key : null,
+      audioSrc: audioPlayer ? String(audioPlayer.src) : "",
+      blobPlaying: audioPlayer
+        ? String(audioPlayer.src).startsWith("blob:")
+        : false,
+    }),
     toggle: () => togglePlayback(),
     play: () => {
       if (audioPlayer && currentSongIndex >= 0) {
