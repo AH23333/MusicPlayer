@@ -3204,7 +3204,8 @@
         syncNowPlayingRows(null)
         if (songTitle) songTitle.textContent = "未播放歌曲"
         if (songArtist) songArtist.textContent = "--"
-        if (coverImg) coverImg.src = ""
+        if (coverImg) coverImg.src = "../../assets/icon.ico"
+        if (lyricsCoverImg) lyricsCoverImg.src = "../../assets/icon.ico"
         renderLyrics("")
       } else {
         playNextSong()
@@ -3225,7 +3226,8 @@
     syncNowPlayingRows(null)
     if (songTitle) songTitle.textContent = "未播放歌曲"
     if (songArtist) songArtist.textContent = "--"
-    if (coverImg) coverImg.src = ""
+    if (coverImg) coverImg.src = "../../assets/icon.ico"
+    if (lyricsCoverImg) lyricsCoverImg.src = "../../assets/icon.ico"
     renderLyrics("")
     localStorage.removeItem("mp-session")
   }
@@ -3728,8 +3730,7 @@
       if (coverImg) coverImg.src = song.coverUrl
       if (lyricsCoverImg) lyricsCoverImg.src = song.coverUrl
     } else {
-      const defaultCover =
-        "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjUiIGZpbGw9IiNlZWVlZWUiLz4KPHBhdGggZD0iTTE1IDI1IEwyNSAxNSBMMzUgMjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Ik0yNSAxNSBMMjUgMzUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo="
+      const defaultCover = "../../assets/icon.ico"
       if (coverImg) coverImg.src = defaultCover
       if (lyricsCoverImg) lyricsCoverImg.src = defaultCover
     }
@@ -5279,9 +5280,7 @@
           if (lyricsInterface && lyricsInterface.classList.contains("hidden")) {
             const song = playQueue[currentSongIndex]
             if (lyricsCoverImg) {
-              lyricsCoverImg.src =
-                song.coverUrl ||
-                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMjUiIGZpbGw9IiNlZWVlZWUiLz4KPHBhdGggZD0iTTE1IDI1IEwyNSAxNSBMMzUgMjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Ik0yNSAxNSBMMjUgMzUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo="
+              lyricsCoverImg.src = song.coverUrl || "../../assets/icon.ico"
             }
             if (lyricsSongTitle) lyricsSongTitle.textContent = song.name
             if (lyricsSongArtist) lyricsSongArtist.textContent = song.artist
