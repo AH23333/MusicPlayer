@@ -2816,6 +2816,11 @@
           mineLogout(mineState.source)
           return
         }
+        const cookieBtn = e.target.closest("[data-mine-cookie]")
+        if (cookieBtn) {
+          openCookieImport(mineState.source)
+          return
+        }
         const card = e.target.closest("[data-mine-idx]")
         if (card) {
           const lists = mineState.playlists[mineState.source] || []
@@ -3022,6 +3027,63 @@
       Player.toast("退出登录失败", "info")
     }
   }
+  // 手动导入 Cookie：扫码不可用时的备选登录方式（POST /api/cookies → 刷新登录状态）
+  async function openCookieImport(source) {
+    const label = mineLabel(source)
+    const layer = document.createElement("div")
+    layer.className = "dialog-layer hidden"
+    layer.innerHTML =
+      '<div class="dialog dialog-sm">' +
+      '<div class="dialog-head"><h3 class="dialog-title">导入' + label + " Cookie</h3></div>" +
+      '<div class="dialog-body">' +
+      '<p class="confirm-msg">在浏览器中登录' + label + '音乐网页版，复制其中的 Cookie 粘贴到下面。导入成功后即可访问你的云歌单（扫码登录失败时的备选方案）。</p>' +
+      '<textarea id="mineCookieInput" class="mine-cookie-input" rows="5" placeholder="例如 MUSIC_U=xxxx; __csrf=yyyy" spellcheck="false"></textarea>' +
+      "</div>" +
+      '<div class="dialog-foot-right">' +
+      '<button class="btn btn-ghost" data-c>取消</button>' +
+      '<button class="btn btn-primary" data-o>导入</button>' +
+      "</div></div>"
+    document.body.appendChild(layer)
+    requestAnimationFrame(() => layer.classList.remove("hidden"))
+    const input = layer.querySelector("#mineCookieInput")
+    const importBtn = layer.querySelector("[data-o]")
+    let closed = false
+    const close = () => {
+      if (closed) return
+      closed = true
+      layer.classList.add("hidden")
+      setTimeout(() => layer.remove(), 200)
+    }
+    layer.querySelector("[data-c]").addEventListener("click", close)
+    layer.addEventListener("click", (e) => {
+      if (e.target === layer) close()
+    })
+    importBtn.addEventListener("click", async () => {
+      const val = (input && input.value ? input.value : "").trim()
+      if (!val) {
+        Player.toast("请先粘贴 Cookie 内容", "info")
+        return
+      }
+      importBtn.disabled = true
+      let res = null
+      try {
+        res = await window.ElectronAPI.musicDlCookiesSet({ [source]: val })
+      } catch (e) {
+        res = null
+      }
+      importBtn.disabled = false
+      if (res && res.ok) {
+        Player.toast("Cookie 已导入，正在刷新登录状态", "info")
+        close()
+        await refreshMineStatuses()
+      } else {
+        Player.toast("导入失败：" + (res && res.error ? res.error : "未知错误"), "info")
+      }
+    })
+    setTimeout(() => {
+      if (input) input.focus()
+    }, 60)
+  }
   async function openMinePlaylist(p) {
     if (!p || !p.id) return
     Player.toast("正在加载歌单《" + p.name + "》", "info")
@@ -3113,9 +3175,12 @@
         escapeHtml(qr ? mineState.qrStatus : "点击下方按钮生成二维码") +
         "</div>" +
         '<div class="mine-qr-tip">打开' + mineLabel(src) + '音乐 App，使用扫一扫扫描二维码，登录后可查看你的云歌单</div>' +
+        '<div class="mine-qr-actions">' +
         '<button class="btn btn-ghost" data-mine-qrrefresh="1">' +
         (qr ? "刷新二维码" : "生成二维码") +
-        "</button></div></div>"
+        "</button>" +
+        '<button class="btn btn-ghost" data-mine-cookie="1">手动导入 Cookie</button>' +
+        "</div></div></div>"
     }
     sec.innerHTML =
       '<div class="stats-head"><h2>在线歌单</h2>' +

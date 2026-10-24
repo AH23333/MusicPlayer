@@ -487,6 +487,40 @@
     txt.textContent = lastDownloadUi.text
   }
 
+  // 封面裂图全局回退：直连失败的在线封面先经 go 服务端 cover_proxy 代理抓取，仍失败回退应用图标
+  // capture 阶段监听可捕获动态插入的 <img> 错误；带自有 onerror 的图片交由其自身逻辑处理
+  function setupCoverFallback() {
+    document.addEventListener(
+      "error",
+      async (e) => {
+        const img = e.target
+        if (!img || img.tagName !== "IMG") return
+        if (typeof img.onerror === "function") return
+        const src = img.currentSrc || img.src || ""
+        if (!/^https?:\/\//i.test(src)) return
+        if (!window.ElectronAPI || !window.ElectronAPI.musicDlCoverProxyUrl) return
+        if (!img.dataset.mpCoverProxy) {
+          img.dataset.mpCoverProxy = "1"
+          try {
+            const proxied = await window.ElectronAPI.musicDlCoverProxyUrl(src)
+            if (proxied) {
+              img.src = proxied
+              return
+            }
+          } catch (err) {}
+          img.dataset.mpCoverIcon = "1"
+          img.src = "../../assets/icon.ico"
+          return
+        }
+        if (!img.dataset.mpCoverIcon) {
+          img.dataset.mpCoverIcon = "1"
+          img.src = "../../assets/icon.ico"
+        }
+      },
+      true
+    )
+  }
+
   function setupDownloadProgressListener() {
     if (teardownDownloadProgress) {
       teardownDownloadProgress()
@@ -4648,12 +4682,62 @@
     refreshDmRecords(true)
   }
 
+  // 下载预检确认弹窗：告知将跳过多少首已下载过的歌曲，返回用户是否继续
+  function confirmPrecheckDialog(total, skipped) {
+    return new Promise((resolve) => {
+      const layer = document.createElement("div")
+      layer.className = "dialog-layer hidden"
+      layer.innerHTML =
+        '<div class="dialog dialog-sm">' +
+        '<div class="dialog-head"><h3 class="dialog-title">下载预检</h3></div>' +
+        '<div class="dialog-body"><p class="confirm-msg">检测到 ' +
+        skipped +
+        " / " +
+        total +
+        " 首歌曲此前已下载过，这些将被跳过。仍要加入下载队列吗？</p></div>" +
+        '<div class="dialog-foot-right">' +
+        '<button class="btn btn-ghost" data-c>取消</button>' +
+        '<button class="btn btn-primary" data-o>继续下载</button>' +
+        "</div></div>"
+      document.body.appendChild(layer)
+      requestAnimationFrame(() => layer.classList.remove("hidden"))
+      let settled = false
+      const close = (v) => {
+        if (settled) return
+        settled = true
+        layer.classList.add("hidden")
+        setTimeout(() => layer.remove(), 200)
+        resolve(v)
+      }
+      layer.querySelector("[data-c]").addEventListener("click", () => close(false))
+      layer.querySelector("[data-o]").addEventListener("click", () => close(true))
+      layer.addEventListener("click", (e) => {
+        if (e.target === layer) close(false)
+      })
+    })
+  }
+
   // 把歌曲批量加入 go-music-dl 后台下载队列（去重 + 元数据嵌入，完成后可在「本地和下载」导入）
   async function enqueueSongsToDownloadQueue(songs) {
     const list = (songs || []).filter((s) => s && !isSongLocalPath(s) && (s.songId || s.id) && s.source)
     if (!list.length) {
       showToastError("没有可加入队列的在线歌曲")
       return
+    }
+    // 下载预检：go 侧统计已有同名歌曲的数量，提前告知用户将跳过多少首
+    if (window.ElectronAPI && window.ElectronAPI.musicDlPrecheck) {
+      let pre = null
+      try {
+        pre = await window.ElectronAPI.musicDlPrecheck(
+          list.map((s) => ({ name: s.name || "", artist: s.artist || "" }))
+        )
+      } catch (e) {
+        pre = null
+      }
+      if (pre && pre.available && pre.skipped > 0) {
+        const proceed = await confirmPrecheckDialog(pre.total, pre.skipped)
+        if (!proceed) return
+      }
     }
     const requestId = `player-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const res = await window.ElectronAPI.musicDlDownloadQueueEnqueue(
@@ -5574,6 +5658,7 @@
   async function initApp() {
     initDOMElements()
     bindAllEvents()
+    setupCoverFallback()
     setupDownloadProgressListener()
     setupAudioListeners()
     setupSidebarResize()

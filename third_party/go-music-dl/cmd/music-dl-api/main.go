@@ -1497,6 +1497,96 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(result.Data)
 }
 
+// handleCoverProxy 代理防盗链封面：本地播放器 <img> 直连源站可能 403，经服务端带 UA/Referer 抓取
+func handleCoverProxy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	u := strings.TrimSpace(r.URL.Query().Get("url"))
+	if u == "" || !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "missing or invalid url"})
+		return
+	}
+	data, contentType, err := core.FetchBytesWithMime(u, strings.TrimSpace(r.URL.Query().Get("source")))
+	if err != nil || len(data) == 0 {
+		writeJSON(w, http.StatusBadGateway, map[string]interface{}{"error": "fetch cover failed"})
+		return
+	}
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=21600")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
+// handlePrecheck 批量下载预检：统计待下载列表中有多少首已下载过（将被去重跳过）
+func handlePrecheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 20<<20)
+	var req struct {
+		Songs []struct {
+			Name   string `json:"name"`
+			Artist string `json:"artist"`
+		} `json:"songs"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid json body"})
+		return
+	}
+	if len(req.Songs) > 20000 {
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "too many songs"})
+		return
+	}
+	for _, s := range req.Songs {
+		if len(s.Name) > 500 || len(s.Artist) > 500 {
+			writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "song name/artist too long"})
+			return
+		}
+	}
+	dedupSet, err := core.LoadDownloadDedupSet()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	skipCount := 0
+	for _, s := range req.Songs {
+		song := &model.Song{Name: s.Name, Artist: s.Artist}
+		if core.IsSongStillDownloaded(song, dedupSet, core.GetWebSettings().DownloadDir) {
+			skipCount++
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"total":   len(req.Songs),
+		"skipped": skipCount,
+	})
+}
+
+// handleCookies GET 返回全部已存 Cookie（按源），POST 覆盖写入并持久化（手动导入登录态用）
+func handleCookies(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, core.CM.GetAll())
+	case http.MethodPost:
+		r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+		var req map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid cookies payload"})
+			return
+		}
+		core.CM.SetAll(req)
+		core.CM.Save()
+		writeJSON(w, http.StatusOK, map[string]interface{}{"status": "ok"})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 func main() {
 	port := flag.Int("port", 1989, "HTTP 监听端口")
 	flag.Parse()
@@ -1534,6 +1624,9 @@ func main() {
 	mux.HandleFunc("/api/album_search", handleAlbumSearch)
 	mux.HandleFunc("/api/album", handleAlbum)
 	mux.HandleFunc("/api/download", handleDownload)
+	mux.HandleFunc("/cover_proxy", handleCoverProxy)
+	mux.HandleFunc("/api/downloads/precheck", handlePrecheck)
+	mux.HandleFunc("/api/cookies", handleCookies)
 	mux.HandleFunc("/api/download_queue", handleDownloadQueue)
 	mux.HandleFunc("/api/download_queue_action", handleDownloadQueueAction)
 	mux.HandleFunc("/api/download_records", handleDownloadRecords)

@@ -2082,6 +2082,84 @@ function initIpcHandlers() {
     }
   })
 
+  // ===== go-music-dl 扩展：封面代理 / 下载预检 / Cookie 手动导入 =====
+
+  // 封面代理 URL（防盗链封面经 go 服务端带 UA/Referer 抓取）
+  ipcMain.handle("musicDlCoverProxyUrl", async (event, url) => {
+    const u = String(url || "").trim()
+    if (!/^https?:\/\//i.test(u)) return ""
+    return `${musicDlService.getBaseUrl()}/cover_proxy?url=${encodeURIComponent(u)}`
+  })
+
+  // 批量下载预检：返回 { available, total, skipped }；旧版 exe 无此端点时 available:false
+  ipcMain.handle("musicDlPrecheck", async (event, songs) => {
+    const list = Array.isArray(songs)
+      ? songs
+          .slice(0, 20000)
+          .map((s) => ({
+            name: String((s && s.name) || "").slice(0, 500),
+            artist: String((s && s.artist) || "").slice(0, 500),
+          }))
+      : []
+    if (!list.length) return { available: true, total: 0, skipped: 0 }
+    try {
+      const response = await axios.post(
+        `${musicDlService.getBaseUrl()}/api/downloads/precheck`,
+        { songs: list },
+        { timeout: 30000 }
+      )
+      return {
+        available: true,
+        total: response.data.total || 0,
+        skipped: response.data.skipped || 0,
+      }
+    } catch (error) {
+      logger.warn(`下载预检不可用: ${error.message}`)
+      return { available: false, total: list.length, skipped: 0 }
+    }
+  })
+
+  // Cookie 读取（按源，手动导入登录态用）
+  ipcMain.handle("musicDlCookiesGet", async () => {
+    try {
+      const response = await axios.get(
+        `${musicDlService.getBaseUrl()}/api/cookies`,
+        { timeout: 15000 }
+      )
+      return { available: true, cookies: response.data || {} }
+    } catch (error) {
+      logger.warn(`读取 Cookie 失败: ${error.message}`)
+      return { available: false, cookies: {}, error: error.message }
+    }
+  })
+
+  // Cookie 写入：payload 形如 { netease: "MUSIC_U=..." }
+  ipcMain.handle("musicDlCookiesSet", async (event, payload) => {
+    const data = {}
+    if (payload && typeof payload === "object") {
+      for (const [k, v] of Object.entries(payload)) {
+        const key = String(k).trim().toLowerCase()
+        const val = String(v || "").trim()
+        if (key && val) data[key] = val
+      }
+    }
+    if (!Object.keys(data).length) {
+      return { ok: false, error: "没有可导入的 Cookie" }
+    }
+    try {
+      await axios.post(
+        `${musicDlService.getBaseUrl()}/api/cookies`,
+        data,
+        { timeout: 15000 }
+      )
+      logger.info(`手动导入 Cookie 成功：${Object.keys(data).join(", ")}`)
+      return { ok: true }
+    } catch (error) {
+      logger.error(`手动导入 Cookie 失败: ${error.message}`)
+      return { ok: false, error: error.message }
+    }
+  })
+
   // ===== 歌手页：多源专辑搜索 + 专辑详情（go-music-dl）=====
 
   ipcMain.handle("musicDlAlbumSearch", async (event, keyword) => {

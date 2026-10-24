@@ -123,6 +123,12 @@ musicDlAlbum: (source, id, name) =>
     ipcRenderer.invoke("musicDlDownloadRecordsList", page, pageSize),
   musicDlDownloadRecordsClear: () =>
     ipcRenderer.invoke("musicDlDownloadRecordsClear"),
+  musicDlCoverProxyUrl: (url) =>
+    ipcRenderer.invoke("musicDlCoverProxyUrl", url),
+  musicDlPrecheck: (songs) => ipcRenderer.invoke("musicDlPrecheck", songs),
+  musicDlCookiesGet: () => ipcRenderer.invoke("musicDlCookiesGet"),
+  musicDlCookiesSet: (payload) =>
+    ipcRenderer.invoke("musicDlCookiesSet", payload),
   musicSongDetail: (server, id) =>
     ipcRenderer.invoke("music-song-detail", server, id),
   fetchWebPlaylist: (urlOrId, platform) =>
