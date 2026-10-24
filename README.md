@@ -205,6 +205,14 @@ MusicPlayer/
 - [Meting](https://github.com/metowolf/Meting.git)
 - [go-music-dl](https://github.com/guohuiyuan/go-music-dl.git)
 
+## 📄 第三方组件与许可
+
+本项目代码以 [MIT License](LICENSE) 开源。发行版中捆绑了以下 AGPL-3.0 组件：
+
+- **music-dl-api.exe**：由 [guohuiyuan/go-music-dl](https://github.com/guohuiyuan/go-music-dl)（[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)）修改构建，为播放器提供本地（127.0.0.1:1989）在线音乐搜索 / 下载 API
+  - 修改版完整源码随本仓库发布：[third_party/go-music-dl](third_party/go-music-dl)
+  - 许可证文本：[third_party/go-music-dl/LICENSE](third_party/go-music-dl/LICENSE)
+
 # 📝 更新日志
 
 ## 2026.3.14
@@ -257,6 +265,12 @@ MusicPlayer/
 ## 2026.4.5
 
 - 修复左侧边栏自定义歌单列表展示的问题
+
+## 2026.10.24
+
+- 修复歌单详情页歌曲"喜欢"爱心图标绘制错误
+- 修复启动后首次右键歌单菜单定位到侧边栏的问题（Tailwind JIT 异步生成定位类导致）
+- 补充第三方组件许可声明：随发行版捆绑的 music-dl-api.exe（AGPL-3.0）修改版源码移入 third_party/go-music-dl 公开
 
 ## 2026.10.16
 

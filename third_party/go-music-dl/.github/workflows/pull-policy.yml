@@ -1,0 +1,37 @@
+name: 拉取请求标题检查
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+
+# This trusted workflow only uses PR metadata; never check out or run fork code.
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  close-pr:
+    name: closepr
+    if: contains(github.event.pull_request.title, '.go')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close PR if title contains ".go"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const number = context.payload.pull_request.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: number,
+              body: [
+                "非法 PR：请 fork 后修改自己的仓库，而不是向主仓库提交更改。",
+                "如果这个 PR 确实用于给主仓库新增功能或修复 bug，请修改默认 PR 标题。",
+                "注意：重复触发本提示可能导致账号被封禁。",
+              ].join("\n\n"),
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: number,
+              state: "closed",
+            });
